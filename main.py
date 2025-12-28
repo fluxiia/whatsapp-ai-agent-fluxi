@@ -117,7 +117,7 @@ def startup_event():
             print(f"✅ {sessoes_reconectadas} sessão(ões) reconectada(s)")
         
         print("✅ Fluxi iniciado com sucesso!")
-        print("📱 Acesse: http://localhost:8001")
+        print("📱 Acesse: http://localhost:8000")
     finally:
         db.close()
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     
     # Configurações do servidor
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", 8001))
+    port = int(os.getenv("PORT", 8000))
     debug = os.getenv("DEBUG", "True").lower() == "true"
     
     uvicorn.run(
