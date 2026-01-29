@@ -96,7 +96,7 @@ python dieta_mcp.py
 
 **2. Configure no Fluxi:**
 
-Acesse `http://localhost:8001/mcp/agente/{id}/json-config` e adicione:
+Acesse `http://localhost:8000/mcp/agente/{id}/json-config` e adicione:
 
 ```json
 {
@@ -220,7 +220,7 @@ docker-compose up -d --build
 
 ### 3. Acesse e conecte
 
-1. Abra `http://localhost:8001`
+1. Abra `http://localhost:8000`
 2. Crie uma sessão WhatsApp
 3. Escaneie o QR Code
 4. Configure um provedor LLM

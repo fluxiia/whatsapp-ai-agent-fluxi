@@ -31,7 +31,7 @@ O servidor vai iniciar em `http://localhost:8002/sse`
 
 ### 2. Configure no Fluxi
 
-Acesse `http://localhost:8001/mcp/agente/{id-do-agente}/json-config`
+Acesse `http://localhost:8000/mcp/agente/{id-do-agente}/json-config`
 
 Preencha:
 - **Nome do Servidor MCP**: `DIETA`

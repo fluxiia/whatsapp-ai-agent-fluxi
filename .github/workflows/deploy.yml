@@ -1,0 +1,102 @@
+name: Deploy WhatsApp Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Ambiente de destino para o deploy
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - production
+      image_tag:
+        description: Tag (semver/sha/latest) já publicada que será promovida
+        required: true
+        default: latest
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment || 'manual' }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  SERVICE: whatsapp-agent
+
+jobs:
+  promote-and-deploy:
+    name: Promote image and deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Define image references
+        id: refs
+        run: |
+          SOURCE_IMAGE=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ env.SERVICE }}:${{ inputs.image_tag }}
+          TARGET_PRIMARY=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ env.SERVICE }}:${{ inputs.environment }}
+          TARGET_WITH_TAG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ env.SERVICE }}:${{ inputs.environment }}-${{ inputs.image_tag }}
+          TARGET_WITH_RUN=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ env.SERVICE }}:${{ inputs.environment }}-${{ github.run_number }}
+
+          {
+            echo "source_image=$SOURCE_IMAGE"
+            echo "target_primary=$TARGET_PRIMARY"
+            echo "target_with_tag=$TARGET_WITH_TAG"
+            echo "target_with_run=$TARGET_WITH_RUN"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Login to registry ${{ env.REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.6.0
+
+      - name: Verify source image signature
+        env:
+          SOURCE_IMAGE: ${{ steps.refs.outputs.source_image }}
+        run: |
+          cosign verify \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}.+" \
+            "$SOURCE_IMAGE"
+
+      - name: Promote image to environment tags
+        env:
+          SOURCE_IMAGE: ${{ steps.refs.outputs.source_image }}
+          TARGET_PRIMARY: ${{ steps.refs.outputs.target_primary }}
+          TARGET_WITH_TAG: ${{ steps.refs.outputs.target_with_tag }}
+          TARGET_WITH_RUN: ${{ steps.refs.outputs.target_with_run }}
+        run: |
+          set -euo pipefail
+          docker pull "$SOURCE_IMAGE"
+          docker tag "$SOURCE_IMAGE" "$TARGET_PRIMARY"
+          docker tag "$SOURCE_IMAGE" "$TARGET_WITH_TAG"
+          docker tag "$SOURCE_IMAGE" "$TARGET_WITH_RUN"
+          docker push "$TARGET_PRIMARY"
+          docker push "$TARGET_WITH_TAG"
+          docker push "$TARGET_WITH_RUN"
+
+      - name: Deploy to ${{ inputs.environment }}
+        env:
+          TARGET_IMAGE: ${{ steps.refs.outputs.target_primary }}
+          DEPLOY_COMMAND: ${{ secrets.DEPLOY_COMMAND }}
+        run: |
+          if [ -n "$DEPLOY_COMMAND" ]; then
+            echo "Executing deployment command..."
+            bash -c "$DEPLOY_COMMAND $TARGET_IMAGE"
+          else
+            echo "::notice::Nenhum comando de deploy configurado (secreto DEPLOY_COMMAND). Imagem promovida e pronta para consumo."

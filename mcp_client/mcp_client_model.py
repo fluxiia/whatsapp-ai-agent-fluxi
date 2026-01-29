@@ -42,7 +42,7 @@ class MCPClient(Base):
     env_vars = Column(JSON, nullable=True)  # Variáveis de ambiente
 
     # Para SSE/HTTP (servidor remoto)
-    url = Column(String(500), nullable=True)  # Ex: "http://localhost:8001/mcp"
+    url = Column(String(500), nullable=True)  # Ex: "http://localhost:8000/mcp"
     headers = Column(JSON, nullable=True)
     
     # Estado

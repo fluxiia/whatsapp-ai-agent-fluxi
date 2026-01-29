@@ -86,7 +86,7 @@
         <div class="field">
             <label class="label">Argumentos</label>
             <div class="control">
-                <input class="input" type="text" name="args" id="args_input" value="{{ mcp_client.args|join(' ') if mcp_client and mcp_client.args else '' }}" placeholder="server.py --port 8001">
+                <input class="input" type="text" name="args" id="args_input" value="{{ mcp_client.args|join(' ') if mcp_client and mcp_client.args else '' }}" placeholder="server.py --port 8000">
             </div>
             <p class="help">Argumentos do comando (separados por espaço). Ex: <code>server.py</code> ou <code>-y @modelcontextprotocol/server-github</code></p>
         </div>
@@ -105,7 +105,7 @@
         <div class="field">
             <label class="label">URL do Servidor *</label>
             <div class="control">
-                <input class="input" type="url" name="url" id="url_input" value="{{ mcp_client.url if mcp_client else '' }}" placeholder="http://localhost:8001/mcp">
+                <input class="input" type="url" name="url" id="url_input" value="{{ mcp_client.url if mcp_client else '' }}" placeholder="http://localhost:8000/mcp">
             </div>
             <p class="help">URL completa do servidor MCP (incluindo /mcp no final)</p>
         </div>

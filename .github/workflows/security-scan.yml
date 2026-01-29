@@ -1,0 +1,51 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Mondays
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip>=25.3
+          pip install -r requirements.txt
+
+      - name: Run Safety check
+        continue-on-error: true
+        run: |
+          pip install safety
+          safety check --json
+
+      - name: Scan with Grype
+        uses: anchore/scan-action@v4
+        with:
+          path: "."
+          fail-build: false
+          severity-cutoff: high
+
+      - name: Upload SARIF report
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}

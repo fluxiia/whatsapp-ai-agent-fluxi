@@ -39,9 +39,9 @@
                 </div>
             </div>
             
-            {% elif sessao.status == 'conectando_qr' %}
+            {% elif sessao.status == 'conectando_qr' or sessao.status == 'iniciando' %}
             <!-- Aguardando QR Code -->
-            <div class="box has-text-centered">
+            <div class="box has-text-centered" id="qr-container">
                 <h2 class="title is-3">📱 QR Code</h2>
                 
                 {% if qr_code_expirado %}
@@ -64,8 +64,8 @@
                 
                 {% elif sessao.qr_code %}
                 <!-- QR Code Válido -->
-                <div class="qr-code-container" style="position: relative;">
-                    <img src="data:image/png;base64,{{ sessao.qr_code }}" alt="QR Code" style="max-width: 300px; border: 2px solid #dbdbdb; border-radius: 8px;">
+                <div class="qr-code-container" style="position: relative;" id="qr-display">
+                    <img id="qr-image" src="data:image/png;base64,{{ sessao.qr_code }}" alt="QR Code" style="max-width: 300px; border: 2px solid #dbdbdb; border-radius: 8px;">
                     
                     <!-- Indicador de tempo -->
                     <div class="notification is-light" style="margin-top: 1rem;">
@@ -87,9 +87,13 @@
                 </div>
                 {% else %}
                 <!-- Gerando QR Code -->
-                <div class="notification is-warning">
+                <div class="notification is-info is-light" id="qr-loading">
+                    <span class="icon is-large" style="font-size: 2rem;">
+                        <i class="fas fa-spinner fa-pulse"></i>
+                    </span>
                     <p class="title is-5">⏳ Gerando QR Code...</p>
                     <p>Aguarde alguns segundos...</p>
+                    <progress class="progress is-primary is-small" max="100" style="margin-top: 1rem;">30%</progress>
                 </div>
                 {% endif %}
                 
@@ -121,20 +125,6 @@
                     <span class="icon"><i class="fas fa-sync"></i></span>
                     <span>Tentar Novamente</span>
                 </button>
-            </div>
-            
-            {% elif sessao.status == 'iniciando' %}
-            <!-- Iniciando Conexão -->
-            <div class="box has-text-centered">
-                <div class="notification is-info is-light">
-                    <span class="icon is-large" style="font-size: 3rem; color: #3273dc;">
-                        <i class="fas fa-spinner fa-pulse"></i>
-                    </span>
-                    <h2 class="title is-4">⏳ Iniciando Conexão...</h2>
-                    <p>Preparando conexão com WhatsApp. O QR Code será exibido em instantes.</p>
-                    <br>
-                    <progress class="progress is-primary" max="100">60%</progress>
-                </div>
             </div>
             
             {% else %}
@@ -182,8 +172,115 @@
     </div>
 </div>
 
-<!-- Auto-refresh quando estiver aguardando conexão -->
+<!-- Polling JavaScript para atualizar QR Code -->
 {% if sessao.status in ['iniciando', 'conectando_qr'] %}
-<meta http-equiv="refresh" content="3">
+<script>
+(function() {
+    const sessaoId = {{ sessao.id }};
+    let pollingInterval = null;
+    let lastQrCode = '{{ sessao.qr_code or "" }}';
+    
+    async function checkStatus() {
+        try {
+            const response = await fetch(`/api/sessoes/${sessaoId}/status`);
+            if (!response.ok) return;
+            
+            const data = await response.json();
+            console.log('Status:', data.status, 'QR:', data.qr_code ? 'presente' : 'ausente');
+            
+            // Se conectou, redirecionar
+            if (data.status === 'conectado') {
+                clearInterval(pollingInterval);
+                window.location.href = `/sessoes/${sessaoId}/detalhes`;
+                return;
+            }
+            
+            // Se erro, recarregar página
+            if (data.status === 'erro') {
+                clearInterval(pollingInterval);
+                window.location.reload();
+                return;
+            }
+            
+            // Se QR Code disponível e diferente do atual
+            if (data.qr_code && data.qr_code !== lastQrCode) {
+                lastQrCode = data.qr_code;
+                updateQrDisplay(data.qr_code);
+            }
+        } catch (error) {
+            console.error('Erro ao verificar status:', error);
+        }
+    }
+    
+    function updateQrDisplay(qrCode) {
+        const container = document.getElementById('qr-container');
+        if (!container) return;
+        
+        // Remover loading se existir
+        const loading = document.getElementById('qr-loading');
+        if (loading) {
+            loading.remove();
+        }
+        
+        // Verificar se já existe imagem
+        let qrImage = document.getElementById('qr-image');
+        if (qrImage) {
+            qrImage.src = `data:image/png;base64,${qrCode}`;
+        } else {
+            // Criar estrutura do QR Code
+            const qrDisplay = document.createElement('div');
+            qrDisplay.className = 'qr-code-container';
+            qrDisplay.id = 'qr-display';
+            qrDisplay.style.position = 'relative';
+            qrDisplay.innerHTML = `
+                <img id="qr-image" src="data:image/png;base64,${qrCode}" alt="QR Code" style="max-width: 300px; border: 2px solid #dbdbdb; border-radius: 8px;">
+                <div class="notification is-light" style="margin-top: 1rem;">
+                    <p class="is-size-7">
+                        <i class="fas fa-clock"></i> Este QR Code expira em <strong>60 segundos</strong>
+                    </p>
+                </div>
+            `;
+            
+            // Inserir após o título
+            const title = container.querySelector('.title');
+            if (title) {
+                title.insertAdjacentElement('afterend', qrDisplay);
+            }
+            
+            // Adicionar instruções se não existirem
+            if (!container.querySelector('.notification.is-info')) {
+                const instructions = document.createElement('div');
+                instructions.className = 'notification is-info is-light';
+                instructions.innerHTML = `
+                    <h3 class="title is-5">📱 Como conectar:</h3>
+                    <ol style="text-align: left; display: inline-block;">
+                        <li>Abra o <strong>WhatsApp</strong> no seu celular</li>
+                        <li>Toque em <strong>Menu (⋮)</strong> ou <strong>Configurações</strong></li>
+                        <li>Toque em <strong>Aparelhos conectados</strong></li>
+                        <li>Toque em <strong>Conectar um aparelho</strong></li>
+                        <li><strong>Escaneie o QR Code</strong> acima</li>
+                    </ol>
+                `;
+                qrDisplay.insertAdjacentElement('afterend', instructions);
+            }
+        }
+    }
+    
+    // Iniciar polling a cada 1.5 segundos
+    pollingInterval = setInterval(checkStatus, 1500);
+    
+    // Verificar imediatamente
+    checkStatus();
+    
+    // Parar polling após 2 minutos (timeout)
+    setTimeout(() => {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            console.log('Polling timeout - recarregando página');
+            window.location.reload();
+        }
+    }, 120000);
+})();
+</script>
 {% endif %}
 {% endblock %}
