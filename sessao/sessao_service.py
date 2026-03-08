@@ -24,6 +24,8 @@ class GerenciadorSessoes:
         self.clientes: Dict[int, NewClient] = {}
         self.threads: Dict[int, threading.Thread] = {}
         self.qr_codes: Dict[int, str] = {}
+        self._msg_ids_processados: set = set()
+        self._msg_lock = threading.Lock()
     
     def obter_cliente(self, sessao_id: int) -> Optional[NewClient]:
         """Obtém o cliente WhatsApp de uma sessão."""
@@ -364,6 +366,17 @@ class SessaoService:
                     if hasattr(event.Info, 'IsFromMe') and event.Info.IsFromMe:
                         return
                     
+                    # Dedup no nível do evento (neonize pode disparar 2x)
+                    msg_id = getattr(event.Info, 'ID', None)
+                    if msg_id:
+                        with gerenciador_sessoes._msg_lock:
+                            if msg_id in gerenciador_sessoes._msg_ids_processados:
+                                return
+                            gerenciador_sessoes._msg_ids_processados.add(msg_id)
+                            # Limpar IDs antigos (manter últimos 500)
+                            if len(gerenciador_sessoes._msg_ids_processados) > 500:
+                                gerenciador_sessoes._msg_ids_processados = set(list(gerenciador_sessoes._msg_ids_processados)[-250:])
+                    
                     # Ignorar mensagens dos primeiros segundos (history sync - configurável)
                     import time
                     from config.config_service import ConfiguracaoService
@@ -605,12 +618,19 @@ class SessaoService:
             def on_message(client: NewClient, event: MessageEv):
                 """Evento de mensagem recebida."""
                 try:
-                    print(f"🔔 EVENTO MessageEv DISPARADO para sessão {sessao_id}")
-                    
                     # Verificar se é mensagem própria
                     if hasattr(event.Info, 'IsFromMe') and event.Info.IsFromMe:
-                        print(f"⏭️  Mensagem ignorada: IsFromMe=True")
                         return
+                    
+                    # Dedup no nível do evento (neonize pode disparar 2x)
+                    msg_id = getattr(event.Info, 'ID', None)
+                    if msg_id:
+                        with gerenciador_sessoes._msg_lock:
+                            if msg_id in gerenciador_sessoes._msg_ids_processados:
+                                return
+                            gerenciador_sessoes._msg_ids_processados.add(msg_id)
+                            if len(gerenciador_sessoes._msg_ids_processados) > 500:
+                                gerenciador_sessoes._msg_ids_processados = set(list(gerenciador_sessoes._msg_ids_processados)[-250:])
                     
                     # Verificar filtro de tempo (configurável)
                     import time
@@ -622,7 +642,6 @@ class SessaoService:
                         db_config.close()
                     connected_at = gerenciador_sessoes.clientes.get(f"{sessao_id}_connected_at", 0)
                     tempo_desde_conexao = time.time() - connected_at
-                    print(f"⏱️  Tempo desde conexão: {tempo_desde_conexao:.1f}s (limite: {history_sync_delay}s)")
                     
                     if tempo_desde_conexao < history_sync_delay:
                         print(f"⏭️  Mensagem ignorada: history sync ({tempo_desde_conexao:.1f}s < {history_sync_delay}s)")

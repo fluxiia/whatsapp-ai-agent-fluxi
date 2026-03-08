@@ -35,6 +35,26 @@ class MCPService:
     _session_locks: Dict[int, asyncio.Lock] = {}
     
     @staticmethod
+    def _get_lock(mcp_client_id: int) -> asyncio.Lock:
+        """Obtém ou recria um lock compatível com o event loop atual."""
+        lock = MCPService._session_locks.get(mcp_client_id)
+        if lock is not None:
+            try:
+                # Testa se o lock é compatível com o loop atual
+                asyncio.get_running_loop()
+                # Tenta criar um future no lock para validar
+                if hasattr(lock, '_loop') and lock._loop is not None:
+                    if lock._loop is not asyncio.get_running_loop():
+                        raise RuntimeError("wrong loop")
+                return lock
+            except RuntimeError:
+                # Lock vinculado a outro event loop — recriar
+                pass
+        new_lock = asyncio.Lock()
+        MCPService._session_locks[mcp_client_id] = new_lock
+        return new_lock
+    
+    @staticmethod
     def listar_por_agente(db: Session, agente_id: int) -> List[MCPClient]:
         """Lista todos os clientes MCP de um agente."""
         return db.query(MCPClient).filter(MCPClient.agente_id == agente_id).all()
@@ -182,7 +202,10 @@ class MCPService:
             ativo=True,
         )
 
-        # Aplicar inputs ao env/headers se necessário
+        # Aplicar inputs ao env/headers/url se necessário
+        if criar_schema.url:
+            criar_schema.url = MCPService._substituir_inputs(criar_schema.url, inputs)
+
         if criar_schema.env_vars:
             for key, value in list(criar_schema.env_vars.items()):
                 criar_schema.env_vars[key] = MCPService._substituir_inputs(value, inputs)
@@ -387,12 +410,9 @@ class MCPService:
                 "server_name": db_mcp.server_name
             }
         
-        # Criar lock para esta sessão
-        if mcp_client_id not in MCPService._session_locks:
-            MCPService._session_locks[mcp_client_id] = asyncio.Lock()
-        
-        # Usar lock e chamar função interna
-        async with MCPService._session_locks[mcp_client_id]:
+        # Usar lock compatível com o event loop atual
+        lock = MCPService._get_lock(mcp_client_id)
+        async with lock:
             return await MCPService._conectar_cliente_interno(db, mcp_client_id, db_mcp)
     
     @staticmethod
@@ -550,13 +570,10 @@ class MCPService:
         """
         inicio = time.time()
         
-        # Criar lock se não existir
-        if mcp_client_id not in MCPService._session_locks:
-            MCPService._session_locks[mcp_client_id] = asyncio.Lock()
-        
+        lock = MCPService._get_lock(mcp_client_id)
         print(f"🔒 [MCP] Aguardando lock para client {mcp_client_id}...")
         # Usar lock para evitar chamadas concorrentes na mesma sessão
-        async with MCPService._session_locks[mcp_client_id]:
+        async with lock:
             print(f"🔓 [MCP] Lock adquirido para client {mcp_client_id}")
             # Obter sessão ativa
             session = MCPService._active_sessions.get(mcp_client_id)
@@ -593,18 +610,22 @@ class MCPService:
                 print(f"✅ [MCP] Reconectado com sucesso!")
             
             try:
-                # Executar tool com timeout configurável
-                timeout_mcp = ConfiguracaoService.obter_valor(db, "mcp_timeout_execucao", 60)
-                print(f"🚀 [MCP] Chamando session.call_tool('{tool_name}', {arguments})...")
+                # Timeout inteligente: sandbox usa timeout maior
+                db_mcp_info = MCPService.obter_por_id(db, mcp_client_id)
+                is_sandbox = db_mcp_info and db_mcp_info.preset_key == "aio-sandbox"
+                if is_sandbox:
+                    timeout_mcp = float(ConfiguracaoService.obter_valor(db, "mcp_timeout_sandbox", 300))
+                else:
+                    timeout_mcp = float(ConfiguracaoService.obter_valor(db, "mcp_timeout_execucao", 120))
+                
+                print(f"🚀 [MCP] Chamando '{tool_name}' (timeout={timeout_mcp}s)...")
                 result = await asyncio.wait_for(
                     session.call_tool(tool_name, arguments),
-                    timeout=float(timeout_mcp)
+                    timeout=timeout_mcp
                 )
-                print(f"✅ [MCP] session.call_tool retornou com sucesso")
-                print(f"📦 [MCP] Resultado RAW: {result}")
+                print(f"✅ [MCP] Tool '{tool_name}' concluída")
                 
                 # Parse resultado
-                print(f"🔍 [MCP] Parsing resultado...")
                 content_list = []
                 for content_item in result.content:
                     if isinstance(content_item, types.TextContent):
@@ -638,7 +659,6 @@ class MCPService:
                 print(f"⏱️  [MCP] Tempo de execução: {tempo_ms}ms")
                 
                 # Formatar resultado
-                print(f"📦 [MCP] Formatando resultado...")
                 if structured_content:
                     resultado_final = structured_content
                 elif content_list:
@@ -650,8 +670,6 @@ class MCPService:
                 else:
                     resultado_final = {"resposta": "Tool executada com sucesso"}
                 
-                print(f"✅ [MCP] Resultado formatado: {resultado_final}")
-                print(f"🎯 [MCP] Retornando para LLM...")
                 return {
                     "resultado": resultado_final,
                     "output": "llm",
@@ -660,11 +678,30 @@ class MCPService:
                 }
             
             except asyncio.TimeoutError:
-                timeout_mcp = ConfiguracaoService.obter_valor(db, "mcp_timeout_execucao", 60)
-                print(f"⏱️  [MCP] TIMEOUT: Tool '{tool_name}' demorou mais de {timeout_mcp} segundos")
+                print(f"⏱️  [MCP] TIMEOUT: Tool '{tool_name}' demorou mais de {timeout_mcp}s")
+                # Sessão fica corrompida após timeout (call_tool pendente no wire)
+                # Forçar desconexão para que próxima chamada reconecte com sessão limpa
+                try:
+                    print(f"🔄 [MCP] Forçando desconexão do client {mcp_client_id} após timeout...")
+                    if mcp_client_id in MCPService._active_sessions:
+                        old_session = MCPService._active_sessions.pop(mcp_client_id)
+                        old_context = MCPService._session_contexts.pop(mcp_client_id, None)
+                        try:
+                            await old_session.__aexit__(None, None, None)
+                        except Exception:
+                            pass
+                        try:
+                            if old_context:
+                                await old_context.__aexit__(None, None, None)
+                        except Exception:
+                            pass
+                    print(f"✅ [MCP] Sessão limpa após timeout. Próxima chamada vai reconectar.")
+                except Exception as cleanup_err:
+                    print(f"⚠️  [MCP] Erro ao limpar sessão após timeout: {cleanup_err}")
+                
                 tempo_ms = int((time.time() - inicio) * 1000)
                 return {
-                    "resultado": {"erro": f"Timeout ao executar tool MCP '{tool_name}' ({timeout_mcp}s)"},
+                    "resultado": {"erro": f"Timeout ao executar tool MCP '{tool_name}' ({timeout_mcp}s). Tente novamente ou divida a tarefa em partes menores."},
                     "output": "llm",
                     "enviado_usuario": False,
                     "tempo_ms": tempo_ms

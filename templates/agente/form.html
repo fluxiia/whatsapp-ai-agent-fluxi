@@ -285,6 +285,49 @@
                 </div>
                 {% endif %}
 
+                <!-- Modo Autônomo (Sandbox) -->
+                {% if acao == 'editar' %}
+                <div class="box" style="margin-bottom: 2rem; border: 2px solid {% if agente.sandbox_ativo %}#f59e0b{% else %}#e5e7eb{% endif %}; border-radius: 12px;">
+                    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+                        <i class="fas fa-rocket" style="color: #f59e0b;"></i> Modo Autônomo (Sandbox)
+                    </h2>
+                    
+                    <div style="background: linear-gradient(135deg, {% if agente.sandbox_ativo %}#fffbeb 0%, #fef3c7{% else %}#f9fafb 0%, #f3f4f6{% endif %} 100%); border-radius: 12px; padding: 1.5rem; border: 2px solid {% if agente.sandbox_ativo %}#f59e0b{% else %}#e5e7eb{% endif %};">
+                        <div style="display: flex; align-items: start; gap: 1rem;">
+                            <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;
+                                {% if agente.sandbox_ativo %}background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);{% else %}background: #e5e7eb;{% endif %}">
+                                <i class="fas fa-rocket" style="color: {% if agente.sandbox_ativo %}white{% else %}#9ca3af{% endif %};"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                    <strong style="color: #1f2937; font-size: 1.125rem;">
+                                        {% if agente.sandbox_ativo %}
+                                            <span style="color: #f59e0b;"><i class="fas fa-bolt"></i> ATIVO</span>
+                                        {% else %}
+                                            Desativado
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                <p style="color: #6b7280; font-size: 0.9375rem; line-height: 1.7; margin-bottom: 1rem;">
+                                    {% if agente.sandbox_ativo %}
+                                        O agente tem acesso a browser, terminal, execução de código, manipulação de arquivos e envio direto via WhatsApp.
+                                    {% else %}
+                                        Ative para dar ao agente acesso completo: browser, terminal, execução de código (Python/Node.js/Jupyter), manipulação de arquivos e envio via WhatsApp.
+                                    {% endif %}
+                                </p>
+                                <button type="button" id="btn-sandbox-toggle"
+                                    onclick="toggleSandbox({{ agente.id }}, {{ 'true' if not agente.sandbox_ativo else 'false' }})"
+                                    class="button"
+                                    style="{% if agente.sandbox_ativo %}background: #ef4444; color: white; border: none;{% else %}background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; border: none;{% endif %} font-weight: 600; border-radius: 8px;">
+                                    <span class="icon"><i class="fas fa-{% if agente.sandbox_ativo %}power-off{% else %}rocket{% endif %}"></i></span>
+                                    <span>{% if agente.sandbox_ativo %}Desativar Modo Autônomo{% else %}Ativar Modo Autônomo{% endif %}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Status -->
                 <div class="box" style="margin-bottom: 2rem;">
                     <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
@@ -395,6 +438,31 @@
 </div>
 
 <script>
+async function toggleSandbox(agenteId, ativar) {
+    const btn = document.getElementById('btn-sandbox-toggle');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Aguarde...</span>';
+    
+    try {
+        const resp = await fetch('/api/agentes/' + agenteId + '/sandbox', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({sandbox_ativo: ativar})
+        });
+        
+        if (resp.ok) {
+            location.reload();
+        } else {
+            const data = await resp.json();
+            alert('Erro: ' + (data.detail || 'Falha ao alterar modo autônomo'));
+            btn.disabled = false;
+        }
+    } catch (e) {
+        alert('Erro de conexão: ' + e.message);
+        btn.disabled = false;
+    }
+}
+
 async function vincularTreinamento() {
     const ragId = document.getElementById('rag_select').value;
     const agenteId = {{ agente.id if agente else 'null' }};

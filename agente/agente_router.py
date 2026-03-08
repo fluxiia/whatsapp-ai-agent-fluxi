@@ -94,6 +94,35 @@ def listar_ferramentas_agente(agente_id: int, db: Session = Depends(get_db)):
     return ferramentas
 
 
+@router.post("/{agente_id}/sandbox")
+def toggle_sandbox_agente(
+    agente_id: int,
+    request: dict,
+    db: Session = Depends(get_db)
+):
+    """Ativa ou desativa o modo autônomo (sandbox) de um agente."""
+    agente = AgenteService.obter_por_id(db, agente_id)
+    if not agente:
+        raise HTTPException(status_code=404, detail="Agente não encontrado")
+    
+    sandbox_ativo = request.get("sandbox_ativo", False)
+    sandbox_url = request.get("sandbox_url")
+    
+    agente.sandbox_ativo = sandbox_ativo
+    if sandbox_url is not None:
+        agente.sandbox_url = sandbox_url
+    
+    db.commit()
+    db.refresh(agente)
+    
+    status = "ativado" if sandbox_ativo else "desativado"
+    return {
+        "mensagem": f"Modo autônomo {status} com sucesso",
+        "sandbox_ativo": agente.sandbox_ativo,
+        "sandbox_url": agente.sandbox_url
+    }
+
+
 @router.post("/{agente_id}/vincular-treinamento")
 def vincular_treinamento_agente(
     agente_id: int,

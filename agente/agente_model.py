@@ -53,6 +53,10 @@ class Agente(Base):
     # RAG (Base de Conhecimento)
     rag_id = Column(Integer, ForeignKey("rags.id", ondelete='SET NULL'), nullable=True, index=True)
     
+    # Modo Autônomo (AIO Sandbox)
+    sandbox_ativo = Column(Boolean, default=False)
+    sandbox_url = Column(String(255), nullable=True)  # URL do sandbox (default: http://fluxi-sandbox:8080)
+    
     # Status
     ativo = Column(Boolean, default=True)
     

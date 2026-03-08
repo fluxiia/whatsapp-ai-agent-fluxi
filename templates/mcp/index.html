@@ -22,6 +22,86 @@
     </p>
 </div>
 
+<!-- AIO Sandbox Featured Banner -->
+<div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); border: 2px solid #8b5cf6; border-radius: 16px; padding: 2rem; margin-bottom: 2rem; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -30px; right: -30px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%); pointer-events: none;"></div>
+    <div style="position: absolute; bottom: -40px; left: -40px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%); pointer-events: none;"></div>
+
+    <div style="display: flex; gap: 1.5rem; align-items: start; flex-wrap: wrap; position: relative; z-index: 1;">
+        <div style="width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #3b82f6 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 20px rgba(139,92,246,0.4);">
+            <i class="fas fa-cube" style="color: white; font-size: 1.75rem;"></i>
+        </div>
+        <div style="flex: 1; min-width: 280px;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                <h2 style="font-size: 1.5rem; font-weight: 800; color: white; margin: 0;">AIO Sandbox</h2>
+                <span style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; padding: 0.2rem 0.75rem; border-radius: 50px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Novo</span>
+            </div>
+            <p style="color: #94a3b8; line-height: 1.7; margin-bottom: 1rem; font-size: 0.95rem;">
+                Dê <strong style="color: #e2e8f0;">superpoderes</strong> ao seu agente. Navegador web, terminal com Python e pip, gerenciador de arquivos e conversão de documentos &mdash; tudo isolado em Docker.
+            </p>
+
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+                <span style="background: rgba(139,92,246,0.15); color: #c4b5fd; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(139,92,246,0.3);">
+                    <i class="fas fa-globe"></i> Browser
+                </span>
+                <span style="background: rgba(59,130,246,0.15); color: #93c5fd; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(59,130,246,0.3);">
+                    <i class="fas fa-terminal"></i> Shell & Python
+                </span>
+                <span style="background: rgba(16,185,129,0.15); color: #6ee7b7; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(16,185,129,0.3);">
+                    <i class="fas fa-folder-open"></i> Arquivos
+                </span>
+                <span style="background: rgba(245,158,11,0.15); color: #fcd34d; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(245,158,11,0.3);">
+                    <i class="fas fa-file-alt"></i> Documentos
+                </span>
+            </div>
+
+            {% if sessoes %}
+            <div id="aio-sandbox-form" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem;">
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
+                    <div style="flex: 1; min-width: 180px;">
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem;">Agente</label>
+                        <div class="select is-fullwidth" style="border-radius: 8px;">
+                            <select id="aio-agente-select" style="background: #1e293b; color: #e2e8f0; border: 1px solid #475569; border-radius: 8px; width: 100%;">
+                                <option value="">Selecione um agente...</option>
+                                {% for sessao in sessoes %}
+                                {% for agente in sessao.agentes %}
+                                {% if agente.ativo %}
+                                <option value="{{ agente.id }}">{{ sessao.nome }} &rarr; {{ agente.nome }}</option>
+                                {% endif %}
+                                {% endfor %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 220px;">
+                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem;">URL do Sandbox</label>
+                        <input id="aio-sandbox-url" class="input" type="text" value="http://fluxi-sandbox:8080/mcp" placeholder="http://localhost:8080/mcp" style="background: #1e293b; color: #e2e8f0; border: 1px solid #475569; border-radius: 8px;">
+                    </div>
+                    <div style="flex-shrink: 0;">
+                        <button id="aio-activate-btn" onclick="ativarAIOSandbox()" class="button is-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #3b82f6 100%); color: white; border: none; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 15px rgba(139,92,246,0.4); padding-left: 1.5rem; padding-right: 1.5rem;">
+                            <span class="icon"><i class="fas fa-rocket"></i></span>
+                            <span>Ativar Sandbox</span>
+                        </button>
+                    </div>
+                </div>
+                <p style="color: #64748b; font-size: 0.8rem; margin-top: 0.75rem; line-height: 1.5;">
+                    <i class="fas fa-info-circle"></i>
+                    Use <code style="background: rgba(255,255,255,0.08); padding: 0.15rem 0.4rem; border-radius: 4px; color: #94a3b8;">http://fluxi-sandbox:8080/mcp</code> para docker-compose ou
+                    <code style="background: rgba(255,255,255,0.08); padding: 0.15rem 0.4rem; border-radius: 4px; color: #94a3b8;">http://localhost:8080/mcp</code> se o Fluxi roda local (python main.py).
+                </p>
+                <div id="aio-status" style="display: none; margin-top: 0.75rem; padding: 0.75rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;"></div>
+            </div>
+            {% else %}
+            <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 1rem;">
+                <p style="color: #fcd34d; font-size: 0.875rem;">
+                    <i class="fas fa-exclamation-triangle"></i> Crie uma sessão e um agente primeiro para ativar o AIO Sandbox.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
 {% if sessoes %}
 <h2 class="title is-4" style="margin-bottom: 1.5rem; color: #1f2937;">Selecione um Agente</h2>
 
@@ -91,5 +171,92 @@
     </a>
 </div>
 {% endif %}
+
+<script>
+async function ativarAIOSandbox() {
+    const agenteId = document.getElementById('aio-agente-select')?.value;
+    const sandboxUrl = document.getElementById('aio-sandbox-url')?.value?.trim();
+    const btn = document.getElementById('aio-activate-btn');
+    const statusDiv = document.getElementById('aio-status');
+
+    if (!agenteId) {
+        mostrarStatus('Selecione um agente antes de ativar.', 'warning');
+        return;
+    }
+    if (!sandboxUrl) {
+        mostrarStatus('Informe a URL do sandbox.', 'warning');
+        return;
+    }
+
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Conectando...</span>';
+    mostrarStatus('Aplicando preset e conectando ao AIO Sandbox...', 'info');
+
+    try {
+        const response = await fetch('/api/mcp/presets/aplicar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                preset_key: 'aio-sandbox',
+                agente_id: parseInt(agenteId, 10),
+                nome: null,
+                descricao: null,
+                inputs: { sandbox_url: sandboxUrl }
+            })
+        });
+
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            const text = await response.text().catch(() => 'Erro desconhecido');
+            mostrarStatus(`Erro do servidor: ${text.substring(0, 150)}`, 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            return;
+        }
+
+        if (response.ok) {
+            const tools = data.total_tools || 0;
+            const connected = data.conectado;
+            if (connected) {
+                mostrarStatus(`AIO Sandbox ativado com sucesso! ${tools} tools sincronizadas. Redirecionando...`, 'success');
+            } else {
+                mostrarStatus(`Sandbox criado mas houve erro na conexao: ${data.ultimo_erro || 'verifique se o container esta rodando'}. Redirecionando...`, 'warning');
+            }
+            setTimeout(() => {
+                window.location.href = `/mcp/agente/${agenteId}/clients`;
+            }, 1500);
+        } else {
+            mostrarStatus(`Erro: ${data.detail || 'Falha ao ativar sandbox.'}`, 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    } catch (error) {
+        mostrarStatus(`Erro de rede: ${error.message}`, 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
+
+function mostrarStatus(msg, tipo) {
+    const el = document.getElementById('aio-status');
+    if (!el) return;
+    el.style.display = 'block';
+    const cores = {
+        info:    { bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.3)', color: '#93c5fd' },
+        success: { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', color: '#6ee7b7' },
+        warning: { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', color: '#fcd34d' },
+        error:   { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.3)',  color: '#fca5a5' }
+    };
+    const c = cores[tipo] || cores.info;
+    el.style.background = c.bg;
+    el.style.border = '1px solid ' + c.border;
+    el.style.color = c.color;
+    const icons = { info: 'fa-circle-notch fa-spin', success: 'fa-check-circle', warning: 'fa-exclamation-triangle', error: 'fa-times-circle' };
+    el.innerHTML = '<i class="fas ' + (icons[tipo] || icons.info) + '"></i> ' + msg;
+}
+</script>
 
 {% endblock %}

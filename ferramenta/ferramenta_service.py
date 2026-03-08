@@ -475,13 +475,8 @@ class FerramentaService:
                     imagem_data = f.read()
             
             if imagem_data:
-                # Construir mensagem de imagem
-                image_msg = cliente.build_image_message(
-                    imagem_data,
-                    caption=caption,
-                    mime_type=resultado.get("mime_type", "image/jpeg")
-                )
-                cliente.send_message(jid, message=image_msg)
+                # Enviar imagem diretamente (suporta LID JIDs)
+                cliente.send_image(jid, imagem_data, caption=caption)
                 print(f"🖼️  Imagem enviada")
                 return True
             
@@ -629,7 +624,7 @@ class FerramentaService:
                     doc_data,
                     filename=filename,
                     caption=caption,
-                    mime_type=resultado.get("mime_type", "application/pdf")
+                    mimetype=resultado.get("mime_type", "application/pdf")
                 )
                 print(f"📄 Documento enviado")
                 return True

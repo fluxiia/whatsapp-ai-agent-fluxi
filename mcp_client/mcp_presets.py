@@ -37,6 +37,38 @@ class MCPPreset:
 
 
 MCP_PRESETS: Dict[str, MCPPreset] = {
+    "aio-sandbox": MCPPreset(
+        key="aio-sandbox",
+        name="AIO Sandbox (Browser + Shell + Files)",
+        description=(
+            "Sandbox all-in-one com navegador web, terminal, gerenciador de arquivos "
+            "e conversão de documentos. Roda isolado em Docker. "
+            "Permite ao agente navegar na internet, executar código Python, "
+            "instalar pacotes via pip, gerenciar arquivos e muito mais."
+        ),
+        transport_type=TransportType.STREAMABLE_HTTP,
+        url="${input:sandbox_url}",
+        documentation_url="https://github.com/agent-infra/sandbox",
+        tags=["featured", "sandbox", "browser", "shell", "files", "code"],
+        inputs=[
+            MCPPresetInput(
+                id="sandbox_url",
+                label="URL do Sandbox MCP",
+                description=(
+                    "Endpoint MCP do AIO Sandbox. "
+                    "Se usando docker-compose: http://fluxi-sandbox:8080/mcp | "
+                    "Se local: http://localhost:8080/mcp"
+                ),
+                secret=False,
+            )
+        ],
+        notes=(
+            "Requer o container AIO Sandbox rodando. "
+            "Adicione o serviço 'sandbox' ao docker-compose.yml ou execute: "
+            "docker run --security-opt seccomp=unconfined --rm -it -p 8080:8080 "
+            "ghcr.io/agent-infra/sandbox:latest"
+        ),
+    ),
     "github-copilot-oauth": MCPPreset(
         key="github-copilot-oauth",
         name="GitHub Copilot (OAuth)",

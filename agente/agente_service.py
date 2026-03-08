@@ -234,6 +234,430 @@ Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
         )
 
     @staticmethod
+    def _prompt_aio_sandbox() -> str:
+        """Prompt suplementar injetado quando o AIO Sandbox está ativo."""
+        return """
+
+═══════════════════════════════════════════════════
+🚀 MODO AGENTE AUTÔNOMO — AIO SANDBOX ATIVO
+═══════════════════════════════════════════════════
+
+Você agora é um AGENTE SUPER AUTÔNOMO com poderes expandidos. O AIO Sandbox está conectado e pronto para uso. Isso significa que você tem acesso a um ambiente completo e isolado para executar ações reais no mundo digital.
+
+── SUAS NOVAS CAPACIDADES ──────────────────────
+
+1. 🌐 NAVEGADOR WEB COMPLETO (Browser)
+   - Navegue por qualquer site da internet em tempo real
+   - Faça pesquisas, acesse APIs, colete dados de páginas web
+   - Preencha formulários, faça login em serviços, interaja com aplicações web
+   - Tire screenshots de páginas para análise visual
+   - Faça download de arquivos da internet
+   - Use para verificar informações, comparar preços, buscar referências
+
+2. 💻 TERMINAL / SHELL COM PYTHON
+   - Execute comandos no terminal Linux (bash)
+   - Rode scripts Python completos com acesso a pip
+   - Instale pacotes e bibliotecas conforme necessário (pip install)
+   - Processe dados, faça cálculos complexos, gere relatórios
+   - Execute operações de rede (curl, wget, etc.)
+   - Compile e execute código em tempo real
+
+3. 📁 GERENCIADOR DE ARQUIVOS
+   - Crie, leia, edite e organize arquivos e diretórios
+   - Salve resultados de pesquisas, relatórios, dados processados
+   - Gerencie o workspace de forma organizada
+   - Transfira arquivos entre operações
+
+4. 📄 CONVERSÃO DE DOCUMENTOS (Markitdown)
+   - Converta documentos para Markdown para análise
+   - Extraia texto de PDFs, DOCXs, planilhas e apresentações
+   - Processe e analise o conteúdo extraído
+
+── DIRETRIZES DE AUTONOMIA ─────────────────────
+
+• SEJA PROATIVO: Não apenas responda — antecipe necessidades. Se o usuário pede algo que requer pesquisa, pesquise. Se requer código, escreva e execute.
+
+• AÇÃO PRIMEIRO, PERMISSÃO DEPOIS: Quando a intenção do usuário for clara, EXECUTE a ação diretamente. Não pergunte "Você quer que eu faça X?" — simplesmente faça X e apresente o resultado.
+
+• RESILIÊNCIA A ERROS E TIMEOUTS: Se uma ferramenta falhar ou der timeout, NÃO desista. Tente:
+  1. Dividir a tarefa em partes menores (ex: em vez de um script longo, execute em etapas)
+  2. Se o browser demorar, tente usar curl/wget via shell como alternativa
+  3. Se um comando der timeout, tente uma versão mais simples ou direta
+  4. Use shell para operações rápidas e browser apenas quando necessário
+  5. Informar o usuário apenas se TODAS as alternativas falharem, explicando o que tentou
+
+• OTIMIZAÇÃO DE PERFORMANCE: Prefira abordagens rápidas:
+  - Use curl/wget via shell em vez de browser para buscar dados de APIs e sites simples
+  - Divida scripts Python longos em execuções menores
+  - Para pesquisas, prefira shell com curl a navegar com browser (é mais rápido)
+  - Use browser apenas para sites que exigem interação (login, JS dinâmico, screenshots)
+
+• ENCADEAMENTO DE FERRAMENTAS: Combine múltiplas ferramentas para resolver tarefas complexas. Exemplos:
+  - Pesquisar na web → Processar dados com Python → Salvar resultado em arquivo
+  - Baixar documento → Converter para texto → Analisar e resumir
+  - Acessar API via browser → Extrair dados → Gerar relatório com gráficos
+
+• QUALIDADE DE ENTREGA: Sempre que possível, entregue resultados completos e bem formatados. Se gerou um arquivo, mencione. Se executou código, mostre o output relevante.
+
+• INICIATIVA INTELIGENTE: Se perceber que pode melhorar o resultado com uma ação extra (verificar um dado, validar uma informação, formatar melhor), FAÇA sem perguntar.
+
+── EXEMPLOS DE USO ─────────────────────────────
+
+"Pesquise sobre X" → Use o browser para pesquisar, colete dados de múltiplas fontes, sintetize
+"Faça um script que..." → Escreva o código, execute no shell, mostre o resultado
+"Analise este site" → Navegue até o site, extraia informações, analise e resuma
+"Crie um relatório" → Pesquise dados, processe com Python, gere o relatório formatado
+"Instale e configure X" → Use pip/shell para instalar, configure, teste e confirme
+
+═══════════════════════════════════════════════════
+LEMBRE-SE: Você é um agente AUTÔNOMO e CAPAZ. Use seus poderes com confiança e responsabilidade. O sandbox é seu ambiente seguro — explore sem medo.
+═══════════════════════════════════════════════════
+
+── ENVIO DE ARQUIVOS VIA WHATSAPP ──────────────
+
+IMPORTANTE: Você possui a ferramenta **enviar_arquivo_whatsapp** que permite enviar arquivos diretamente ao usuário.
+Quando criar, baixar ou gerar qualquer arquivo no sandbox (relatórios, imagens, planilhas, PDFs, código, etc.),
+USE esta ferramenta para entregar o arquivo ao usuário. Não apenas descreva o arquivo — ENVIE-O.
+
+Exemplos:
+- Gerou um PDF → chame enviar_arquivo_whatsapp com o caminho do arquivo
+- Baixou uma imagem → envie via enviar_arquivo_whatsapp
+- Criou uma planilha CSV → envie ao usuário
+- Salvou resultado de análise → entregue o arquivo
+
+O arquivo precisa existir no sandbox antes de chamar a ferramenta.
+
+── ENVIO DE SCREENSHOTS VIA WHATSAPP ──────────
+
+Você também possui a ferramenta **enviar_screenshot_whatsapp** que tira um screenshot do sandbox e envia ao usuário.
+Use para mostrar resultados visuais ao usuário:
+- Após navegar em um site → tire screenshot e envie para o usuário ver a página
+- Após gerar um gráfico no browser → envie o screenshot
+- Para mostrar o estado atual do desktop/browser → envie screenshot
+
+Parâmetros:
+- tipo: 'tela' (display/VNC completo) ou 'pagina' (apenas a página do browser, mais nítido)
+- full_page: se true e tipo='pagina', captura a página inteira com scroll
+- caption: legenda opcional
+
+DICA: Screenshots de páginas web ficam automaticamente enviados ao usuário quando você usa
+as tools sandbox_browser_screenshot ou sandbox_browser_page_screenshot. Mas use
+enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personalizada.
+"""
+
+    @staticmethod
+    def _extrair_texto_mcp(resultado_mcp: Dict[str, Any]) -> str:
+        """Extrai texto de um resultado padronizado de executar_tool_mcp."""
+        resultado = resultado_mcp.get("resultado", {})
+        if isinstance(resultado, dict):
+            # Formato {"resposta": "texto"}
+            if "resposta" in resultado:
+                return str(resultado["resposta"])
+            # Formato {"content": [{"type": "text", "text": "..."}]}
+            if "content" in resultado:
+                parts = []
+                for item in resultado["content"]:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        parts.append(item.get("text", ""))
+                return "".join(parts)
+            # Formato {"erro": "..."}
+            if "erro" in resultado:
+                return f"error: {resultado['erro']}"
+            return str(resultado)
+        elif isinstance(resultado, list):
+            parts = []
+            for item in resultado:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+            return "".join(parts)
+        return str(resultado)
+
+    @staticmethod
+    async def _enviar_arquivo_sandbox(
+        db: Session,
+        sessao_id: int,
+        telefone_cliente: str,
+        agente_id: int,
+        args: Dict[str, Any],
+        jid_destino=None
+    ) -> Dict[str, Any]:
+        """
+        Baixa um arquivo do AIO Sandbox via SDK e envia ao usuário via WhatsApp.
+        Usa file.download_file do SDK (direto, sem base64 via shell).
+        """
+        import os
+        from sandbox_mcp.sandbox_service import SandboxService
+        
+        file_path = args.get("file_path", "")
+        filename = args.get("filename") or os.path.basename(file_path)
+        caption = args.get("caption", "")
+        
+        if not file_path:
+            return {
+                "resultado": {"erro": "file_path é obrigatório"},
+                "output": "llm",
+                "enviado_usuario": False
+            }
+        
+        try:
+            print(f"📎 [SANDBOX-SDK] Baixando arquivo: {file_path}")
+            
+            # Baixar arquivo diretamente via SDK
+            file_bytes = await SandboxService.baixar_arquivo(agente_id, file_path)
+            
+            if not file_bytes:
+                return {
+                    "resultado": {"erro": f"Arquivo não encontrado ou erro ao baixar: {file_path}"},
+                    "output": "llm",
+                    "enviado_usuario": False
+                }
+            
+            file_size_kb = len(file_bytes) / 1024
+            print(f"📎 [SANDBOX-SDK] Arquivo baixado: {filename} ({file_size_kb:.1f} KB)")
+            
+            # Passo 4: Determinar tipo de mídia pela extensão
+            ext = os.path.splitext(filename)[1].lower()
+            
+            MIME_MAP = {
+                ".pdf": "application/pdf",
+                ".doc": "application/msword",
+                ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".xls": "application/vnd.ms-excel",
+                ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".csv": "text/csv",
+                ".txt": "text/plain",
+                ".zip": "application/zip",
+                ".json": "application/json",
+                ".html": "text/html",
+                ".py": "text/x-python",
+                ".js": "text/javascript",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".webp": "image/webp",
+                ".svg": "image/svg+xml",
+                ".mp3": "audio/mpeg",
+                ".ogg": "audio/ogg",
+                ".wav": "audio/wav",
+                ".m4a": "audio/mp4",
+                ".opus": "audio/opus",
+                ".aac": "audio/aac",
+                ".mp4": "video/mp4",
+                ".webm": "video/webm",
+                ".avi": "video/x-msvideo",
+                ".mkv": "video/x-matroska",
+            }
+            mime_type = MIME_MAP.get(ext, "application/octet-stream")
+            
+            IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+            AUDIO_EXTS = {".mp3", ".ogg", ".wav", ".m4a", ".opus", ".aac"}
+            VIDEO_EXTS = {".mp4", ".webm", ".avi", ".mkv"}
+            
+            # Passo 5: Obter cliente WhatsApp e enviar
+            from sessao.sessao_service import gerenciador_sessoes
+            cliente = gerenciador_sessoes.obter_cliente(sessao_id)
+            if not cliente:
+                return {
+                    "resultado": {"erro": "Cliente WhatsApp não disponível para esta sessão"},
+                    "output": "llm",
+                    "enviado_usuario": False
+                }
+            
+            # Usar JID resolvido se disponível (suporta formato LID)
+            if jid_destino is not None:
+                jid = jid_destino
+            else:
+                from neonize.utils import build_jid
+                jid = build_jid(telefone_cliente)
+            
+            if ext in IMAGE_EXTS:
+                print(f"🖼️  [SANDBOX] Enviando como imagem...")
+                cliente.send_image(jid, file_bytes, caption=caption)
+                tipo_envio = "imagem"
+            elif ext in AUDIO_EXTS:
+                print(f"🎵 [SANDBOX] Enviando como áudio...")
+                cliente.send_audio(jid, file_bytes, ptt=False)
+                tipo_envio = "áudio"
+            elif ext in VIDEO_EXTS:
+                print(f"🎬 [SANDBOX] Enviando como vídeo...")
+                cliente.send_video(jid, file_bytes, caption=caption)
+                tipo_envio = "vídeo"
+            else:
+                print(f"📄 [SANDBOX] Enviando como documento...")
+                cliente.send_document(
+                    jid,
+                    file_bytes,
+                    filename=filename,
+                    caption=caption,
+                    mimetype=mime_type
+                )
+                tipo_envio = "documento"
+            
+            print(f"✅ [SANDBOX] Arquivo enviado com sucesso: {filename} ({tipo_envio})")
+            
+            return {
+                "resultado": {
+                    "sucesso": True,
+                    "mensagem": f"Arquivo '{filename}' enviado ao usuário como {tipo_envio} ({file_size_kb:.1f} KB)",
+                    "tipo": tipo_envio,
+                    "tamanho_kb": round(file_size_kb, 1)
+                },
+                "output": "llm",
+                "enviado_usuario": True
+            }
+            
+        except Exception as e:
+            print(f"❌ [SANDBOX] Erro ao enviar arquivo: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "resultado": {"erro": f"Erro ao enviar arquivo: {str(e)}"},
+                "output": "llm",
+                "enviado_usuario": False
+            }
+
+    @staticmethod
+    async def _extrair_e_enviar_imagens_sandbox(
+        resultado_completo: Dict[str, Any],
+        sessao_id: int,
+        telefone_cliente: str,
+        jid_destino=None
+    ) -> Dict[str, Any]:
+        """
+        Intercepta imagens base64 em resultados do sandbox SDK, envia ao usuário
+        via WhatsApp e substitui o base64 por um resumo leve para o LLM.
+        Formato SDK: {"type": "image", "image_base64": "...", "mime_type": "image/png"}
+        """
+        try:
+            resultado = resultado_completo.get("resultado", {})
+            if not isinstance(resultado, dict):
+                return resultado_completo
+            
+            # Formato SDK: resultado direto com image_base64
+            image_b64 = resultado.get("image_base64")
+            if not image_b64:
+                return resultado_completo
+            
+            print(f"🔍 [SDK→WA] Imagem detectada: {len(image_b64)} chars base64")
+            img_bytes = base64.b64decode(image_b64)
+            mime = resultado.get("mime_type", "image/png")
+            size_kb = len(img_bytes) / 1024
+            
+            from sessao.sessao_service import gerenciador_sessoes
+            
+            cliente = gerenciador_sessoes.obter_cliente(sessao_id)
+            if not cliente:
+                print(f"❌ [SDK→WA] Cliente WhatsApp não encontrado para sessão {sessao_id}")
+                resultado_completo = dict(resultado_completo)
+                resultado_completo["resultado"] = {
+                    "type": "image",
+                    "message": "[Screenshot capturado mas cliente WA indisponível]",
+                    "size_kb": round(size_kb, 1)
+                }
+                return resultado_completo
+            
+            # Usar JID resolvido se disponível (suporta formato LID)
+            if jid_destino is not None:
+                jid = jid_destino
+            else:
+                from neonize.utils import build_jid
+                jid = build_jid(telefone_cliente)
+            
+            print(f"🖼️  [SDK→WA] Enviando imagem {size_kb:.0f}KB ({mime}) para {jid}...")
+            cliente.send_image(jid, img_bytes, caption="")
+            print(f"✅ [SDK→WA] Imagem enviada com sucesso ({size_kb:.0f} KB)")
+            
+            # Substituir base64 por resumo leve para o LLM
+            resultado_completo = dict(resultado_completo)
+            resultado_completo["resultado"] = {
+                "type": "image",
+                "message": f"[Screenshot {size_kb:.0f}KB enviado ao usuário via WhatsApp]",
+                "size_kb": round(size_kb, 1)
+            }
+            resultado_completo["enviado_usuario"] = True
+            return resultado_completo
+        
+        except Exception as e:
+            print(f"❌ [SDK→WA] Erro na interceptação de imagem: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
+            return resultado_completo
+
+    @staticmethod
+    async def _enviar_screenshot_sandbox(
+        sessao_id: int,
+        telefone_cliente: str,
+        agente_id: int,
+        args: Dict[str, Any],
+        jid_destino=None
+    ) -> Dict[str, Any]:
+        """
+        Tira um screenshot do sandbox e envia diretamente ao usuário via WhatsApp.
+        Tool virtual: enviar_screenshot_whatsapp.
+        """
+        from sandbox_mcp.sandbox_service import SandboxService
+        
+        tipo = args.get("tipo", "pagina")
+        full_page = args.get("full_page", False)
+        caption = args.get("caption", "")
+        
+        try:
+            print(f"📸 [SANDBOX-SDK] Tirando screenshot tipo='{tipo}', full_page={full_page}")
+            
+            if tipo == "tela":
+                img_bytes = await SandboxService.tirar_screenshot(agente_id)
+            else:
+                img_bytes = await SandboxService.tirar_screenshot_pagina(agente_id, full_page=full_page)
+            
+            if not img_bytes:
+                return {
+                    "resultado": {"erro": "Falha ao capturar screenshot do sandbox"},
+                    "output": "llm",
+                    "enviado_usuario": False
+                }
+            
+            size_kb = len(img_bytes) / 1024
+            print(f"📸 [SANDBOX-SDK] Screenshot capturado: {size_kb:.1f} KB")
+            
+            from sessao.sessao_service import gerenciador_sessoes
+            cliente = gerenciador_sessoes.obter_cliente(sessao_id)
+            if not cliente:
+                return {
+                    "resultado": {"erro": "Cliente WhatsApp não disponível"},
+                    "output": "llm",
+                    "enviado_usuario": False
+                }
+            
+            if jid_destino is not None:
+                jid = jid_destino
+            else:
+                from neonize.utils import build_jid
+                jid = build_jid(telefone_cliente)
+            
+            cliente.send_image(jid, img_bytes, caption=caption)
+            print(f"✅ [SANDBOX-SDK] Screenshot enviado via WhatsApp ({size_kb:.1f} KB)")
+            
+            return {
+                "resultado": {
+                    "sucesso": True,
+                    "mensagem": f"Screenshot ({tipo}) enviado ao usuário ({size_kb:.1f} KB)",
+                    "tamanho_kb": round(size_kb, 1)
+                },
+                "output": "llm",
+                "enviado_usuario": True
+            }
+        except Exception as e:
+            print(f"❌ [SANDBOX-SDK] Erro ao enviar screenshot: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "resultado": {"erro": f"Erro ao enviar screenshot: {str(e)}"},
+                "output": "llm",
+                "enviado_usuario": False
+            }
+
+    @staticmethod
     def construir_historico_mensagens(mensagens: List, mensagem_atual) -> List[Dict]:
         """
         Constrói o histórico de mensagens no formato do OpenRouter.
@@ -297,7 +721,8 @@ Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
         sessao,
         mensagem,
         historico_mensagens: List,
-        agente: Optional[Agente] = None
+        agente: Optional[Agente] = None,
+        jid_destino=None
     ) -> Dict[str, Any]:
         """
         Processa uma mensagem com o agente LLM usando loop principal.
@@ -309,6 +734,7 @@ Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
             mensagem: Mensagem a ser processada
             historico_mensagens: Histórico de mensagens
             agente: Agente a ser usado (se None, usa o agente ativo da sessão)
+            jid_destino: JID resolvido do destinatário (preserva formato LID)
         
         Returns:
             Dict com: texto, tokens_input, tokens_output, tempo_ms, modelo, ferramentas
@@ -404,21 +830,44 @@ Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
                 if tool_openai:  # Apenas ferramentas PRINCIPAL
                     tools.append(tool_openai)
         
-        # Buscar clientes MCP ativos do agente
+        # Buscar clientes MCP ativos do agente (presets NÃO-sandbox)
         from mcp_client.mcp_service import MCPService
         mcp_clients = MCPService.listar_ativos_por_agente(db, agente.id)
         
-        # Adicionar ferramentas MCP
+        # Adicionar ferramentas MCP (excluir sandbox — agora é via toggle)
         for mcp_client in mcp_clients:
             if not mcp_client.conectado:
-                continue  # Pular clientes desconectados
+                continue
             
+            # Ignorar preset aio-sandbox (agora controlado pelo toggle sandbox_ativo)
+            if mcp_client.preset_key == "aio-sandbox":
+                continue
+            
+            # Outros presets MCP continuam funcionando normalmente
             mcp_tools = MCPService.listar_tools_ativas(db, mcp_client.id)
             for mcp_tool in mcp_tools:
                 if tools is None:
                     tools = []
                 tool_openai = MCPService.converter_mcp_tool_para_openai(mcp_client, mcp_tool)
                 tools.append(tool_openai)
+        
+        # Injetar tools do AIO Sandbox via SDK direto (controlado pelo toggle)
+        if agente.sandbox_ativo:
+            from sandbox_mcp.sandbox_service import SandboxService
+            from sandbox_mcp.sandbox_tools import obter_sandbox_tools
+            
+            # Conectar SDK se ainda não conectado
+            if not SandboxService.obter_cliente(agente.id):
+                sdk_url = agente.sandbox_url or ConfiguracaoService.obter_valor(
+                    db, "sandbox_sdk_url", "http://fluxi-sandbox:8080"
+                )
+                SandboxService.conectar(agente.id, sdk_url)
+            
+            # Injetar prompt + tools do sandbox
+            system_prompt += AgenteService._prompt_aio_sandbox()
+            if tools is None:
+                tools = []
+            tools.extend(obter_sandbox_tools())
 
         # Adicionar ferramenta de busca RAG se o agente tiver treinamento vinculado
         if agente.rag_id:
@@ -454,7 +903,10 @@ Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
         tokens_output_total = 0
         ferramentas_usadas = []
         texto_resposta_final = ""
-        max_iteracoes = ConfiguracaoService.obter_valor(db, "agente_max_iteracoes_loop", 10)
+        if agente.sandbox_ativo:
+            max_iteracoes = ConfiguracaoService.obter_valor(db, "agente_max_iteracoes_sandbox", 25)
+        else:
+            max_iteracoes = ConfiguracaoService.obter_valor(db, "agente_max_iteracoes_loop", 10)
         iteracao = 0
         
         # Loop principal de processamento
@@ -510,16 +962,31 @@ Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
                         function_args = tool_call.get("function", {}).get("arguments")
                         args_dict = json.loads(function_args) if isinstance(function_args, str) else function_args
                         
-                        # Detectar se é ferramenta MCP (prefixo mcp_)
-                        if function_name.startswith("mcp_"):
-                            # Extrair: mcp_5_list_repos -> client_id=5, tool_name=list_repos
+                        # Detectar se é ferramenta do Sandbox SDK (prefixo sandbox_)
+                        if function_name.startswith("sandbox_") and agente.sandbox_ativo:
                             try:
-                                parts = function_name.split("_", 2)  # ["mcp", "5", "list_repos"]
+                                from sandbox_mcp.sandbox_service import SandboxService
+                                print(f"🚀 [AGENTE] Executando tool Sandbox SDK: {function_name}")
+                                resultado_completo = await SandboxService.executar_tool(
+                                    db, agente.id, function_name, args_dict
+                                )
+                                print(f"✅ [AGENTE] Tool Sandbox SDK executada: {resultado_completo.get('tempo_ms', 0)}ms")
+                            except Exception as e:
+                                print(f"❌ [AGENTE] Erro ao executar tool Sandbox SDK: {str(e)}")
+                                resultado_completo = {
+                                    "resultado": {"erro": f"Erro ao executar tool Sandbox: {str(e)}"},
+                                    "output": "llm",
+                                    "enviado_usuario": False
+                                }
+                        
+                        # Detectar se é ferramenta MCP (prefixo mcp_) — presets não-sandbox
+                        elif function_name.startswith("mcp_"):
+                            try:
+                                parts = function_name.split("_", 2)
                                 mcp_client_id = int(parts[1])
                                 original_tool_name = parts[2]
                                 
                                 print(f"🌐 [AGENTE] Executando tool MCP: {original_tool_name} (client {mcp_client_id})")
-                                # Executar via MCP
                                 resultado_completo = await MCPService.executar_tool_mcp(
                                     db, mcp_client_id, original_tool_name, args_dict
                                 )
@@ -588,6 +1055,27 @@ Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
                                     "resultado": {"erro": f"Erro ao buscar: {str(e)}"},
                                     "output": "llm"
                                 }
+                        # Enviar arquivo do sandbox para o usuário via WhatsApp
+                        elif function_name == "enviar_arquivo_whatsapp" and agente.sandbox_ativo:
+                            resultado_completo = await AgenteService._enviar_arquivo_sandbox(
+                                db=db,
+                                sessao_id=sessao.id,
+                                telefone_cliente=mensagem.telefone_cliente,
+                                agente_id=agente.id,
+                                args=args_dict,
+                                jid_destino=jid_destino
+                            )
+                        
+                        # Enviar screenshot do sandbox via WhatsApp
+                        elif function_name == "enviar_screenshot_whatsapp" and agente.sandbox_ativo:
+                            resultado_completo = await AgenteService._enviar_screenshot_sandbox(
+                                sessao_id=sessao.id,
+                                telefone_cliente=mensagem.telefone_cliente,
+                                agente_id=agente.id,
+                                args=args_dict,
+                                jid_destino=jid_destino
+                            )
+                        
                         else:
                             # Executar ferramenta normal do banco
                             resultado_completo = await FerramentaService.executar_ferramenta(
@@ -596,6 +1084,13 @@ Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
                                 args_dict,
                                 sessao_id=sessao.id,
                                 telefone_cliente=mensagem.telefone_cliente
+                            )
+                        
+                        # Interceptar imagens em resultados sandbox SDK e enviar direto ao WhatsApp
+                        if agente.sandbox_ativo and function_name.startswith("sandbox_"):
+                            resultado_completo = await AgenteService._extrair_e_enviar_imagens_sandbox(
+                                resultado_completo, sessao.id, mensagem.telefone_cliente,
+                                jid_destino=jid_destino
                             )
                         
                         # Extrair resultado para o LLM

@@ -17,6 +17,10 @@ from config.config_service import ConfiguracaoService
 
 class MensagemService:
     """Serviço para gerenciar mensagens."""
+    
+    # Lock em memória para evitar processamento duplicado da mesma mensagem
+    _mensagens_em_processamento = set()
+    _lock_processamento = __import__('threading').Lock()
 
     @staticmethod
     def _resolver_jid_destino(info, message_source, telefone_cliente):
@@ -237,15 +241,25 @@ class MensagemService:
         if not sessao or not sessao.ativa:
             return
 
-        # Ignorar mensagens duplicadas (idempotência)
+        # Ignorar mensagens duplicadas (idempotência) - lock em memória + DB
         mensagem_id_whatsapp = getattr(info, 'ID', None)
         if mensagem_id_whatsapp:
+            chave_msg = f"{sessao_id}_{mensagem_id_whatsapp}"
+            with MensagemService._lock_processamento:
+                if chave_msg in MensagemService._mensagens_em_processamento:
+                    print(f"⏭️ Mensagem já em processamento (lock memória): {mensagem_id_whatsapp}")
+                    return
+                MensagemService._mensagens_em_processamento.add(chave_msg)
+            
+            # Também verificar no DB
             mensagem_existente = db.query(Mensagem).filter(
                 Mensagem.sessao_id == sessao_id,
                 Mensagem.mensagem_id_whatsapp == mensagem_id_whatsapp
             ).first()
             if mensagem_existente:
-                print(f"⏭️ Mensagem duplicada ignorada: {mensagem_id_whatsapp}")
+                print(f"⏭️ Mensagem duplicada ignorada (DB): {mensagem_id_whatsapp}")
+                with MensagemService._lock_processamento:
+                    MensagemService._mensagens_em_processamento.discard(chave_msg)
                 return
         
         # Detectar tipo de mensagem e verificar configuração
@@ -551,12 +565,16 @@ class MensagemService:
                     limite=limite_historico
                 )
                 
+                # Resolver JID de destino uma vez (preserva formato LID)
+                jid_destino = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente)
+                
                 # Processar com agente
                 resposta = await AgenteService.processar_mensagem(
                     db,
                     sessao,
                     db_mensagem,
-                    historico
+                    historico,
+                    jid_destino=jid_destino
                 )
                 
                 # Atualizar mensagem com resposta
@@ -632,6 +650,11 @@ class MensagemService:
                     print(f"❌ Erro ao enviar mensagem de erro: {send_error}")
                 
                 db.commit()
+        
+        # Limpar lock de processamento em memória
+        if mensagem_id_whatsapp:
+            with MensagemService._lock_processamento:
+                MensagemService._mensagens_em_processamento.discard(f"{sessao_id}_{mensagem_id_whatsapp}")
 
     @staticmethod
     def contar_mensagens_por_sessao(db: Session, sessao_id: int) -> int:

@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     libmagic1 \
     libmagic-dev \
     file \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching

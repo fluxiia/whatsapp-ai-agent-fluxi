@@ -4,7 +4,7 @@ Aplicação principal FastAPI
 """
 import os
 from fastapi import FastAPI, Request, Depends
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -84,6 +84,21 @@ def startup_event():
     criar_tabelas()
     print("✅ Tabelas criadas")
     
+    # Migração: adicionar colunas sandbox_ativo e sandbox_url se não existirem
+    from sqlalchemy import inspect, text
+    from database import engine
+    insp = inspect(engine)
+    colunas_agentes = [c["name"] for c in insp.get_columns("agentes")]
+    with engine.connect() as conn:
+        if "sandbox_ativo" not in colunas_agentes:
+            conn.execute(text("ALTER TABLE agentes ADD COLUMN sandbox_ativo BOOLEAN DEFAULT 0"))
+            conn.commit()
+            print("✅ Migração: coluna sandbox_ativo adicionada")
+        if "sandbox_url" not in colunas_agentes:
+            conn.execute(text("ALTER TABLE agentes ADD COLUMN sandbox_url VARCHAR(255)"))
+            conn.commit()
+            print("✅ Migração: coluna sandbox_url adicionada")
+    
     # Obter sessão do banco
     from database import SessionLocal
     db = SessionLocal()
@@ -144,6 +159,11 @@ app.include_router(metrica_frontend_router)
 app.include_router(rag_frontend_router)
 app.include_router(mcp_frontend_router)
 app.include_router(llm_providers_frontend_router)
+
+
+@app.get("/sw-cliente.js")
+def service_worker():
+    return FileResponse("static/sw-cliente.js", media_type="application/javascript")
 
 
 # Rota principal

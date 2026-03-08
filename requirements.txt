@@ -37,3 +37,6 @@ qrcode[pil]>=7.4.0
 # MCP (Model Context Protocol)
 mcp==1.15.0
 fastmcp>=2.0.0
+
+# AIO Sandbox SDK (comunicação direta com sandbox via Python)
+agent-sandbox>=0.0.26
