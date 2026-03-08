@@ -19,6 +19,49 @@ class MensagemService:
     """Serviço para gerenciar mensagens."""
 
     @staticmethod
+    def _resolver_jid_destino(info, message_source, telefone_cliente):
+        """Resolve o JID de destino priorizando o chat real do evento (inclui LID)."""
+        from neonize.utils import build_jid
+
+        chat_jid = getattr(info, 'Chat', None)
+        if chat_jid and hasattr(chat_jid, 'User') and chat_jid.User and hasattr(chat_jid, 'Server') and chat_jid.Server:
+            return chat_jid
+
+        sender_alt = getattr(message_source, 'SenderAlt', None)
+        if sender_alt and hasattr(sender_alt, 'User') and sender_alt.User and hasattr(sender_alt, 'Server') and sender_alt.Server:
+            if sender_alt.Server == "s.whatsapp.net":
+                return build_jid(sender_alt.User)
+            return sender_alt
+
+        sender = getattr(message_source, 'Sender', None)
+        if sender and hasattr(sender, 'User') and sender.User and hasattr(sender, 'Server') and sender.Server:
+            if sender.Server == "s.whatsapp.net":
+                return build_jid(sender.User)
+            return sender
+
+        return build_jid(telefone_cliente)
+
+    @staticmethod
+    def _jid_para_log(jid) -> str:
+        """Formata JID para logs de roteamento."""
+        user = getattr(jid, 'User', '?')
+        server = getattr(jid, 'Server', '?')
+        return f"{user}@{server}"
+
+    @staticmethod
+    def _extrair_texto_mensagem(message) -> str:
+        """Extrai texto de mensagens WhatsApp (conversation/extendedTextMessage)."""
+        if hasattr(message, 'conversation') and message.conversation:
+            return message.conversation.strip()
+
+        if hasattr(message, 'extendedTextMessage') and message.extendedTextMessage:
+            texto = getattr(message.extendedTextMessage, 'text', None)
+            if texto:
+                return texto.strip()
+
+        return ""
+
+    @staticmethod
     def listar_por_sessao(
         db: Session,
         sessao_id: int,
@@ -172,28 +215,42 @@ class MensagemService:
         
         # Extrair telefone do cliente
         # Prioridade: SenderAlt (número real) > Sender (pode ser "lid" interno)
-        if hasattr(message_source, 'SenderAlt') and message_source.SenderAlt:
-            sender_alt = message_source.SenderAlt
-            if hasattr(sender_alt, 'Server') and sender_alt.Server == "s.whatsapp.net":
-                if hasattr(sender_alt, 'User') and sender_alt.User:
-                    telefone_cliente = sender_alt.User
-                else:
-                    telefone_cliente = sender_jid.User if hasattr(sender_jid, 'User') else str(sender_jid)
-            else:
-                telefone_cliente = sender_jid.User if hasattr(sender_jid, 'User') else str(sender_jid)
+        telefone_cliente = None
+        if hasattr(message_source, 'SenderAlt') and message_source.SenderAlt and hasattr(message_source.SenderAlt, 'User') and message_source.SenderAlt.User:
+            telefone_cliente = message_source.SenderAlt.User
         else:
-            if hasattr(sender_jid, 'User'):
+            chat_jid = getattr(info, 'Chat', None)
+            if chat_jid and hasattr(chat_jid, 'Server') and chat_jid.Server == "s.whatsapp.net" and hasattr(chat_jid, 'User') and chat_jid.User:
+                telefone_cliente = chat_jid.User
+            elif hasattr(sender_jid, 'Server') and sender_jid.Server == "s.whatsapp.net" and hasattr(sender_jid, 'User') and sender_jid.User:
+                telefone_cliente = sender_jid.User
+            elif hasattr(sender_jid, 'User') and sender_jid.User:
                 telefone_cliente = sender_jid.User
             else:
                 telefone_cliente = str(sender_jid).split('@')[0] if '@' in str(sender_jid) else str(sender_jid)
+
+        if hasattr(sender_jid, 'Server') and sender_jid.Server == "lid":
+            print(f"⚠️ Sender em formato LID detectado. SenderAlt usado={bool(getattr(message_source, 'SenderAlt', None))}")
         
         # Obter sessão
         sessao = SessaoService.obter_por_id(db, sessao_id)
         if not sessao or not sessao.ativa:
             return
+
+        # Ignorar mensagens duplicadas (idempotência)
+        mensagem_id_whatsapp = getattr(info, 'ID', None)
+        if mensagem_id_whatsapp:
+            mensagem_existente = db.query(Mensagem).filter(
+                Mensagem.sessao_id == sessao_id,
+                Mensagem.mensagem_id_whatsapp == mensagem_id_whatsapp
+            ).first()
+            if mensagem_existente:
+                print(f"⏭️ Mensagem duplicada ignorada: {mensagem_id_whatsapp}")
+                return
         
         # Detectar tipo de mensagem e verificar configuração
         tipo_mensagem = MensagemService._detectar_tipo_mensagem(message)
+        texto_recebido = MensagemService._extrair_texto_mensagem(message)
         config_tipo = SessaoTipoMensagemService.obter_acao(db, sessao_id, tipo_mensagem)
         
         # Se for ignorar e não for texto, retornar
@@ -204,19 +261,18 @@ class MensagemService:
         # Se for resposta fixa, enviar e retornar
         if tipo_mensagem != "texto" and config_tipo["acao"] == "resposta_fixa" and config_tipo["resposta_fixa"]:
             from sessao.sessao_service import gerenciador_sessoes
-            from neonize.utils import build_jid
             cliente = gerenciador_sessoes.obter_cliente(sessao_id)
             if cliente:
-                jid = build_jid(telefone_cliente)
+                jid = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente)
                 cliente.send_message(jid, message=config_tipo["resposta_fixa"])
-                print(f"📤 Resposta fixa enviada para {tipo_mensagem}")
+                print(f"📤 Resposta fixa enviada para {tipo_mensagem} em {MensagemService._jid_para_log(jid)}")
             return
         
         # Criar registro de mensagem
         db_mensagem = Mensagem(
             sessao_id=sessao_id,
             telefone_cliente=telefone_cliente,
-            mensagem_id_whatsapp=info.ID,
+            mensagem_id_whatsapp=mensagem_id_whatsapp,
             tipo="texto",
             direcao="recebida",
             processada=False,
@@ -224,21 +280,20 @@ class MensagemService:
         )
         
         # Processar conteúdo
-        if hasattr(message, 'conversation') and message.conversation:
+        if tipo_mensagem == "texto" and texto_recebido:
             # Mensagem de texto
-            db_mensagem.conteudo_texto = message.conversation
+            db_mensagem.conteudo_texto = texto_recebido
             db_mensagem.tipo = "texto"
-            print(f"📝 Mensagem de texto: {message.conversation[:50]}...")
+            print(f"📝 Mensagem de texto: {texto_recebido[:50]}...")
             
             # Verificar comandos personalizáveis
             from sessao.sessao_comando_service import SessaoComandoService
-            comando_encontrado = SessaoComandoService.obter_por_gatilho(db, sessao_id, message.conversation.strip())
+            comando_encontrado = SessaoComandoService.obter_por_gatilho(db, sessao_id, texto_recebido)
             
             if comando_encontrado:
                 from sessao.sessao_service import gerenciador_sessoes
-                from neonize.utils import build_jid
                 cliente = gerenciador_sessoes.obter_cliente(sessao_id)
-                jid = build_jid(telefone_cliente) if cliente else None
+                jid = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente) if cliente else None
                 
                 # Processar comando baseado no tipo
                 if comando_encontrado.comando_id == "ativar":
@@ -332,7 +387,7 @@ class MensagemService:
                 
                 elif comando_encontrado.comando_id == "trocar_agente":
                     codigo_agente = SessaoComandoService.extrair_codigo_agente(
-                        message.conversation.strip(), 
+                        texto_recebido,
                         comando_encontrado.gatilho
                     )
                     print(f"🔄 Comando de troca de agente: {codigo_agente}")
@@ -419,10 +474,9 @@ class MensagemService:
                             
                             # Verificar se deve apenas responder com transcrição
                             if config_tipo["acao"] == "transcricao_apenas":
-                                from neonize.utils import build_jid
-                                jid = build_jid(telefone_cliente)
+                                jid = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente)
                                 cliente.send_message(jid, message=f"📝 *Transcrição do áudio:*\n\n{texto_transcrito}")
-                                print(f"📤 Transcrição enviada ao usuário")
+                                print(f"📤 Transcrição enviada ao usuário em {MensagemService._jid_para_log(jid)}")
                                 # Salvar mensagem sem processar com IA
                                 db_mensagem.conteudo_imagem_path = str(audio_path)
                                 db_mensagem.conteudo_mime_type = mime_type
@@ -474,6 +528,11 @@ class MensagemService:
                             db_mensagem.conteudo_mime_type = message.imageMessage.mimetype if hasattr(message.imageMessage, 'mimetype') else "image/jpeg"
             except Exception as e:
                 print(f"Erro ao baixar imagem: {e}")
+
+        elif tipo_mensagem == "texto":
+            # Evita fallback para "..." quando evento chega sem texto útil
+            print("⏭️ Mensagem de texto vazia/sem conteúdo útil ignorada")
+            return
         
         # Salvar mensagem
         db.add(db_mensagem)
@@ -516,13 +575,17 @@ class MensagemService:
                     cliente = gerenciador_sessoes.obter_cliente(sessao_id)
                     
                     if cliente:
-                        from neonize.utils import build_jid
-                        jid = build_jid(telefone_cliente)
+                        jid = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente)
                         # Parâmetro correto: message (str ou Message object)
-                        cliente.send_message(jid, message=resposta["texto"])
-                        
-                        db_mensagem.respondida = True
-                        db_mensagem.respondido_em = datetime.now()
+                        try:
+                            cliente.send_message(jid, message=resposta["texto"])
+                            print(f"📤 Resposta enviada para {telefone_cliente} via {MensagemService._jid_para_log(jid)}")
+                            db_mensagem.respondida = True
+                            db_mensagem.respondido_em = datetime.now()
+                        except Exception as send_error:
+                            erro_envio = f"Erro ao enviar resposta WhatsApp: {str(send_error)}"
+                            print(f"❌ {erro_envio}")
+                            db_mensagem.resposta_erro = erro_envio
                 
                 db.commit()
                 
@@ -540,8 +603,7 @@ class MensagemService:
                     cliente = gerenciador_sessoes.obter_cliente(sessao_id)
                     
                     if cliente:
-                        from neonize.utils import build_jid
-                        jid = build_jid(telefone_cliente)
+                        jid = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente)
                         
                         # Mensagem de erro amigável
                         erro_msg = f"❌ *Erro ao processar sua mensagem*\n\n"

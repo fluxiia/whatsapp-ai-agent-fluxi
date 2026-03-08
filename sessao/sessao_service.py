@@ -768,7 +768,7 @@ class SessaoService:
             jid = build_jid(telefone_destino)
             
             # Enviar mensagem
-            cliente.send_message(jid, text=texto)
+            cliente.send_message(jid, message=texto)
             
             return True
         except Exception as e:
