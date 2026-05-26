@@ -9,7 +9,7 @@
     <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
         <div>
             <h1 class="page-title" style="font-size: 1.25rem;">
-                <i class="fas fa-plug text-primary mb-xs" style="color: #6366f1;"></i> Servidores MCP (Ferramentas Remotas)
+                <i class="fas fa-plug text-primary mb-xs" style="color: #6841A8;"></i> Servidores MCP (Ferramentas Remotas)
             </h1>
             <p class="breadcrumbs" style="margin-top: 2px;">
                 <a href="/agentes/sessao/{{ agente.sessao_id }}" style="color: var(--color-text-secondary); text-decoration: none;">Agentes Locais</a> / 
@@ -26,7 +26,7 @@
                 <i class="fas fa-bolt" style="margin-right: 6px;"></i> Presets
             </a>
             {% if pode_adicionar %}
-                <a href="/mcp/agente/{{ agente.id }}/json-config" class="button is-small is-primary" style="background: #6366f1; border: none;">
+                <a href="/mcp/agente/{{ agente.id }}/json-config" class="button is-small is-primary" style="background: #6841A8; border: none;">
                     <i class="fas fa-satellite-dish" style="margin-right: 6px;"></i> Conectar Node MCP
                 </a>
             {% else %}
@@ -39,7 +39,7 @@
 
     <!-- Cluster de Volume Rápido -->
     <div class="grid grid-cols-4 gap-md mb-lg">
-        <div class="box flex flex-col justify-center p-md" style="border: none; box-shadow: var(--shadow-sm); border-left: 4px solid #6366f1;">
+        <div class="box flex flex-col justify-center p-md" style="border: none; box-shadow: var(--shadow-sm); border-left: 4px solid #6841A8;">
             <span style="display: block; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: 4px;">Rede MCP Conectada</span>
             <span style="font-size: 1.75rem; font-weight: 700; color: var(--color-text-primary);">{{ total_mcp_clients }} / {{ limite_mcp_clients }}</span>
         </div>
@@ -169,7 +169,7 @@
                     O agente está restrito às ferramentas locais. Acople um servidor MCP para injetar novas skills remotas.
                 </p>
                 {% if pode_adicionar %}
-                    <a href="/mcp/agente/{{ agente.id }}/json-config" class="button is-small is-primary" style="background: #6366f1; border: none;">
+                    <a href="/mcp/agente/{{ agente.id }}/json-config" class="button is-small is-primary" style="background: #6841A8; border: none;">
                         <i class="fas fa-plus"></i> Iniciar Acoplamento
                     </a>
                 {% endif %}

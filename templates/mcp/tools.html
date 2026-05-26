@@ -9,7 +9,7 @@
     <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
         <div>
             <h1 class="page-title" style="font-size: 1.25rem;">
-                <i class="fas fa-microscope text-primary mb-xs" style="color: #6366f1;"></i> Core Tools: {{ mcp_client.nome }}
+                <i class="fas fa-microscope text-primary mb-xs" style="color: #6841A8;"></i> Core Tools: {{ mcp_client.nome }}
             </h1>
             <p class="breadcrumbs" style="margin-top: 2px;">
                 <a href="/mcp/agente/{{ agente.id }}/clients" style="color: var(--color-text-secondary); text-decoration: none;">MCP Nodes Toplogy</a> / 
@@ -55,7 +55,7 @@
                                 </span>
                                 <div style="display: flex; align-items: center; gap: 4px;">
                                     <span style="font-size: 0.65rem; color: #a5b4fc; background: #312e81; padding: 2px 6px; border-radius: 4px; font-family: monospace;">NAMESPACE KEY</span>
-                                    <span style="font-size: 0.75rem; color: #6366f1; font-family: monospace;">mcp_{{ mcp_client.id }}_{{ tool.name }}</span>
+                                    <span style="font-size: 0.75rem; color: #6841A8; font-family: monospace;">mcp_{{ mcp_client.id }}_{{ tool.name }}</span>
                                 </div>
                             </div>
                         </td>
@@ -91,7 +91,7 @@
                     Nenhuma Capability/Tool foi extraída deste Node. O servidor pode não exportar métodos ou não estar sincronizado corretamente.
                 </p>
                 
-                <button onclick="location.reload()" class="button is-primary" style="background: #6366f1; border: none;">
+                <button onclick="location.reload()" class="button is-primary" style="background: #6841A8; border: none;">
                     <i class="fas fa-sync-alt mr-sm"></i> Tentar Forçar Sincronia Local
                 </button>
             </div>

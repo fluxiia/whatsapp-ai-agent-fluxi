@@ -9,7 +9,7 @@
     <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
         <div>
             <h1 class="page-title" style="font-size: 1.25rem;">
-                <i class="fas fa-{% if mcp_client %}server{% else %}plus-circle{% endif %} text-primary mb-xs" style="color: #6366f1;"></i> 
+                <i class="fas fa-{% if mcp_client %}server{% else %}plus-circle{% endif %} text-primary mb-xs" style="color: #6841A8;"></i> 
                 {{ 'Reconfiguração do Node' if mcp_client else 'Acoplamento de Node (MCP)' }}
             </h1>
             <p class="breadcrumbs" style="margin-top: 2px;">
@@ -51,7 +51,7 @@
                         <label class="checkbox flex items-center justify-between" style="width: 100%; font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary); margin: 0;">
                             <span>Permitir Inicialização Automática deste Node na engine</span>
                             <div style="position: relative;">
-                                <input type="checkbox" name="ativo" {% if not mcp_client or mcp_client.ativo %}checked{% endif %} style="width: 18px; height: 18px; accent-color: #6366f1;">
+                                <input type="checkbox" name="ativo" {% if not mcp_client or mcp_client.ativo %}checked{% endif %} style="width: 18px; height: 18px; accent-color: #6841A8;">
                             </div>
                         </label>
                     </div>
@@ -126,7 +126,7 @@
 
                 <!-- Painel de Execução -->
                 <div class="flex items-center gap-md" style="margin-top: var(--space-sm);">
-                    <button type="button" onclick="submitForm()" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;">
+                    <button type="button" onclick="submitForm()" class="button is-primary" style="background: #6841A8; border: none; font-weight: 600;">
                         <i class="fas fa-satellite-dish" style="margin-right: 6px;"></i>
                         {{ 'Update/Deploy Node Configuration' if mcp_client else 'Acoplar Node' }}
                     </button>
@@ -152,7 +152,7 @@
                     </div>
 
                     <div style="margin-bottom: var(--space-lg);">
-                        <strong style="color: #6366f1; font-size: 0.8125rem; font-family: monospace; display: block; margin-bottom: 4px;">STDIO (NPX)</strong>
+                        <strong style="color: #6841A8; font-size: 0.8125rem; font-family: monospace; display: block; margin-bottom: 4px;">STDIO (NPX)</strong>
                         <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: 4px;">O mais comum para nodes criados com SDK Javascript.</p>
                         <code style="display: block; background: #0f172a; border-radius: 4px; padding: 6px; font-size: 0.65rem; color: #a5b4fc;">
                             Comando: npx<br>

@@ -44,8 +44,8 @@
             <div class="box p-md" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
                 <label class="label text-secondary mb-sm" style="font-size: 0.8125rem; text-transform: uppercase;">Quem deve receber o resultado? *</label>
                 
-                <label class="radio flex items-start gap-sm mb-sm p-sm" style="background: var(--color-surface); border-radius: var(--radius-md); border: 1px solid {% if not wizard_data.output or wizard_data.output == 'llm' %}#6366f1{% else %}transparent{% endif %}; transition: all 0.2s; cursor: pointer;">
-                    <input type="radio" name="output" value="llm" id="output_llm" class="mt-xs" style="accent-color: #6366f1;"
+                <label class="radio flex items-start gap-sm mb-sm p-sm" style="background: var(--color-surface); border-radius: var(--radius-md); border: 1px solid {% if not wizard_data.output or wizard_data.output == 'llm' %}#6841A8{% else %}transparent{% endif %}; transition: all 0.2s; cursor: pointer;">
+                    <input type="radio" name="output" value="llm" id="output_llm" class="mt-xs" style="accent-color: #6841A8;"
                            {% if not wizard_data.output or wizard_data.output == 'llm' %}checked{% endif %}
                            onchange="toggleChannelSection()">
                     <div>
@@ -145,7 +145,7 @@
         <button type="submit" name="voltar" value="true" class="button is-outline text-muted" style="border: none;">
             <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Voltar a Escolhas
         </button>
-        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;">
+        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6841A8; border: none; font-weight: 600;">
             Avançar para o Resumo <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
         </button>
     </div>
@@ -160,7 +160,7 @@ document.querySelectorAll('input[type="radio"]').forEach(radio => {
         document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
             const container = r.closest('label');
             if (r.checked) {
-                let color = '#6366f1';
+                let color = '#6841A8';
                 if (r.value === 'user') color = '#10b981';
                 if (r.value === 'both') color = '#f59e0b';
                 container.style.borderColor = color;
@@ -224,7 +224,7 @@ function loadNextToolArgs() {
                 const div = document.createElement('div');
                 div.className = 'field mb-2 flex items-center justify-between gap-md';
                 div.innerHTML = `
-                    <label class="label text-secondary m-0" style="font-size: 0.75rem;">A próxima ferramenta pede o dado: <strong style="color: #6366f1;">${paramName}</strong>...</label>
+                    <label class="label text-secondary m-0" style="font-size: 0.75rem;">A próxima ferramenta pede o dado: <strong style="color: #6841A8;">${paramName}</strong>...</label>
                     <div class="control">
                         <select name="next_tool_arg_${paramName}" style="font-size: 0.75rem; padding: 4px; border-radius: 4px; border: 1px solid var(--color-border);">
                             <option value="">-- Escolha um dado atual para usar lá --</option>
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup initial style
     const checkedRadio = document.querySelector('input[name="output"]:checked');
     if(checkedRadio) {
-        let color = '#6366f1';
+        let color = '#6841A8';
         if (checkedRadio.value === 'user') color = '#10b981';
         if (checkedRadio.value === 'both') color = '#f59e0b';
         checkedRadio.closest('label').style.borderColor = color;

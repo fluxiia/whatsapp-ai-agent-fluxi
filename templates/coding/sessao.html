@@ -9,7 +9,7 @@
          style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
         <div>
             <h1 class="page-title" style="font-size: 1.25rem;">
-                <i class="fas fa-robot" style="color: var(--color-primary, #3b82f6); margin-right: 0.5rem;"></i>
+                <i class="fas fa-robot" style="color: var(--color-primary, #6841A8); margin-right: 0.5rem;"></i>
                 {{ cs.agente.nome if cs.agente else "Coding Session #" ~ cs.id }}
             </h1>
             <p style="margin-top: 2px; color: var(--color-text-secondary); font-size: 0.82rem;">
@@ -30,7 +30,7 @@
                 <div class="flex items-center justify-between"
                      style="padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border);">
                     <span style="font-weight: 600; font-size: 0.9rem;">
-                        <i class="fas fa-tasks" style="color: var(--color-primary, #3b82f6); margin-right: 0.4rem;"></i>Tarefas
+                        <i class="fas fa-tasks" style="color: var(--color-primary, #6841A8); margin-right: 0.4rem;"></i>Tarefas
                     </span>
                     <span style="font-size: 0.75rem; color: var(--color-text-tertiary);">{{ tarefas|length }} total</span>
                 </div>
@@ -54,7 +54,7 @@
                             {% elif t.status == "cancelled" %}
                                 <span style="color: var(--color-text-tertiary); width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-ban"></i></span>
                             {% elif t.status == "waiting_input" %}
-                                <span style="color: #3b82f6; width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-hourglass-half"></i></span>
+                                <span style="color: #6841A8; width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-hourglass-half"></i></span>
                             {% else %}
                                 <span style="color: var(--color-text-tertiary); width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-clock"></i></span>
                             {% endif %}
@@ -90,7 +90,7 @@
             <div class="card" style="overflow: hidden;">
                 <div style="padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
                     <span style="font-weight: 600; font-size: 0.875rem;">
-                        <i class="fas fa-brain" style="color: var(--color-primary, #3b82f6); margin-right: 0.4rem;"></i>Memória
+                        <i class="fas fa-brain" style="color: var(--color-primary, #6841A8); margin-right: 0.4rem;"></i>Memória
                     </span>
                     <span style="font-size: 0.7rem; color: var(--color-text-tertiary);">CLAUDE.md equiv.</span>
                 </div>
@@ -112,7 +112,7 @@
             <!-- Config -->
             <div class="card" style="padding: var(--space-md);">
                 <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: var(--space-sm);">
-                    <i class="fas fa-sliders-h" style="color: var(--color-primary, #3b82f6); margin-right: 0.4rem;"></i>Configurações
+                    <i class="fas fa-sliders-h" style="color: var(--color-primary, #6841A8); margin-right: 0.4rem;"></i>Configurações
                 </div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
                     <tr><td style="padding: 0.3rem 0; color: var(--color-text-secondary);">Modo workspace</td><td style="text-align: right;"><code>{{ cs.workspace_mode }}</code></td></tr>
@@ -137,7 +137,7 @@
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem;">
                         <input type="checkbox" id="thinking-toggle" onchange="salvarThinkingMode(this.checked)"
                             {% if cs.thinking_mode %}checked{% endif %}
-                            style="width: 1rem; height: 1rem; accent-color: var(--color-primary, #3b82f6);">
+                            style="width: 1rem; height: 1rem; accent-color: var(--color-primary, #6841A8);">
                         <span>
                             <i class="fas fa-brain" style="color: rgba(139,92,246,0.7); margin-right: 0.2rem;"></i>Thinking Mode
                         </span>

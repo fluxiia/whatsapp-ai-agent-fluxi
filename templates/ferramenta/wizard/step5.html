@@ -59,7 +59,7 @@
         <button type="submit" name="pular" value="true" class="button is-light" style="background: var(--color-surface); border: 1px solid var(--color-border); font-size: 0.8125rem;">
             Pular essa etapa
         </button>
-        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;" onclick="saveMapping()">
+        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6841A8; border: none; font-weight: 600;" onclick="saveMapping()">
             Avançar <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
         </button>
     </div>
@@ -108,9 +108,9 @@ function renderFields() {
         
         div.innerHTML = `
             <div class="flex items-center gap-sm">
-                <input type="checkbox" class="field-checkbox" data-path="${field.path}" onchange="toggleField(this)" style="accent-color: #6366f1; transform: scale(1.2);">
+                <input type="checkbox" class="field-checkbox" data-path="${field.path}" onchange="toggleField(this)" style="accent-color: #6841A8; transform: scale(1.2);">
                 <div>
-                    <span style="font-family: monospace; font-size: 0.75rem; color: #6366f1; font-weight: 600;">${field.path}</span>
+                    <span style="font-family: monospace; font-size: 0.75rem; color: #6841A8; font-weight: 600;">${field.path}</span>
                     <p style="font-size: 0.65rem; color: var(--color-text-secondary); margin: 0;">${JSON.stringify(field.value).substring(0, 40)}</p>
                 </div>
             </div>
@@ -141,8 +141,8 @@ function toggleField(checkbox) {
     const input = box.querySelector('.output-name');
     
     if (checkbox.checked) {
-        box.style.borderColor = '#6366f1';
-        box.style.background = 'rgba(99, 102, 241, 0.05)';
+        box.style.borderColor = '#6841A8';
+        box.style.background = 'rgba(104, 65, 168, 0.05)';
         input.disabled = false;
         existingMap[path] = input.value;
     } else {

@@ -17,12 +17,12 @@
     {% if resumos %}
     <div class="flex flex-col gap-md">
         {% for r in resumos %}
-        <div class="card" style="border-left: 3px solid var(--color-primary, #3b82f6);">
+        <div class="card" style="border-left: 3px solid var(--color-primary, #6841A8);">
             <div class="flex items-center justify-between" style="padding: var(--space-md) var(--space-lg);">
                 <div class="flex flex-col gap-xs">
                     <div class="flex items-center gap-md">
                         <span style="font-weight: 600; font-size: 0.95rem;">
-                            <i class="fas fa-robot" style="color: var(--color-primary, #3b82f6); margin-right: 0.4rem;"></i>
+                            <i class="fas fa-robot" style="color: var(--color-primary, #6841A8); margin-right: 0.4rem;"></i>
                             {{ r.cs.agente.nome if r.cs.agente else "Agente #" ~ r.cs.agente_id }}
                         </span>
                         {% if r.running > 0 %}

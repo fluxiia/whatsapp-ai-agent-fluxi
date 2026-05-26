@@ -29,7 +29,7 @@
                 {% if wizard_data.params %}
                     <div class="flex flex-col gap-xs">
                         {% for param_name in wizard_data.params.keys() %}
-                        <button type="button" class="button is-small p-xs flex justify-between items-center w-full" style="background: var(--color-surface); border: 1px solid var(--color-border); color: #6366f1; font-family: monospace; font-size: 0.75rem;" onclick="insertAtCursor('{' + '{{ param_name }}' + '}')">
+                        <button type="button" class="button is-small p-xs flex justify-between items-center w-full" style="background: var(--color-surface); border: 1px solid var(--color-border); color: #6841A8; font-family: monospace; font-size: 0.75rem;" onclick="insertAtCursor('{' + '{{ param_name }}' + '}')">
                             <span>{{ '{' }}{{ param_name }}{{ '}' }}</span>
                             <i class="fas fa-plus text-muted" style="font-size: 0.65rem;"></i>
                         </button>
@@ -105,7 +105,7 @@
                     <div>
                         <div class="flex justify-between items-center mb-xs">
                             <label class="label text-secondary m-0" style="font-size: 0.65rem;">Cabeçalhos (Headers)</label>
-                            <button type="button" class="button is-small" onclick="addHeader()" style="background: transparent; border: none; font-size: 0.65rem; color: #6366f1; padding: 0;">+ Novo Header</button>
+                            <button type="button" class="button is-small" onclick="addHeader()" style="background: transparent; border: none; font-size: 0.65rem; color: #6841A8; padding: 0;">+ Novo Header</button>
                         </div>
                         <div id="headers_list"></div>
                     </div>
@@ -113,7 +113,7 @@
                     <div>
                         <div class="flex justify-between items-center mb-xs">
                             <label class="label text-secondary m-0" style="font-size: 0.65rem;">Na URL (Query Params)</label>
-                            <button type="button" class="button is-small" onclick="addQueryParam()" style="background: transparent; border: none; font-size: 0.65rem; color: #6366f1; padding: 0;">+ Novo Param</button>
+                            <button type="button" class="button is-small" onclick="addQueryParam()" style="background: transparent; border: none; font-size: 0.65rem; color: #6841A8; padding: 0;">+ Novo Param</button>
                         </div>
                         <div id="query_list"></div>
                     </div>
@@ -168,7 +168,7 @@
         <button type="submit" name="voltar" value="true" class="button is-outline text-muted">
             <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Voltar a Parâmetros
         </button>
-        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;" onclick="saveCurl()">
+        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6841A8; border: none; font-weight: 600;" onclick="saveCurl()">
             Salvar Tudo e Avançar <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
         </button>
     </div>

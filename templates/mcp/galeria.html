@@ -9,7 +9,7 @@
     <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
         <div>
             <h1 class="page-title" style="font-size: 1.25rem;">
-                <i class="fas fa-store" style="color: #6366f1; margin-right: 6px;"></i> Galeria de Servidores MCP
+                <i class="fas fa-store" style="color: #6841A8; margin-right: 6px;"></i> Galeria de Servidores MCP
             </h1>
             <p class="breadcrumbs" style="margin-top: 2px;">
                 <a href="/mcp" style="color: var(--color-text-secondary); text-decoration: none;">MCP Mesh</a> /
@@ -18,10 +18,10 @@
         </div>
         <div class="flex items-center gap-sm">
             {% if agente %}
-            <div class="flex items-center gap-sm" style="padding: 4px 12px; border-radius: var(--radius-md); background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);">
-                <i class="fas fa-robot" style="font-size: 0.8125rem; color: #6366f1;"></i>
+            <div class="flex items-center gap-sm" style="padding: 4px 12px; border-radius: var(--radius-md); background: rgba(104, 65, 168,0.1); border: 1px solid rgba(104, 65, 168,0.2);">
+                <i class="fas fa-robot" style="font-size: 0.8125rem; color: #6841A8;"></i>
                 <div class="flex flex-col">
-                    <span style="font-size: 0.65rem; color: #6366f1; text-transform: uppercase; font-weight: 700;">Target Agent</span>
+                    <span style="font-size: 0.65rem; color: #6841A8; text-transform: uppercase; font-weight: 700;">Target Agent</span>
                     <span style="font-size: 0.8125rem; font-weight: 700; color: var(--color-text-primary);">{{ agente.nome }}</span>
                 </div>
             </div>
@@ -48,8 +48,8 @@
     <!-- Fonte -->
     <div class="flex items-center gap-sm mb-md" style="font-size: 0.75rem; color: var(--color-text-secondary);">
         <i class="fas fa-database"></i>
-        <span>Registry público via <a href="https://smithery.ai" target="_blank" style="color: #6366f1;">Smithery.ai</a> — atualizado em tempo real</span>
-        <span style="margin-left: auto; padding: 2px 8px; background: rgba(99,102,241,0.1); border-radius: 4px; color: #6366f1; font-weight: 600;" id="total-label">carregando...</span>
+        <span>Registry público via <a href="https://smithery.ai" target="_blank" style="color: #6841A8;">Smithery.ai</a> — atualizado em tempo real</span>
+        <span style="margin-left: auto; padding: 2px 8px; background: rgba(104, 65, 168,0.1); border-radius: 4px; color: #6841A8; font-weight: 600;" id="total-label">carregando...</span>
     </div>
 
     <!-- Barra de busca -->
@@ -74,7 +74,7 @@
 
     <!-- Loading -->
     <div id="loading-state" class="flex flex-col items-center" style="padding: 60px 0; display: none !important;">
-        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6366f1; margin-bottom: 16px;"></i>
+        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #6841A8; margin-bottom: 16px;"></i>
         <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Consultando registry Smithery...</p>
     </div>
 
@@ -188,7 +188,7 @@ function renderCard(s) {
     const icon = s.iconUrl
         ? `<img src="${s.iconUrl}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
         : '';
-    const fallbackIcon = `<div style="width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;${s.iconUrl ? 'display:none;' : ''}"><i class="fas fa-plug" style="color:#6366f1;font-size:1rem;"></i></div>`;
+    const fallbackIcon = `<div style="width:36px;height:36px;border-radius:8px;background:rgba(104, 65, 168,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;${s.iconUrl ? 'display:none;' : ''}"><i class="fas fa-plug" style="color:#6841A8;font-size:1rem;"></i></div>`;
 
     const deployBadge = s.deploymentUrl
         ? `<span style="font-size:0.65rem;padding:2px 6px;background:rgba(16,185,129,0.15);color:#10b981;border-radius:4px;font-weight:700;white-space:nowrap;">HTTP</span>`
@@ -248,10 +248,10 @@ function abrirInstalar(servidor) {
         const smitheryField = isSmithery ? `
             <div class="form-group mb-md">
                 <label style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:4px;">
-                    <i class="fas fa-key" style="color:#6366f1;margin-right:4px;"></i>
+                    <i class="fas fa-key" style="color:#6841A8;margin-right:4px;"></i>
                     API Key da Smithery
                     <a href="https://smithery.ai/settings" target="_blank"
-                       style="color:#6366f1;font-weight:400;font-size:0.75rem;margin-left:6px;">
+                       style="color:#6841A8;font-weight:400;font-size:0.75rem;margin-left:6px;">
                         Obter chave gratuita →
                     </a>
                 </label>
@@ -318,7 +318,7 @@ function abrirInstalar(servidor) {
                 <input id="inst-nome" class="input" type="text" value="${servidor.displayName}" style="font-size:0.875rem;width:100%;">
             </div>
             <div class="form-group mb-sm">
-                <label style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:4px;">JSON Config <a href="${servidor.homepage || '#'}" target="_blank" style="color:#6366f1;font-weight:400;font-size:0.75rem;margin-left:6px;">ver docs</a></label>
+                <label style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:4px;">JSON Config <a href="${servidor.homepage || '#'}" target="_blank" style="color:#6841A8;font-weight:400;font-size:0.75rem;margin-left:6px;">ver docs</a></label>
                 <textarea id="inst-json" class="textarea" rows="9" style="font-size:0.75rem;font-family:monospace;width:100%;">${jsonConfig}</textarea>
             </div>
             <div class="flex justify-end gap-sm">

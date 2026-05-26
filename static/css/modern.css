@@ -41,8 +41,8 @@
     --color-warning-light: #fef3c7;
     --color-error: #ef4444;
     --color-error-light: #fee2e2;
-    --color-info: #3b82f6;
-    --color-info-light: #dbeafe;
+    --color-info: #6841A8;
+    --color-info-light: #F3EBFB;
 
     /* Espaçamentos */
     --space-xs: 0.25rem;
@@ -96,7 +96,7 @@
     --color-success-light: rgba(16, 185, 129, 0.1);
     --color-warning-light: rgba(245, 158, 11, 0.1);
     --color-error-light: rgba(239, 68, 68, 0.1);
-    --color-info-light: rgba(59, 130, 246, 0.1);
+    --color-info-light: rgba(104, 65, 168, 0.1);
 }
 
 /* ===== RESET E BASE ===== */

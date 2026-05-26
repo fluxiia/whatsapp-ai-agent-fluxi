@@ -21,7 +21,7 @@
                 
                 <div class="flex items-center justify-between mb-xs">
                     <div class="flex items-center gap-xs">
-                        <code style="font-size: 0.75rem; font-weight: 700; color: #6366f1; background: #e0e7ff; padding: 2px 6px; border-radius: 4px;">{{ param_name }}</code>
+                        <code style="font-size: 0.75rem; font-weight: 700; color: #6841A8; background: #e0e7ff; padding: 2px 6px; border-radius: 4px;">{{ param_name }}</code>
                         
                         <span style="font-size: 0.65rem; font-family: monospace; color: var(--color-text-secondary); background: var(--color-surface); padding: 2px 4px; border: 1px solid var(--color-border);">
                             {% if param_config.type == 'string' %}Texto{% elif param_config.type == 'int' %}Número Inteiro{% elif param_config.type == 'float' %}Número Decimal{% elif param_config.type == 'bool' %}Verdadeiro/Falso{% elif param_config.type == 'array' %}Lista{% elif param_config.type == 'enum' %}Opções Fechadas{% else %}{{ param_config.type }}{% endif %}
@@ -94,7 +94,7 @@
                 <label class="label text-secondary" style="font-size: 0.75rem;">OBRIGATÓRIO?</label>
                 <div class="control" style="height: 40px; display: flex; align-items: center;">
                     <label class="checkbox flex items-center gap-xs">
-                        <input type="checkbox" name="param_required" value="true" checked style="accent-color: #6366f1;">
+                        <input type="checkbox" name="param_required" value="true" checked style="accent-color: #6841A8;">
                         <span style="font-size: 0.8125rem; font-weight: 600;">Sim</span>
                     </label>
                 </div>
@@ -147,7 +147,7 @@
         <button type="submit" name="voltar" value="true" class="button is-outline text-muted">
             <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Voltar
         </button>
-        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;">
+        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6841A8; border: none; font-weight: 600;">
             Salvar e Avançar <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
         </button>
     </div>

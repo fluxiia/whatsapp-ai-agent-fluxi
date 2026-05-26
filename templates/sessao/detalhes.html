@@ -28,13 +28,13 @@
                 {% if sessao.plataforma == 'telegram' %}
                 <i class="fab fa-telegram text-primary mb-xs" style="color: #229ED9;"></i>
                 {% elif sessao.plataforma == 'webchat' %}
-                <i class="fas fa-globe text-primary mb-xs" style="color: #6366f1;"></i>
+                <i class="fas fa-globe text-primary mb-xs" style="color: #6841A8;"></i>
                 {% else %}
                 <i class="fab fa-whatsapp text-primary mb-xs" style="color: #25D366;"></i>
                 {% endif %}
                 {{ sessao.nome }}
                 <span style="font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; margin-left: 8px;
-                    background: {% if sessao.plataforma == 'telegram' %}#229ED9{% elif sessao.plataforma == 'webchat' %}#6366f1{% else %}#25D366{% endif %};
+                    background: {% if sessao.plataforma == 'telegram' %}#229ED9{% elif sessao.plataforma == 'webchat' %}#6841A8{% else %}#25D366{% endif %};
                     color: white; vertical-align: middle;">
                     {{ (sessao.plataforma or 'whatsapp')|upper }}
                 </span>
@@ -71,7 +71,7 @@
             </a>
             {% elif sessao.plataforma == 'webchat' %}
             <a href="/chat/{{ sessao.id }}" target="_blank" class="button is-small is-primary"
-                style="background: #6366f1; border: none;" title="Abrir a página pública de chat numa nova aba">
+                style="background: #6841A8; border: none;" title="Abrir a página pública de chat numa nova aba">
                 <i class="fas fa-external-link-alt" style="margin-right: 4px;"></i> Abrir Chat Público
             </a>
             {% else %}

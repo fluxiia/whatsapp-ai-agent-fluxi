@@ -26,7 +26,7 @@
                     <div class="control">
                         {% if param_config.type == 'bool' %}
                             <label class="checkbox flex items-center gap-xs" style="height: 40px; background: var(--color-surface); padding: 0 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-                                <input type="checkbox" name="test_{{ param_name }}" value="true" style="accent-color: #6366f1;">
+                                <input type="checkbox" name="test_{{ param_name }}" value="true" style="accent-color: #6841A8;">
                                 <span style="font-size: 0.8125rem;">Marcar como Verdadeiro</span>
                             </label>
                         {% elif param_config.type == 'enum' %}
@@ -74,7 +74,7 @@
         </div>
 
         <div class="mt-md" style="text-align: right;">
-            <button type="submit" class="button is-info" style="background: #3b82f6; border: none; font-weight: 600;">
+            <button type="submit" class="button is-info" style="background: #6841A8; border: none; font-weight: 600;">
                 <i class="fas fa-play mr-xs"></i> Fazer o Teste Agora
             </button>
         </div>
@@ -121,7 +121,7 @@
         </button>
     </form>
     <form method="POST" action="/ferramentas/wizard/step4/continuar" style="margin: 0;">
-        <button type="submit" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;" {% if not test_result or test_result.erro %}disabled{% endif %}>
+        <button type="submit" class="button is-primary" style="background: #6841A8; border: none; font-weight: 600;" {% if not test_result or test_result.erro %}disabled{% endif %}>
             Ir para a escolha de respostas <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
         </button>
     </form>

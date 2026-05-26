@@ -178,7 +178,7 @@
                         style="cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); list-style: none;"
                         title="Conta">
                         <span
-                            style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700;">
+                            style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #6841A8, #4B2B7E); color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700;">
                             {{ (request.session.get('user_nome') or 'U')[0]|upper }}
                         </span>
                         <span style="font-size: 0.85rem; font-weight: 600; color: var(--color-text-primary); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
@@ -196,7 +196,7 @@
                                 {{ request.session.get('user_email') }}
                             </div>
                             {% if request.session.get('user_role') == 'admin' %}
-                            <div style="font-size: 0.66rem; color: white; background: #6366f1; padding: 1px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; font-weight: 600;">
+                            <div style="font-size: 0.66rem; color: white; background: #6841A8; padding: 1px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; font-weight: 600;">
                                 <i class="fas fa-crown" style="margin-right: 3px;"></i> Admin
                             </div>
                             {% endif %}

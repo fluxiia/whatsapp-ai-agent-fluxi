@@ -8,7 +8,7 @@
     <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
         <div>
             <h1 class="page-title" style="font-size: 1.25rem;">
-                <i class="fas fa-inbox text-primary mb-xs" style="color: #6366f1;"></i> Central de Mensagens
+                <i class="fas fa-inbox text-primary mb-xs" style="color: #6841A8;"></i> Central de Mensagens
             </h1>
             <p class="breadcrumbs" style="margin-top: 2px;">
                 <a href="/sessoes" style="color: var(--color-text-secondary); text-decoration: none;">Sessões Locais</a> / 
@@ -25,7 +25,7 @@
 
     <!-- Cluster de Volume Rápido -->
     <div class="grid grid-cols-4 gap-md mb-lg">
-        <div class="box flex flex-col justify-center p-md" style="border: none; box-shadow: var(--shadow-sm); border-left: 4px solid #6366f1;">
+        <div class="box flex flex-col justify-center p-md" style="border: none; box-shadow: var(--shadow-sm); border-left: 4px solid #6841A8;">
             <span style="display: block; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: 4px;">Canais Abertos (Conversas)</span>
             <span style="font-size: 1.75rem; font-weight: 700; color: var(--color-text-primary);">{{ total_conversas }}</span>
         </div>
@@ -57,7 +57,7 @@
                     
                     <div class="flex items-center gap-md" style="flex: 1; min-width: 0;">
                         <!-- Avatar B2B Initials -->
-                        <div style="width: 42px; height: 42px; border-radius: var(--radius-md); background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">
+                        <div style="width: 42px; height: 42px; border-radius: var(--radius-md); background: #e0e7ff; color: #4B2B7E; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">
                             {{ (conversa.nome or conversa.telefone)[0].upper() }}
                         </div>
                         
@@ -123,7 +123,7 @@
 <style>
 .conversa-item:hover {
     background: var(--color-surface) !important;
-    border-left: 3px solid #6366f1;
+    border-left: 3px solid #6841A8;
     padding-left: calc(var(--space-lg) - 3px) !important;
 }
 </style>

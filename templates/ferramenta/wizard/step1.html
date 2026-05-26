@@ -46,8 +46,8 @@
             <div class="box" style="padding: var(--space-md); border: 1px solid var(--color-border); box-shadow: none; background: var(--color-bg-secondary);">
                 <label class="label text-secondary mb-sm" style="font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--color-border); padding-bottom: 4px;">Tipo de Ferramenta *</label>
                 
-                <label class="radio flex items-start gap-sm mb-sm p-sm" style="background: var(--color-surface); border-radius: var(--radius-md); border: 1px solid {% if not wizard_data.tool_type or wizard_data.tool_type == 'web' %}#6366f1{% else %}transparent{% endif %}; transition: all 0.2s; cursor: pointer;">
-                    <input type="radio" name="tool_type" value="web" class="mt-xs" style="accent-color: #6366f1;"
+                <label class="radio flex items-start gap-sm mb-sm p-sm" style="background: var(--color-surface); border-radius: var(--radius-md); border: 1px solid {% if not wizard_data.tool_type or wizard_data.tool_type == 'web' %}#6841A8{% else %}transparent{% endif %}; transition: all 0.2s; cursor: pointer;">
+                    <input type="radio" name="tool_type" value="web" class="mt-xs" style="accent-color: #6841A8;"
                            {% if not wizard_data.tool_type or wizard_data.tool_type == 'web' %}checked{% endif %}>
                     <div>
                         <div class="flex items-center gap-xs mb-xs">
@@ -101,7 +101,7 @@
         <a href="/ferramentas" class="button is-outline text-muted">
             <i class="fas fa-times" style="margin-right: 6px;"></i> Cancelar e Voltar
         </a>
-        <button type="submit" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;">
+        <button type="submit" class="button is-primary" style="background: #6841A8; border: none; font-weight: 600;">
             Salvar e Avançar <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
         </button>
     </div>
@@ -115,7 +115,7 @@ document.querySelectorAll('input[type="radio"]').forEach(radio => {
         document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
             const container = r.closest('label');
             if (r.checked) {
-                let color = '#6366f1';
+                let color = '#6841A8';
                 if (r.value === 'code') color = '#f59e0b';
                 if (r.value === 'principal') color = '#10b981';
                 if (r.value === 'auxiliar') color = '#64748b';

@@ -9,7 +9,7 @@
     <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
         <div>
             <h1 class="page-title" style="font-size: 1.25rem;">
-                <i class="fas fa-file-code text-primary mb-xs" style="color: #6366f1;"></i> Importar Spec JSON (MCP Server)
+                <i class="fas fa-file-code text-primary mb-xs" style="color: #6841A8;"></i> Importar Spec JSON (MCP Server)
             </h1>
             <p class="breadcrumbs" style="margin-top: 2px;">
                 <a href="/mcp/agente/{{ agente.id }}/clients" style="color: var(--color-text-secondary); text-decoration: none;">MCP Node Topology</a> / 
@@ -52,7 +52,7 @@
                     <div class="field flex flex-col" style="flex: 1; margin-bottom: var(--space-lg);">
                         <label class="label text-secondary" style="font-size: 0.75rem; text-transform: uppercase; display: flex; justify-content: space-between;">
                             <span>JSON Config (mcpServers Format)</span>
-                            <span style="color: #6366f1;"><i class="fas fa-asterisk"></i> Required</span>
+                            <span style="color: #6841A8;"><i class="fas fa-asterisk"></i> Required</span>
                         </label>
                         <div class="control" style="flex: 1; display: flex;">
                             <textarea name="json_config" required placeholder='{
@@ -93,7 +93,7 @@
                             <input type="hidden" name="nome" value="{{ exemplo.nome }}">
                             <input type="hidden" name="descricao" value="Auto-deploy via quick template">
                             <input type="hidden" name="json_config" value="{{ exemplo.config | tojson | forceescape }}">
-                            <button type="submit" class="button is-small" style="background: transparent; color: #6366f1; border: 1px solid #6366f1; padding: 0 6px; font-size: 0.65rem; height: 22px;">
+                            <button type="submit" class="button is-small" style="background: transparent; color: #6841A8; border: 1px solid #6841A8; padding: 0 6px; font-size: 0.65rem; height: 22px;">
                                 <i class="fas fa-download mr-xs"></i> Inject
                             </button>
                         </form>
