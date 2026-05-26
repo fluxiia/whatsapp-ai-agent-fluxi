@@ -4,7 +4,7 @@
 
 ### Plataforma open-source para criar agentes de IA — self-hosted, multi-canal, com ferramentas, skills, RAG e MCP.
 
-![Dashboard](data/screenshot01.png)
+![Fluxi.IA — agentes de IA conectados a WhatsApp, Telegram e Web Chat](data/hero_dashboard.png)
 
 </div>
 
