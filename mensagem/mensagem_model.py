@@ -37,6 +37,11 @@ class Mensagem(Base):
     conteudo_imagem_base64 = Column(Text, nullable=True)  # Imagem em base64
     conteudo_imagem_url = Column(String(500), nullable=True)  # URL da imagem
     conteudo_mime_type = Column(String(100), nullable=True)
+
+    # Referência estável pra tabela midias. String unique, sem FK formal:
+    # mensagens antigas tem este campo NULL (continuam usando `conteudo_imagem_path`).
+    # Agente referencia mídia por `media_id` (caminho novo).
+    media_id = Column(String(120), nullable=True, index=True)
     
     # Metadados da conversa
     contexto = Column(JSON, nullable=True)  # Histórico de mensagens para contexto

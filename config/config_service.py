@@ -386,6 +386,31 @@ class ConfiguracaoService:
                 "categoria": "geral",
                 "editavel": True
             },
+            # Camada de mídias (tabela `midias`)
+            {
+                "chave": "sistema_midia_ttl_dias",
+                "valor": "120",
+                "tipo": "int",
+                "descricao": "Dias até mídia expirar (0 = não purgar). Aplicado a uploads, mídias geradas e baixadas.",
+                "categoria": "geral",
+                "editavel": True
+            },
+            {
+                "chave": "sistema_midia_purga_intervalo_horas",
+                "valor": "24",
+                "tipo": "int",
+                "descricao": "Intervalo em horas entre execuções da purga de mídias expiradas.",
+                "categoria": "geral",
+                "editavel": True
+            },
+            {
+                "chave": "sistema_midia_grace_dias",
+                "valor": "7",
+                "tipo": "int",
+                "descricao": "Mídia expirada não é deletada se houver mensagem referenciando-a nos últimos N dias (proteção).",
+                "categoria": "geral",
+                "editavel": True
+            },
             # Agente - Limites
             {
                 "chave": "agente_max_ferramentas",

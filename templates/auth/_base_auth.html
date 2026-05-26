@@ -8,21 +8,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --c-bg: #0f172a;
-            --c-bg-grad-1: #1e1b4b;
-            --c-bg-grad-2: #312e81;
+            /* Paleta Fluxi — derivada da logo (roxo + magenta) */
+            --c-bg: #1a0f2e;
+            --c-bg-grad-1: #2D1B5E;  /* roxo escuro logo */
+            --c-bg-grad-2: #4B2B7E;  /* roxo médio logo */
             --c-surface: #ffffff;
-            --c-text: #111827;
-            --c-text-muted: #6b7280;
-            --c-border: #e5e7eb;
-            --c-primary: #6366f1;
-            --c-primary-dark: #4f46e5;
-            --c-primary-soft: #eef2ff;
+            --c-text: #1f1633;
+            --c-text-muted: #6b6280;
+            --c-border: #e5e0ee;
+            --c-primary: #6841A8;       /* roxo principal da logo */
+            --c-primary-dark: #4B2B7E;  /* roxo escuro */
+            --c-primary-soft: #F3EBFB;  /* lavanda suave */
+            --c-accent: #B83A99;        /* magenta da logo */
             --c-danger: #ef4444;
             --c-danger-soft: #fee2e2;
             --c-success: #10b981;
             --radius: 14px;
-            --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            --shadow-lg: 0 25px 50px -12px rgba(45, 27, 94, 0.45);
         }
 
         * { box-sizing: border-box; }
@@ -63,13 +65,19 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 56px;
-            height: 56px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--c-primary), var(--c-primary-dark));
-            color: white;
-            font-size: 1.6rem;
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            background: #ffffff;
+            padding: 8px;
             margin-bottom: 18px;
+            box-shadow: 0 8px 24px rgba(104, 65, 168, 0.18);
+        }
+
+        .auth-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .auth-title {

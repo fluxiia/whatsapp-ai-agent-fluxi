@@ -1,15 +1,21 @@
-/* ========== FLUXI MODERN - ANTHROPIC STYLE ========== */
+/* ========== FLUXI MODERN — BRAND PALETTE ========== */
+/* Cores derivadas da logo oficial (logo_fluxi.png):
+   roxo principal #6841A8 + rosa/magenta #B83A99, com gradiente entre os dois. */
 
 /* ===== VARIÁVEIS ===== */
 :root {
-    /* Cores Primárias - Anthropic Inspired */
-    --color-primary: #3b82f6;
-    --color-primary-light: #60a5fa;
-    --color-primary-dark: #2563eb;
+    /* Cores Primárias — paleta Fluxi (roxo) */
+    --color-primary: #6841A8;
+    --color-primary-light: #8B62C9;
+    --color-primary-dark: #4B2B7E;
 
-    /* Cores Secundárias */
-    --color-secondary: #6366f1;
-    --color-accent: #8b5cf6;
+    /* Cores Secundárias — paleta Fluxi (magenta) */
+    --color-secondary: #B83A99;
+    --color-accent: #C24DA3;
+
+    /* Gradiente da marca, usado em logo/marcas e CTAs */
+    --color-brand-gradient: linear-gradient(135deg, #6841A8 0%, #B83A99 100%);
+    --color-brand-soft: #F3EBFB;
 
     /* Cores Neutras */
     --color-bg: #ffffff;

@@ -337,6 +337,22 @@ class MensagemService:
         try:
             if evento.tipo == TipoMidia.AUDIO and evento.midia_bytes:
                 db_mensagem.tipo = "audio"
+                # Registrar na camada midias (media_id estavel pro agente).
+                try:
+                    from midia import midia_service as _midia_svc
+                    _m = _midia_svc.registrar_midia(
+                        db,
+                        sessao_id=sessao_id,
+                        chat_id=chat_id,
+                        conteudo=evento.midia_bytes,
+                        mime=evento.midia_mime or "audio/ogg",
+                        origem="upload",
+                        vinculada_tipo="mensagem",
+                    )
+                    db_mensagem.media_id = _m.media_id
+                except Exception:
+                    fluxi_log.warning("mensagem", "audio", "Falha ao registrar midia TG", exc_info=True, session_id=sessao_id)
+
                 try:
                     from audio.transcription_service import TranscriptionService
 
@@ -374,14 +390,49 @@ class MensagemService:
                     db_mensagem.conteudo_mime_type = evento.midia_mime or "image/jpeg"
                 if evento.texto:
                     db_mensagem.conteudo_texto = sanitize_user_input(evento.texto)
+                try:
+                    from midia import midia_service as _midia_svc
+                    _m = _midia_svc.registrar_midia(
+                        db,
+                        sessao_id=sessao_id,
+                        chat_id=chat_id,
+                        conteudo=evento.midia_bytes,
+                        mime=evento.midia_mime or "image/jpeg",
+                        origem="upload",
+                        vinculada_tipo="mensagem",
+                    )
+                    db_mensagem.media_id = _m.media_id
+                except Exception:
+                    fluxi_log.warning("mensagem", "imagem", "Falha ao registrar midia TG", exc_info=True, session_id=sessao_id)
 
             elif evento.tipo == TipoMidia.TEXTO:
                 texto = sanitize_user_input(evento.texto or "")
                 if not texto.strip():
                     return
                 db_mensagem.conteudo_texto = texto
+            elif evento.tipo in (TipoMidia.VIDEO, TipoMidia.DOCUMENTO) and evento.midia_bytes:
+                # Cobertura nova: video/documento via Telegram (adapter ja entrega bytes).
+                db_mensagem.tipo = evento.tipo.value if hasattr(evento.tipo, "value") else str(evento.tipo)
+                if evento.texto:
+                    db_mensagem.conteudo_texto = sanitize_user_input(evento.texto)
+                try:
+                    from midia import midia_service as _midia_svc
+                    _m = _midia_svc.registrar_midia(
+                        db,
+                        sessao_id=sessao_id,
+                        chat_id=chat_id,
+                        conteudo=evento.midia_bytes,
+                        mime=evento.midia_mime or "application/octet-stream",
+                        origem="upload",
+                        vinculada_tipo="mensagem",
+                    )
+                    db_mensagem.media_id = _m.media_id
+                    db_mensagem.conteudo_imagem_path = _m.path
+                    db_mensagem.conteudo_mime_type = _m.mime
+                except Exception:
+                    fluxi_log.error("mensagem", db_mensagem.tipo, "Erro ao registrar midia TG", exc_info=True, session_id=sessao_id)
             else:
-                # Tipos não tratados (video/documento/sticker): salvar registro mas
+                # Tipos sem bytes (sticker/localizacao): salvar registro mas
                 # não processar com agente.
                 db_mensagem.tipo = evento.tipo.value if hasattr(evento.tipo, "value") else str(evento.tipo)
                 db_mensagem.conteudo_texto = f"[Mídia: {db_mensagem.tipo}]"
@@ -819,6 +870,23 @@ class MensagemService:
 
                         fluxi_log.info("mensagem", "audio", "Audio salvo", extra={"path": str(audio_path)}, session_id=sessao_id)
 
+                        # Registrar tambem na camada `midias` (media_id estavel pro agente).
+                        # Falha aqui nao quebra o fluxo legado.
+                        try:
+                            from midia import midia_service as _midia_svc
+                            _m = _midia_svc.registrar_midia(
+                                db,
+                                sessao_id=sessao_id,
+                                chat_id=telefone_cliente,
+                                conteudo=audio_bytes,
+                                mime=mime_type,
+                                origem="upload",
+                                vinculada_tipo="mensagem",
+                            )
+                            db_mensagem.media_id = _m.media_id
+                        except Exception:
+                            fluxi_log.warning("mensagem", "audio", "Falha ao registrar midia (legacy ok)", exc_info=True, session_id=sessao_id)
+
                         # Transcrever áudio
                         resultado_transcricao = await TranscriptionService.transcrever(
                             db,
@@ -881,13 +949,85 @@ class MensagemService:
                             sessao_id,
                             db
                         )
-                        
+
                         if caminho:
                             db_mensagem.conteudo_imagem_path = caminho
                             db_mensagem.conteudo_imagem_base64 = base64_str
                             db_mensagem.conteudo_mime_type = message.imageMessage.mimetype if hasattr(message.imageMessage, 'mimetype') else "image/jpeg"
+
+                        # Registrar tambem na camada `midias` (media_id estavel pro agente).
+                        try:
+                            from midia import midia_service as _midia_svc
+                            _mime = message.imageMessage.mimetype if hasattr(message.imageMessage, 'mimetype') else "image/jpeg"
+                            _m = _midia_svc.registrar_midia(
+                                db,
+                                sessao_id=sessao_id,
+                                chat_id=telefone_cliente,
+                                conteudo=imagem_bytes,
+                                mime=_mime,
+                                origem="upload",
+                                vinculada_tipo="mensagem",
+                            )
+                            db_mensagem.media_id = _m.media_id
+                        except Exception:
+                            fluxi_log.warning("mensagem", "imagem", "Falha ao registrar midia (legacy ok)", exc_info=True, session_id=sessao_id)
             except Exception as e:
                 fluxi_log.error("mensagem", "imagem", "Erro ao baixar imagem", exc_info=True, session_id=sessao_id)
+
+        elif tipo_mensagem in ("documento", "video"):
+            # Documento ou video — baixa bytes via neonize, registra na camada midias.
+            # Diferente de imagem/audio, NAO temos pipeline legado pra estes — sao novos.
+            db_mensagem.tipo = tipo_mensagem
+            caption = ""
+            mime_doc = "application/octet-stream"
+            try:
+                if tipo_mensagem == "documento" and hasattr(message, 'documentMessage'):
+                    caption = getattr(message.documentMessage, 'caption', '') or ''
+                    if hasattr(message.documentMessage, 'mimetype') and message.documentMessage.mimetype:
+                        mime_doc = message.documentMessage.mimetype
+                elif tipo_mensagem == "video" and hasattr(message, 'videoMessage'):
+                    caption = getattr(message.videoMessage, 'caption', '') or ''
+                    if hasattr(message.videoMessage, 'mimetype') and message.videoMessage.mimetype:
+                        mime_doc = message.videoMessage.mimetype
+            except Exception:
+                pass
+            db_mensagem.conteudo_texto = sanitize_user_input(caption) if caption else ""
+
+            try:
+                from sessao.sessao_service import gerenciador_sessoes
+                cliente = gerenciador_sessoes.obter_cliente(sessao_id)
+                if cliente:
+                    bytes_midia = cliente.download_any(message)
+                    if bytes_midia:
+                        try:
+                            from security import SecurityValidator
+                            SecurityValidator.validate_file_size(bytes_midia)
+                        except ValueError as e:
+                            fluxi_log.warning("mensagem", tipo_mensagem, "Arquivo muito grande", exc_info=True, session_id=sessao_id)
+                            db_mensagem.conteudo_texto = (db_mensagem.conteudo_texto or "") + f"\n[Erro: {e}]"
+                            bytes_midia = None
+                    if bytes_midia:
+                        from midia import midia_service as _midia_svc
+                        _m = _midia_svc.registrar_midia(
+                            db,
+                            sessao_id=sessao_id,
+                            chat_id=telefone_cliente,
+                            conteudo=bytes_midia,
+                            mime=mime_doc,
+                            origem="upload",
+                            vinculada_tipo="mensagem",
+                        )
+                        db_mensagem.media_id = _m.media_id
+                        db_mensagem.conteudo_imagem_path = _m.path
+                        db_mensagem.conteudo_mime_type = _m.mime
+                        fluxi_log.info(
+                            "mensagem", tipo_mensagem,
+                            "Midia registrada",
+                            extra={"media_id": _m.media_id, "tamanho_kb": _m.tamanho_bytes / 1024},
+                            session_id=sessao_id,
+                        )
+            except Exception:
+                fluxi_log.error("mensagem", tipo_mensagem, "Erro ao baixar/registrar midia", exc_info=True, session_id=sessao_id)
 
         elif tipo_mensagem == "texto":
             # Evita fallback para "..." quando evento chega sem texto útil

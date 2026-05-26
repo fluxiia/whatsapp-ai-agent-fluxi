@@ -701,6 +701,138 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
             }
 
     @staticmethod
+    async def _enviar_arquivo_generico(
+        db,
+        sessao_id: int,
+        telefone_cliente: str,
+        args: Dict[str, Any],
+        jid_destino=None,
+    ) -> Dict[str, Any]:
+        """
+        Tool `enviar_arquivo` — envia midia ao usuario por canal ativo (hoje WA).
+        Aceita ref com prefixo id:/file:/url:/base64:.
+        """
+        import base64 as _b64
+        import os as _os
+        from pathlib import Path as _Path
+
+        ref = (args.get("ref") or "").strip()
+        caption = args.get("caption", "") or ""
+        filename_override = args.get("filename")
+
+        if not ref:
+            return {"resultado": {"erro": "ref e obrigatorio"}, "output": "llm", "enviado_usuario": False}
+
+        # ----- Resolver ref em (bytes, filename, mime_hint) -----
+        file_bytes: Optional[bytes] = None
+        filename: Optional[str] = filename_override
+        mime_hint: Optional[str] = None
+        try:
+            if ref.startswith("id:"):
+                from midia import midia_service as _midia_svc
+                media_id = ref[3:].strip()
+                midia = _midia_svc.buscar_por_media_id(db, media_id, sessao_id=sessao_id)
+                if not midia:
+                    return {"resultado": {"erro": f"media_id '{media_id}' nao encontrado nesta sessao"}, "output": "llm", "enviado_usuario": False}
+                from midia.midia_storage import ler_bytes as _ler
+                file_bytes = _ler(midia.path)
+                filename = filename or _os.path.basename(midia.path)
+                mime_hint = midia.mime
+
+            elif ref.startswith("file:"):
+                path_raw = ref[5:].strip()
+                # Anti path-traversal: so paths dentro de uploads/
+                upload_base = ConfiguracaoService.obter_valor(db, "sistema_diretorio_uploads", "./uploads")
+                from midia.midia_storage import path_dentro_uploads as _check
+                if not _check(path_raw, upload_base):
+                    return {"resultado": {"erro": "file: deve apontar pra arquivo dentro de uploads/"}, "output": "llm", "enviado_usuario": False}
+                p = _Path(path_raw)
+                if not p.exists():
+                    return {"resultado": {"erro": f"arquivo nao encontrado: {path_raw}"}, "output": "llm", "enviado_usuario": False}
+                file_bytes = p.read_bytes()
+                filename = filename or p.name
+
+            elif ref.startswith("url:"):
+                url = ref[4:].strip()
+                import httpx
+                async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as _c:
+                    resp = await _c.get(url)
+                    resp.raise_for_status()
+                    file_bytes = resp.content
+                    mime_hint = resp.headers.get("content-type", "").split(";")[0] or None
+                filename = filename or _os.path.basename(url.split("?")[0]) or "arquivo"
+
+            elif ref.startswith("base64:"):
+                payload = ref[7:].strip()
+                if payload.startswith("data:"):
+                    # data:image/png;base64,xxxx
+                    head, _, b64 = payload.partition(",")
+                    mime_hint = head.split(":", 1)[1].split(";", 1)[0] if ":" in head else None
+                    file_bytes = _b64.b64decode(b64)
+                else:
+                    file_bytes = _b64.b64decode(payload)
+                filename = filename or "arquivo.bin"
+
+            else:
+                return {"resultado": {"erro": "ref deve comecar com id:/file:/url:/base64:"}, "output": "llm", "enviado_usuario": False}
+
+        except Exception as e:
+            logger.exception("[enviar_arquivo] erro ao resolver ref: %s", e)
+            return {"resultado": {"erro": f"erro ao resolver ref: {e}"}, "output": "llm", "enviado_usuario": False}
+
+        if not file_bytes:
+            return {"resultado": {"erro": "conteudo vazio apos resolver ref"}, "output": "llm", "enviado_usuario": False}
+
+        # ----- Determinar tipo de envio pela extensao -----
+        ext = _os.path.splitext(filename or "")[1].lower()
+        IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+        AUDIO_EXTS = {".mp3", ".ogg", ".wav", ".m4a", ".opus", ".aac"}
+        VIDEO_EXTS = {".mp4", ".webm", ".avi", ".mkv"}
+
+        from sessao.sessao_service import gerenciador_sessoes
+        cliente = gerenciador_sessoes.obter_cliente(sessao_id)
+        if not cliente:
+            return {"resultado": {"erro": "canal nao disponivel para esta sessao"}, "output": "llm", "enviado_usuario": False}
+
+        if jid_destino is not None:
+            jid = jid_destino
+        else:
+            from neonize.utils import build_jid
+            jid = build_jid(telefone_cliente)
+
+        size_kb = len(file_bytes) / 1024
+        tipo_envio = "documento"
+        try:
+            if ext in IMAGE_EXTS:
+                cliente.send_image(jid, file_bytes, caption=caption)
+                tipo_envio = "imagem"
+            elif ext in AUDIO_EXTS:
+                cliente.send_audio(jid, file_bytes, ptt=False)
+                tipo_envio = "audio"
+            elif ext in VIDEO_EXTS:
+                cliente.send_video(jid, file_bytes, caption=caption)
+                tipo_envio = "video"
+            else:
+                cliente.send_document(jid, file_bytes, filename=filename or "arquivo")
+                tipo_envio = "documento"
+        except Exception as e:
+            logger.exception("[enviar_arquivo] erro no envio: %s", e)
+            return {"resultado": {"erro": f"erro ao enviar: {e}"}, "output": "llm", "enviado_usuario": False}
+
+        logger.info("[enviar_arquivo] %s '%s' enviado (%.1f KB, ref_prefix=%s)",
+                    tipo_envio, filename, size_kb, ref.split(":", 1)[0])
+        return {
+            "resultado": {
+                "sucesso": True,
+                "tipo": tipo_envio,
+                "filename": filename,
+                "tamanho_kb": round(size_kb, 1),
+            },
+            "output": "llm",
+            "enviado_usuario": True,
+        }
+
+    @staticmethod
     async def _extrair_e_enviar_imagens_sandbox(
         resultado_completo: Dict[str, Any],
         sessao_id: int,
@@ -1066,7 +1198,46 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                     }
                 }
             })
-        
+
+        # Tool genérica enviar_arquivo — disponível pra todo agente.
+        # Aceita ref com prefixo id:<media_id> | file:<path> | url:<https> | base64:<...>
+        # Hoje funciona pra WhatsApp; será estendida pra Telegram/webchat na sequência.
+        if tools is None:
+            tools = []
+        tools.append({
+            "type": "function",
+            "function": {
+                "name": "enviar_arquivo",
+                "description": (
+                    "Envia um arquivo (imagem/audio/video/documento) ao usuario via canal ativo. "
+                    "Use o prefixo apropriado em `ref`:\n"
+                    "• id:<media_id> - midia ja registrada (recebida do usuario ou gerada anteriormente)\n"
+                    "• url:<https://...> - URL publica, o canal baixa direto\n"
+                    "• file:<path_absoluto> - arquivo local (so paths dentro de uploads/)\n"
+                    "• base64:<data> - bytes embutidos (use so quando os anteriores nao se aplicarem)\n"
+                    "Tipo de envio (imagem/audio/video/documento) eh determinado pela extensao do arquivo."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "ref": {
+                            "type": "string",
+                            "description": "Referencia da midia (com prefixo id:/url:/file:/base64:)",
+                        },
+                        "caption": {
+                            "type": "string",
+                            "description": "Legenda opcional",
+                        },
+                        "filename": {
+                            "type": "string",
+                            "description": "Nome do arquivo (so usado quando ref nao tem extensao reconhecivel)",
+                        },
+                    },
+                    "required": ["ref"],
+                },
+            }
+        })
+
         # Sincronizar messages[0] com o system_prompt final (sandbox + skills)
         messages[0]["content"] = system_prompt
 
@@ -1340,6 +1511,17 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                                     "resultado": {"erro": f"Erro ao invocar skill: {str(e)}"},
                                     "output": "llm"
                                 }
+
+                        # Tool genérica enviar_arquivo — funciona pra todo agente (sem sandbox).
+                        # Aceita ref com prefixo id:/file:/url:/base64:.
+                        elif function_name == "enviar_arquivo":
+                            resultado_completo = await AgenteService._enviar_arquivo_generico(
+                                db=db,
+                                sessao_id=sessao.id,
+                                telefone_cliente=mensagem.telefone_cliente,
+                                args=args_dict,
+                                jid_destino=jid_destino,
+                            )
 
                         # Enviar arquivo do sandbox para o usuário via WhatsApp
                         elif function_name == "enviar_arquivo_whatsapp" and agente.internal_sandbox_ativo:

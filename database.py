@@ -60,6 +60,10 @@ def criar_tabelas():
     Cria todas as tabelas no banco de dados.
     Executa migrações incrementais para colunas novas.
     """
+    # Garante que os models novos foram importados antes do create_all.
+    # Sem isto, Base.metadata nao conhece a tabela e ela nao eh criada.
+    from midia import midia_model  # noqa: F401
+
     Base.metadata.create_all(bind=engine)
 
     # Migrações incrementais para colunas novas em tabelas existentes
@@ -91,6 +95,18 @@ def criar_tabelas():
             conn.execute(
                 __import__('sqlalchemy').text(
                     "ALTER TABLE agentes ADD COLUMN presence_penalty FLOAT"
+                )
+            )
+            conn.commit()
+        except Exception:
+            pass
+
+        # Mensagem: media_id — FK leve pra tabela midias (string, sem constraint).
+        # Mantemos `conteudo_imagem_path` por compat — `media_id` eh o caminho novo.
+        try:
+            conn.execute(
+                __import__('sqlalchemy').text(
+                    "ALTER TABLE mensagens ADD COLUMN media_id VARCHAR(120)"
                 )
             )
             conn.commit()

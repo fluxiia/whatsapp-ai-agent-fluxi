@@ -46,6 +46,9 @@ import agendamento.agendamento_model  # noqa: F401
 # Importar auth_model antes de criar_tabelas para registrar no Base.metadata
 import auth.auth_model  # noqa: F401
 
+# Importar midia_model antes de criar_tabelas para registrar no Base.metadata
+import midia.midia_model  # noqa: F401
+
 # Importar routers API
 from config.config_router import router as config_api_router
 from sessao.sessao_router import router as sessao_api_router
@@ -80,6 +83,7 @@ from coding_agent.coding_frontend_router import router as coding_frontend_router
 from webchat.webchat_router import router as webchat_router
 from auth.auth_frontend_router import router as auth_frontend_router
 from auth.auth_dependencies import AuthMiddleware
+from updates.updates_router import router as updates_router
 
 # Importar routers do sistema de logging
 from log.log_router import router as log_api_router
@@ -440,6 +444,13 @@ def startup_event():
         except Exception as e_sched:
             logger.warning(f"Erro ao iniciar scheduler de agendamentos: {e_sched}")
 
+        # Cron de purga de midias expiradas (background thread daemon).
+        try:
+            from midia import midia_cron
+            midia_cron.iniciar()
+        except Exception as e_midia:
+            logger.warning(f"Erro ao iniciar cron de midias: {e_midia}")
+
         logger.info("Fluxi iniciado com sucesso! Acesse: http://localhost:8000")
     finally:
         db.close()
@@ -453,6 +464,11 @@ async def shutdown_event():
         AgendamentoService.parar()
     except Exception as e:
         logger.warning("Erro ao parar scheduler: %s", e)
+    try:
+        from midia import midia_cron
+        midia_cron.parar()
+    except Exception as e:
+        logger.warning("Erro ao parar cron de midias: %s", e)
 
 
 # Registrar routers API
@@ -487,6 +503,7 @@ app.include_router(coding_ws_router)
 app.include_router(coding_frontend_router)
 app.include_router(webchat_router)
 app.include_router(auth_frontend_router)
+app.include_router(updates_router)
 app.include_router(agendamento_frontend_router)
 app.include_router(onboarding_router)
 
