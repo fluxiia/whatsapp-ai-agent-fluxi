@@ -234,10 +234,9 @@ Thumbs.db
 *.bak
 *.old
 
-# Test files
-test_*.py
-*_test.py
-tests/
+# Test files (root-level experiments only — project suite lives in tests/)
+/test_*.py
+/*_test.py
 test_data/
 
 # Documentation build
