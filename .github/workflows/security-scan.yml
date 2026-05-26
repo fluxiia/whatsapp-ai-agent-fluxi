@@ -38,6 +38,7 @@ jobs:
           safety check --json
 
       - name: Scan with Grype
+        id: scan
         uses: anchore/scan-action@v4
         with:
           path: "."
@@ -45,7 +46,7 @@ jobs:
           severity-cutoff: high
 
       - name: Upload SARIF report
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        if: always() && steps.scan.outputs.sarif != ''
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}

@@ -31,9 +31,36 @@ def listar_agendamentos_page(request: Request, db: Session = Depends(get_db)):
 @router.get("/agendamentos/novo", response_class=HTMLResponse)
 def novo_agendamento_page(request: Request, db: Session = Depends(get_db)):
     sessoes = SessaoService.listar_todas(db)
+
+    # Ferramentas (PRINCIPAL apenas — sub-ferramentas vêm via tool_runner do agente).
+    # Usadas pra popular dropdown da ação "Rodar uma ferramenta".
+    from ferramenta.ferramenta_service import FerramentaService
+
+    try:
+        ferramentas = FerramentaService.listar_ferramentas_ativas(db)
+        # Filtra só PRINCIPAL (ignora variáveis/sub-ferramentas).
+        ferramentas = [f for f in ferramentas if getattr(f, "tipo", "PRINCIPAL") == "PRINCIPAL"]
+    except Exception:
+        ferramentas = []
+
+    # Agentes ativos por sessão — pra "Pedir ao agente" auto-vincular.
+    from agente.agente_service import AgenteService
+
+    try:
+        agentes = AgenteService.listar_todos(db)
+        agentes = [a for a in agentes if getattr(a, "ativo", True)]
+    except Exception:
+        agentes = []
+
     return templates.TemplateResponse(
         "agendamento/form.html",
-        {"request": request, "sessoes": sessoes, "titulo": "Novo agendamento"},
+        {
+            "request": request,
+            "sessoes": sessoes,
+            "ferramentas": ferramentas,
+            "agentes": agentes,
+            "titulo": "Novo agendamento",
+        },
     )
 
 

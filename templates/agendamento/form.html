@@ -3,169 +3,508 @@
 {% block title %}Novo Agendamento - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+<style>
+  /* Radio cards visuais — opções como botões grandes */
+  .opt-cards { display: grid; gap: var(--space-sm); grid-template-columns: 1fr; }
+  @media (min-width: 720px) { .opt-cards.cols-3 { grid-template-columns: repeat(3, 1fr); } }
+  .opt-card {
+    display: flex; flex-direction: column; align-items: flex-start;
+    padding: var(--space-md);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    text-align: left;
+  }
+  .opt-card:hover { border-color: var(--color-primary); }
+  .opt-card .opt-icon { font-size: 1.4rem; margin-bottom: var(--space-xs); }
+  .opt-card .opt-title { font-weight: 600; font-size: 0.92rem; color: var(--color-text); margin-bottom: 2px; }
+  .opt-card .opt-desc { font-size: 0.78rem; color: var(--color-text-secondary); line-height: 1.35; }
+  .opt-card input[type=radio] { display: none; }
+  .opt-card.is-selected {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  }
+  .opt-card.is-selected .opt-title { color: var(--color-primary); }
+
+  /* Step / card */
+  .step-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-md);
+    background: var(--color-bg);
+  }
+  .step-header { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-md); }
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .step-title { font-size: 1rem; font-weight: 600; margin: 0; }
+  .step-sub { font-size: 0.78rem; color: var(--color-text-secondary); margin: 2px 0 0; }
+
+  /* Painéis contextuais (só visível o ativo) */
+  .panel { display: none; }
+  .panel.is-active { display: block; }
+
+  /* Inline number + unit */
+  .number-unit { display: grid; grid-template-columns: 1fr 1.5fr; gap: var(--space-sm); align-items: stretch; }
+
+  /* Avançado collapse */
+  .expert-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.78rem; color: var(--color-text-secondary);
+    cursor: pointer; user-select: none;
+    margin-top: var(--space-sm);
+  }
+  .expert-toggle:hover { color: var(--color-primary); }
+  .expert-panel { display: none; margin-top: var(--space-sm); padding: var(--space-sm); background: var(--color-bg-secondary); border-radius: var(--radius-md); }
+  .expert-panel.is-open { display: block; }
+
+  /* Alerta erro */
+  .alert-erro {
+    background: var(--color-danger);
+    color: white;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-md);
+  }
+</style>
+
+<div class="container" style="max-width: 760px;">
+
+  <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+    <div>
+      <h1 class="page-title" style="font-size: 1.25rem;">
+        <i class="fas fa-clock text-primary mb-xs"></i> Novo agendamento
+      </h1>
+      <p class="breadcrumbs" style="margin-top: 2px;">
+        <a href="/agendamentos" style="color: var(--color-text-secondary);">Agendamentos</a>
+        <span style="color: var(--color-text-muted);"> / Novo</span>
+      </p>
+    </div>
+    <a href="/agendamentos" class="button is-small is-outline">Voltar</a>
+  </div>
+
+  {% if request.query_params.get('erro') %}
+  <div class="alert-erro">
+    ❌ {{ request.query_params.get('erro') }}
+  </div>
+  {% endif %}
+
+  <form method="POST" action="/agendamentos/criar" id="form-agendamento" onsubmit="return prepararSubmit(event)">
+
+    {# ─── Step 1: O QUE vai acontecer ─────────────────────────────── #}
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-num">1</span>
         <div>
-            <h1 class="page-title" style="font-size: 1.25rem;">
-                <i class="fas fa-clock text-primary mb-xs"></i> Novo Agendamento
-            </h1>
-            <p class="breadcrumbs" style="margin-top: 2px;">
-                <a href="/agendamentos" style="color: var(--color-text-secondary);">Agendamentos</a>
-                <span style="color: var(--color-text-muted);"> / Novo</span>
-            </p>
+          <h2 class="step-title">O que vai acontecer?</h2>
+          <p class="step-sub">Escolha o tipo de ação no horário agendado.</p>
         </div>
-        <a href="/agendamentos" class="button is-small is-outline">Voltar</a>
+      </div>
+
+      <div class="opt-cards cols-3" role="radiogroup" aria-label="Tipo de ação">
+        <label class="opt-card is-selected" data-acao="enviar_mensagem">
+          <input type="radio" name="acao_visual" value="enviar_mensagem" checked />
+          <div class="opt-icon">📨</div>
+          <div class="opt-title">Enviar mensagem</div>
+          <div class="opt-desc">Manda um texto pronto pra alguém.</div>
+        </label>
+        <label class="opt-card" data-acao="rodar_ferramenta">
+          <input type="radio" name="acao_visual" value="rodar_ferramenta" />
+          <div class="opt-icon">🔧</div>
+          <div class="opt-title">Rodar uma ferramenta</div>
+          <div class="opt-desc">Executa uma ferramenta cadastrada (busca web, integração, etc.).</div>
+        </label>
+        <label class="opt-card" data-acao="callback_agente">
+          <input type="radio" name="acao_visual" value="callback_agente" />
+          <div class="opt-icon">🤖</div>
+          <div class="opt-title">Pedir algo ao agente</div>
+          <div class="opt-desc">Envia uma instrução pro agente cuidar (ex: "verifique se cliente respondeu").</div>
+        </label>
+      </div>
+
+      {# Painel: Enviar mensagem #}
+      <div class="panel is-active" id="panel-enviar_mensagem" style="margin-top: var(--space-md);">
+        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Mensagem a enviar</label>
+        <textarea class="textarea" id="msg-texto" rows="3" placeholder="Bom dia! Não esquece da consulta hoje às 14h."></textarea>
+      </div>
+
+      {# Painel: Rodar ferramenta #}
+      <div class="panel" id="panel-rodar_ferramenta" style="margin-top: var(--space-md);">
+        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Qual ferramenta?</label>
+        {% if ferramentas %}
+        <div class="select" style="width: 100%;">
+          <select id="tool-nome" style="width: 100%;">
+            <option value="">— escolha uma ferramenta —</option>
+            {% for f in ferramentas %}
+            <option value="{{ f.nome }}">{{ f.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% else %}
+        <input class="input" type="text" id="tool-nome" placeholder="nome_da_ferramenta" />
+        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">
+          Nenhuma ferramenta cadastrada ainda. <a href="/ferramentas/novo" style="color: var(--color-primary);">Criar uma</a>.
+        </p>
+        {% endif %}
+
+        <label class="label" style="font-size: 0.85rem; font-weight: 600; margin-top: var(--space-md); display: block;">
+          Argumentos (opcional)
+        </label>
+        <textarea class="textarea" id="tool-args" rows="3" placeholder='{"query": "tempo São Paulo"}'></textarea>
+        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">
+          Formato JSON. Deixe vazio se a ferramenta não pede argumentos.
+        </p>
+      </div>
+
+      {# Painel: Callback agente #}
+      <div class="panel" id="panel-callback_agente" style="margin-top: var(--space-md);">
+        <label class="label" style="font-size: 0.85rem; font-weight: 600;">O que pedir ao agente?</label>
+        <textarea class="textarea" id="agente-prompt" rows="3" placeholder="Verifique se o cliente respondeu. Se não, envie um lembrete."></textarea>
+        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">
+          O agente vai receber este texto como se fosse uma mensagem do usuário e decide o que fazer.
+        </p>
+      </div>
     </div>
 
-    {% if request.query_params.get('erro') %}
-    <div style="background: var(--color-danger); color: white; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
-        ❌ {{ request.query_params.get('erro') }}
-    </div>
-    {% endif %}
-
-    <div class="grid grid-cols-3">
-        <div style="grid-column: span 2;">
-            <form method="POST" action="/agendamentos/criar" class="box" style="padding: var(--space-lg);">
-                <div class="field mb-md">
-                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Título</label>
-                    <input class="input" type="text" name="titulo" required placeholder="Ex: Lembrete consulta João" />
-                </div>
-
-                <div class="field mb-md">
-                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Descrição</label>
-                    <textarea class="textarea" name="descricao" rows="2" placeholder="Opcional"></textarea>
-                </div>
-
-                <div class="grid grid-cols-2 gap-md mb-md">
-                    <div class="field">
-                        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Sessão WhatsApp</label>
-                        <div class="select" style="width: 100%;">
-                            <select name="sessao_id" style="width: 100%;">
-                                <option value="">-- selecionar --</option>
-                                {% for s in sessoes %}
-                                <option value="{{ s.id }}">{{ s.nome }} ({{ s.status }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Telefone destino</label>
-                        <input class="input" type="text" name="telefone_destino" placeholder="551199999999" />
-                    </div>
-                </div>
-
-                <div class="field mb-md">
-                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Agente (opcional, usado em callback_agente)</label>
-                    <input class="input" type="number" name="agente_id" placeholder="ID do agente" />
-                </div>
-
-                <hr style="margin: var(--space-lg) 0; border-color: var(--color-border);" />
-
-                <div class="grid grid-cols-2 gap-md mb-md">
-                    <div class="field">
-                        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Tipo</label>
-                        <div class="select" style="width: 100%;">
-                            <select name="tipo" id="tipo-select" style="width: 100%;" onchange="atualizarHelpQuando()">
-                                <option value="once">once — uma vez em data/hora</option>
-                                <option value="interval">interval — repete a cada N segundos</option>
-                                <option value="cron">cron — expressão cron</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Quando</label>
-                        <input class="input" type="text" name="quando" id="quando-input" required placeholder="2026-05-27T09:00:00" />
-                        <p id="quando-help" style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px;">ISO timestamp para once</p>
-                    </div>
-                </div>
-
-                <div class="field mb-md">
-                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Máx. execuções (interval/cron)</label>
-                    <input class="input" type="number" name="max_execucoes" placeholder="Vazio = ilimitado" />
-                </div>
-
-                <hr style="margin: var(--space-lg) 0; border-color: var(--color-border);" />
-
-                <div class="field mb-md">
-                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Ação ao disparar</label>
-                    <div class="select" style="width: 100%;">
-                        <select name="acao" id="acao-select" style="width: 100%;" onchange="atualizarHelpPayload()">
-                            <option value="enviar_mensagem">enviar_mensagem — manda texto pronto</option>
-                            <option value="rodar_ferramenta">rodar_ferramenta — executa uma tool cadastrada</option>
-                            <option value="callback_agente">callback_agente — re-injeta prompt no agente</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="field mb-md">
-                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Payload (JSON)</label>
-                    <textarea class="textarea" name="payload_json" id="payload-input" rows="4" placeholder='{"texto": "Bom dia!"}'></textarea>
-                    <p id="payload-help" style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px;">
-                        enviar_mensagem: <code>{"texto": "..."}</code>
-                    </p>
-                </div>
-
-                <div class="flex justify-end gap-sm">
-                    <a href="/agendamentos" class="button is-outline">Cancelar</a>
-                    <button type="submit" class="button is-primary">Agendar</button>
-                </div>
-            </form>
+    {# ─── Step 2: QUANDO ──────────────────────────────────────────── #}
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-num">2</span>
+        <div>
+          <h2 class="step-title">Quando deve acontecer?</h2>
+          <p class="step-sub">Escolha se é uma vez só ou se repete.</p>
         </div>
+      </div>
 
-        <div class="flex flex-col gap-md" style="padding-left: var(--space-lg);">
-            <div class="box" style="padding: var(--space-md) var(--space-lg);">
-                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Exemplos de "Quando"</h3>
-                <ul style="font-size: 0.78rem; color: var(--color-text-secondary); line-height: 1.6; padding-left: 16px;">
-                    <li><strong>once</strong>: <code>2026-05-27T09:00:00</code></li>
-                    <li><strong>interval</strong>: <code>300</code> (5 min)</li>
-                    <li><strong>cron</strong>: <code>0 9 * * *</code> (todo dia 9h)</li>
-                </ul>
-            </div>
+      <div class="opt-cards cols-3" role="radiogroup" aria-label="Frequência">
+        <label class="opt-card is-selected" data-tipo="once">
+          <input type="radio" name="tipo_visual" value="once" checked />
+          <div class="opt-icon">📅</div>
+          <div class="opt-title">Uma vez</div>
+          <div class="opt-desc">Em uma data e hora específicas.</div>
+        </label>
+        <label class="opt-card" data-tipo="interval">
+          <input type="radio" name="tipo_visual" value="interval" />
+          <div class="opt-icon">🔁</div>
+          <div class="opt-title">Repetir a cada</div>
+          <div class="opt-desc">A cada X minutos, horas ou dias.</div>
+        </label>
+        <label class="opt-card" data-tipo="cron">
+          <input type="radio" name="tipo_visual" value="cron" />
+          <div class="opt-icon">⏰</div>
+          <div class="opt-title">Horário fixo</div>
+          <div class="opt-desc">Todo dia às 9h, toda segunda, etc. (avançado)</div>
+        </label>
+      </div>
 
-            <div class="box" style="padding: var(--space-md) var(--space-lg);">
-                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Exemplos de Payload</h3>
-                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 4px;">enviar_mensagem:</p>
-                <pre style="font-size: 0.72rem; background: var(--color-bg-secondary); padding: 6px 8px; border-radius: 4px; overflow-x: auto;">{"texto": "Olá!"}</pre>
-                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 8px 0 4px;">rodar_ferramenta:</p>
-                <pre style="font-size: 0.72rem; background: var(--color-bg-secondary); padding: 6px 8px; border-radius: 4px; overflow-x: auto;">{"nome_ferramenta": "buscar_internet",
- "argumentos": {"query": "tempo SP"}}</pre>
-                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 8px 0 4px;">callback_agente:</p>
-                <pre style="font-size: 0.72rem; background: var(--color-bg-secondary); padding: 6px 8px; border-radius: 4px; overflow-x: auto;">{"prompt": "Verifique se o cliente retornou."}</pre>
-            </div>
+      {# Painel: once #}
+      <div class="panel is-active" id="panel-tipo-once" style="margin-top: var(--space-md);">
+        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Data e hora</label>
+        <input class="input" type="datetime-local" id="once-datetime" />
+        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">
+          Use o calendário do navegador pra escolher.
+        </p>
+      </div>
+
+      {# Painel: interval #}
+      <div class="panel" id="panel-tipo-interval" style="margin-top: var(--space-md);">
+        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Repetir a cada</label>
+        <div class="number-unit">
+          <input class="input" type="number" id="interval-valor" min="1" placeholder="5" />
+          <div class="select" style="width: 100%;">
+            <select id="interval-unidade" style="width: 100%;">
+              <option value="60">minutos</option>
+              <option value="3600">horas</option>
+              <option value="86400">dias</option>
+            </select>
+          </div>
         </div>
+        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">
+          Intervalo mínimo: 10 segundos. A primeira execução acontece no próximo intervalo.
+        </p>
+      </div>
+
+      {# Painel: cron #}
+      <div class="panel" id="panel-tipo-cron" style="margin-top: var(--space-md);">
+        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Expressão cron</label>
+        <input class="input" type="text" id="cron-expr" placeholder="0 9 * * *" />
+        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">
+          5 campos: <code>minuto hora dia-do-mês mês dia-da-semana</code><br>
+          Exemplos: <code>0 9 * * *</code> = todo dia às 9h &nbsp;·&nbsp; <code>*/15 * * * *</code> = a cada 15 min &nbsp;·&nbsp; <code>0 9 * * 1</code> = segundas 9h
+        </p>
+      </div>
+
+      <div class="field" style="margin-top: var(--space-md);" id="campo-max-execucoes" hidden>
+        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Parar depois de quantas execuções?</label>
+        <input class="input" type="number" id="max-execucoes" min="1" placeholder="vazio = sem limite" />
+      </div>
     </div>
+
+    {# ─── Step 3: PARA QUEM (só quando ação envolve canal) ─────────── #}
+    <div class="step-card" id="step-destinatario">
+      <div class="step-header">
+        <span class="step-num">3</span>
+        <div>
+          <h2 class="step-title">Pra quem enviar?</h2>
+          <p class="step-sub">Escolha o canal e o destinatário.</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-md">
+        <div class="field">
+          <label class="label" style="font-size: 0.85rem; font-weight: 600;">Canal</label>
+          <div class="select" style="width: 100%;">
+            <select id="sessao-select" style="width: 100%;" onchange="atualizarLabelDestinatario()">
+              <option value="">— selecionar —</option>
+              {% for s in sessoes %}
+              <option value="{{ s.id }}" data-plataforma="{{ s.plataforma }}" data-agente="{{ s.agente_ativo_id or '' }}">
+                {{ s.nome }} — {{ s.plataforma|capitalize }}{% if s.status != 'conectado' %} ({{ s.status }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label" style="font-size: 0.85rem; font-weight: 600;" id="dest-label">
+            Telefone do destinatário
+          </label>
+          <input class="input" type="text" id="dest-input" placeholder="551199999999" />
+          <p id="dest-help" style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">
+            Inclua código do país e DDD (sem +, espaços ou hífens).
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {# ─── Step 4: detalhes (collapse) ─────────────────────────────── #}
+    <div class="step-card">
+      <div class="step-header">
+        <span class="step-num">4</span>
+        <div>
+          <h2 class="step-title">Detalhes <span style="font-weight: 400; color: var(--color-text-muted); font-size: 0.85rem;">(opcional)</span></h2>
+          <p class="step-sub">Pra identificar este agendamento depois.</p>
+        </div>
+      </div>
+
+      <div class="field mb-md">
+        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Título</label>
+        <input class="input" type="text" id="titulo-input" placeholder="Será gerado automaticamente se vazio" />
+      </div>
+      <div class="field">
+        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Anotação interna</label>
+        <textarea class="textarea" id="descricao-input" rows="2" placeholder="Lembre-se: revisar antes da reunião"></textarea>
+      </div>
+    </div>
+
+    {# ─── Hidden fields (montados via JS antes do submit) ─────────── #}
+    <input type="hidden" name="titulo" id="hid-titulo" />
+    <input type="hidden" name="descricao" id="hid-descricao" />
+    <input type="hidden" name="sessao_id" id="hid-sessao_id" />
+    <input type="hidden" name="telefone_destino" id="hid-telefone_destino" />
+    <input type="hidden" name="agente_id" id="hid-agente_id" />
+    <input type="hidden" name="tipo" id="hid-tipo" value="once" />
+    <input type="hidden" name="quando" id="hid-quando" />
+    <input type="hidden" name="acao" id="hid-acao" value="enviar_mensagem" />
+    <input type="hidden" name="payload_json" id="hid-payload" />
+    <input type="hidden" name="max_execucoes" id="hid-max" />
+
+    <div class="flex justify-end gap-sm">
+      <a href="/agendamentos" class="button is-outline">Cancelar</a>
+      <button type="submit" class="button is-primary">
+        <i class="fas fa-clock"></i> Agendar
+      </button>
+    </div>
+  </form>
+
 </div>
 
 <script>
-function atualizarHelpQuando() {
-    const tipo = document.getElementById('tipo-select').value;
-    const help = document.getElementById('quando-help');
-    const input = document.getElementById('quando-input');
-    if (tipo === 'once') {
-        help.textContent = 'ISO timestamp (ex: 2026-05-27T09:00:00)';
-        input.placeholder = '2026-05-27T09:00:00';
-    } else if (tipo === 'interval') {
-        help.textContent = 'Segundos (mínimo 10). Ex: 300 = 5 min';
-        input.placeholder = '300';
+  // ─── Seleção visual de radio cards ────────────────────────────────
+  function vincularRadioCards(seletor, onChange) {
+    const cards = document.querySelectorAll(seletor);
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        cards.forEach(c => c.classList.remove('is-selected'));
+        card.classList.add('is-selected');
+        const radio = card.querySelector('input[type=radio]');
+        if (radio) { radio.checked = true; }
+        onChange(card.dataset);
+      });
+    });
+  }
+
+  // ─── Step 1: troca de ação ────────────────────────────────────────
+  function alternarAcao(dataset) {
+    const acao = dataset.acao;
+    document.getElementById('hid-acao').value = acao;
+    ['enviar_mensagem', 'rodar_ferramenta', 'callback_agente'].forEach(k => {
+      const el = document.getElementById('panel-' + k);
+      if (el) el.classList.toggle('is-active', k === acao);
+    });
+    // Destinatário só faz sentido em "enviar_mensagem" ou "callback_agente"
+    // (callback dispara via agente que usa o canal; ferramenta pode rodar sem canal)
+    const precisaDest = (acao !== 'rodar_ferramenta');
+    document.getElementById('step-destinatario').style.display = precisaDest ? '' : 'none';
+  }
+  vincularRadioCards('.opt-card[data-acao]', alternarAcao);
+
+  // ─── Step 2: troca de tipo ────────────────────────────────────────
+  function alternarTipo(dataset) {
+    const tipo = dataset.tipo;
+    document.getElementById('hid-tipo').value = tipo;
+    ['once', 'interval', 'cron'].forEach(k => {
+      const el = document.getElementById('panel-tipo-' + k);
+      if (el) el.classList.toggle('is-active', k === tipo);
+    });
+    // max_execucoes só faz sentido em interval/cron
+    document.getElementById('campo-max-execucoes').hidden = (tipo === 'once');
+  }
+  vincularRadioCards('.opt-card[data-tipo]', alternarTipo);
+
+  // ─── Label do destinatário muda conforme plataforma ───────────────
+  function atualizarLabelDestinatario() {
+    const sel = document.getElementById('sessao-select');
+    const opt = sel.options[sel.selectedIndex];
+    const plataforma = opt && opt.dataset.plataforma ? opt.dataset.plataforma : 'whatsapp';
+    const label = document.getElementById('dest-label');
+    const help = document.getElementById('dest-help');
+    const input = document.getElementById('dest-input');
+    if (plataforma === 'telegram') {
+      label.textContent = 'Chat ID do Telegram';
+      help.textContent = 'Número que o usuário recebe ao iniciar o bot (ex: 123456789).';
+      input.placeholder = '123456789';
     } else {
-        help.textContent = 'Expressão cron (5 campos). Ex: 0 9 * * * = todo dia 9h';
-        input.placeholder = '0 9 * * *';
+      label.textContent = 'Telefone do destinatário';
+      help.textContent = 'Inclua código do país e DDD (sem +, espaços ou hífens).';
+      input.placeholder = '551199999999';
     }
-}
-function atualizarHelpPayload() {
-    const acao = document.getElementById('acao-select').value;
-    const help = document.getElementById('payload-help');
-    const input = document.getElementById('payload-input');
-    if (acao === 'enviar_mensagem') {
-        help.innerHTML = 'enviar_mensagem: <code>{"texto": "..."}</code>';
-        input.placeholder = '{"texto": "Bom dia!"}';
-    } else if (acao === 'rodar_ferramenta') {
-        help.innerHTML = 'rodar_ferramenta: <code>{"nome_ferramenta": "...", "argumentos": {...}}</code>';
-        input.placeholder = '{"nome_ferramenta": "...", "argumentos": {}}';
-    } else {
-        help.innerHTML = 'callback_agente: <code>{"prompt": "..."}</code>';
-        input.placeholder = '{"prompt": "Verifique se o cliente retornou."}';
+  }
+
+  // ─── Auto-gerar título a partir da ação + destinatário ────────────
+  function gerarTitulo() {
+    const acao = document.getElementById('hid-acao').value;
+    const tipo = document.getElementById('hid-tipo').value;
+    const dest = document.getElementById('dest-input').value.trim();
+    const partes = {
+      enviar_mensagem: 'Mensagem',
+      rodar_ferramenta: 'Ferramenta ' + (document.getElementById('tool-nome')?.value || ''),
+      callback_agente: 'Agente',
+    };
+    let t = partes[acao] || 'Tarefa';
+    if (dest && acao !== 'rodar_ferramenta') t += ' para ' + dest;
+    if (tipo === 'interval') t += ' (recorrente)';
+    else if (tipo === 'cron') t += ' (agendada)';
+    return t;
+  }
+
+  // ─── Montar campos hidden antes de submeter ───────────────────────
+  function prepararSubmit(ev) {
+    try {
+      const acao = document.getElementById('hid-acao').value;
+      const tipo = document.getElementById('hid-tipo').value;
+
+      // Título
+      let titulo = document.getElementById('titulo-input').value.trim();
+      if (!titulo) titulo = gerarTitulo();
+      document.getElementById('hid-titulo').value = titulo;
+
+      // Descrição
+      document.getElementById('hid-descricao').value = document.getElementById('descricao-input').value.trim();
+
+      // Sessão / destinatário / agente
+      const sessaoSel = document.getElementById('sessao-select');
+      const sessaoId = sessaoSel.value;
+      document.getElementById('hid-sessao_id').value = sessaoId;
+      document.getElementById('hid-telefone_destino').value = document.getElementById('dest-input').value.trim();
+      const opt = sessaoSel.options[sessaoSel.selectedIndex];
+      const agenteId = opt && opt.dataset.agente ? opt.dataset.agente : '';
+      document.getElementById('hid-agente_id').value = agenteId;
+
+      // Quando
+      let quando = '';
+      if (tipo === 'once') {
+        const dt = document.getElementById('once-datetime').value;
+        if (!dt) { alert('Escolha a data e hora.'); ev.preventDefault(); return false; }
+        // datetime-local devolve "2026-05-27T09:00" → backend aceita ISO
+        quando = dt.length === 16 ? dt + ':00' : dt;
+      } else if (tipo === 'interval') {
+        const valor = parseInt(document.getElementById('interval-valor').value, 10);
+        const unidade = parseInt(document.getElementById('interval-unidade').value, 10);
+        if (!valor || valor < 1) { alert('Informe a frequência.'); ev.preventDefault(); return false; }
+        const segundos = valor * unidade;
+        if (segundos < 10) { alert('Intervalo mínimo é 10 segundos.'); ev.preventDefault(); return false; }
+        quando = String(segundos);
+      } else {
+        const expr = document.getElementById('cron-expr').value.trim();
+        if (!expr) { alert('Informe a expressão cron.'); ev.preventDefault(); return false; }
+        quando = expr;
+      }
+      document.getElementById('hid-quando').value = quando;
+
+      // Max execuções
+      const max = document.getElementById('max-execucoes').value.trim();
+      document.getElementById('hid-max').value = (max && tipo !== 'once') ? max : '';
+
+      // Payload por ação
+      let payload = null;
+      if (acao === 'enviar_mensagem') {
+        const texto = document.getElementById('msg-texto').value.trim();
+        if (!texto) { alert('Escreva a mensagem.'); ev.preventDefault(); return false; }
+        payload = { texto: texto };
+      } else if (acao === 'rodar_ferramenta') {
+        const nome = (document.getElementById('tool-nome')?.value || '').trim();
+        if (!nome) { alert('Escolha a ferramenta.'); ev.preventDefault(); return false; }
+        let argumentos = {};
+        const argsRaw = document.getElementById('tool-args').value.trim();
+        if (argsRaw) {
+          try { argumentos = JSON.parse(argsRaw); }
+          catch (e) { alert('Argumentos não são JSON válido: ' + e.message); ev.preventDefault(); return false; }
+        }
+        payload = { nome_ferramenta: nome, argumentos: argumentos };
+      } else if (acao === 'callback_agente') {
+        const prompt = document.getElementById('agente-prompt').value.trim();
+        if (!prompt) { alert('Escreva o que pedir ao agente.'); ev.preventDefault(); return false; }
+        payload = { prompt: prompt };
+      }
+      document.getElementById('hid-payload').value = JSON.stringify(payload);
+
+      // Validação canal pra ações que precisam
+      if (acao !== 'rodar_ferramenta') {
+        if (!sessaoId) { alert('Escolha o canal.'); ev.preventDefault(); return false; }
+        if (!document.getElementById('hid-telefone_destino').value) {
+          alert('Informe o destinatário.'); ev.preventDefault(); return false;
+        }
+      }
+
+      return true;
+    } catch (err) {
+      alert('Erro ao preparar agendamento: ' + err.message);
+      ev.preventDefault();
+      return false;
     }
-}
+  }
+
+  // Default datetime: agora + 1h, arredondado
+  (function setDefaultDate() {
+    const el = document.getElementById('once-datetime');
+    const d = new Date(Date.now() + 60 * 60 * 1000);
+    d.setMinutes(0, 0, 0);
+    const iso = d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0') + 'T' +
+      String(d.getHours()).padStart(2, '0') + ':00';
+    el.value = iso;
+  })();
+
+  atualizarLabelDestinatario();
 </script>
 {% endblock %}
