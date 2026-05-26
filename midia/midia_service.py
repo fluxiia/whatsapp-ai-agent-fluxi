@@ -14,9 +14,13 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from config.config_service import ConfiguracaoService
+from log.log_service import fluxi_log
 from midia import midia_storage
 from midia.midia_model import Midia, OrigemMidia, VinculadaTipo
 
+# logger fica pra logs DEBUG e baixo nivel que nao precisam virar registro
+# operacional persistido. INFO/WARNING importantes vao via `fluxi_log` —
+# session_id ja correlaciona no painel /logs.
 logger = logging.getLogger(__name__)
 
 
@@ -31,7 +35,7 @@ def _mapear_origem(origem: Optional[str]) -> OrigemMidia:
         return OrigemMidia.tratada
     if o == "baixada":
         return OrigemMidia.baixada
-    logger.warning("midia.origem.desconhecida origem=%s fallback=upload", o)
+    fluxi_log.warning("midia", "origem", "Origem desconhecida — fallback upload", extra={"origem_recebida": o})
     return OrigemMidia.upload
 
 
@@ -43,7 +47,7 @@ def _mapear_vinculada(valor) -> Optional[VinculadaTipo]:
     try:
         return VinculadaTipo(str(valor).lower())
     except ValueError:
-        logger.warning("midia.vinculada.desconhecido valor=%s fallback=outros", valor)
+        fluxi_log.warning("midia", "vinculada", "Tipo desconhecido — fallback outros", extra={"valor": str(valor)})
         return VinculadaTipo.outros
 
 
@@ -93,9 +97,16 @@ def registrar_midia(
     )
     db.add(midia)
     db.flush()
-    logger.info(
-        "midia.registrar media_id=%s sessao_id=%s origem=%s tamanho=%d mime=%s",
-        media_id, sessao_id, origem, info["tamanho"], info["mime"],
+    fluxi_log.info(
+        "midia", "registrar", "Mídia gravada",
+        extra={
+            "media_id": media_id,
+            "origem": origem,
+            "tamanho_bytes": info["tamanho"],
+            "mime": info["mime"],
+            "vinculada_tipo": vinculada_tipo,
+        },
+        session_id=sessao_id,
     )
     return midia
 
@@ -135,10 +146,11 @@ def marcar_para_delete(db: Session, media_id: str) -> bool:
     midia = db.query(Midia).filter(Midia.media_id == media_id).first()
     if midia is None:
         return False
+    sid = midia.sessao_id
     midia_storage.deletar_arquivo(midia.path)
     db.delete(midia)
     db.flush()
-    logger.info("midia.deletar media_id=%s", media_id)
+    fluxi_log.info("midia", "deletar", "Mídia removida", extra={"media_id": media_id}, session_id=sid)
     return True
 
 
@@ -186,5 +198,5 @@ def purgar_expiradas(db: Session, grace_dias: Optional[int] = None) -> int:
 
     if count:
         db.flush()
-        logger.info("midia.purgar.total deletadas=%d", count)
+        fluxi_log.info("midia", "purgar", "Mídias expiradas removidas", extra={"deletadas": count, "grace_dias": grace_dias})
     return count

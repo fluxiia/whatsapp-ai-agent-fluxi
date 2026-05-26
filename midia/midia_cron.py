@@ -10,6 +10,8 @@ import threading
 import time
 from typing import Optional
 
+from log.log_service import fluxi_log
+
 logger = logging.getLogger(__name__)
 
 _thread: Optional[threading.Thread] = None
@@ -34,9 +36,9 @@ def _loop():
                     n = midia_service.purgar_expiradas(db)
                     db.commit()
                     if n:
-                        logger.info("midia.cron.purgou n=%d", n)
+                        fluxi_log.info("midia", "cron", "Purga executada", extra={"deletadas": n})
                 except Exception:
-                    logger.exception("midia.cron.erro_purga")
+                    fluxi_log.error("midia", "cron", "Erro na purga", exc_info=True)
                     db.rollback()
         finally:
             db.close()
@@ -57,10 +59,10 @@ def iniciar() -> None:
     _stop.clear()
     _thread = threading.Thread(target=_loop, name="midia-cron", daemon=True)
     _thread.start()
-    logger.info("midia.cron.iniciado")
+    fluxi_log.info("midia", "cron", "Iniciado")
 
 
 def parar() -> None:
     """Sinaliza pro loop encerrar. Nao bloqueia esperando a thread."""
     _stop.set()
-    logger.info("midia.cron.parado")
+    fluxi_log.info("midia", "cron", "Parado")

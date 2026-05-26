@@ -63,6 +63,7 @@ def criar_tabelas():
     # Garante que os models novos foram importados antes do create_all.
     # Sem isto, Base.metadata nao conhece a tabela e ela nao eh criada.
     from midia import midia_model  # noqa: F401
+    from audit import audit_model  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 

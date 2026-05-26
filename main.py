@@ -49,6 +49,9 @@ import auth.auth_model  # noqa: F401
 # Importar midia_model antes de criar_tabelas para registrar no Base.metadata
 import midia.midia_model  # noqa: F401
 
+# Importar audit_model antes de criar_tabelas para registrar no Base.metadata
+import audit.audit_model  # noqa: F401
+
 # Importar routers API
 from config.config_router import router as config_api_router
 from sessao.sessao_router import router as sessao_api_router
@@ -406,23 +409,51 @@ def startup_event():
         except Exception as _e:
             logger.warning("Erro ao ativar thinking_mode: %s", _e)
 
-        # Reconectar sessões que estavam conectadas
+        # Reconectar sessões que estavam conectadas.
+        #
+        # IMPORTANTE: `canal.conectar()` dispara thread daemon do neonize/PTB
+        # que IMEDIATAMENTE chama `on_status(INICIANDO)` → outra `SessionLocal`
+        # tenta `UPDATE sessoes ... status='iniciando'`. Se a `db` principal
+        # do startup estiver com transação aberta, SQLite WAL dá `database is
+        # locked` (busy_timeout não resolve quando há writer pendente).
+        #
+        # Fix: extrair só os IDs com a `db` principal, COMMITAR+FECHAR ela, e
+        # cada reconexão usa SessionLocal própria — sem contenção cross-thread.
         logger.info("Reconectando sessões ativas...")
-        sessoes_ativas = SessaoService.listar_todas(db, apenas_ativas=True)
-        sessoes_reconectadas = 0
+        ids_para_reconectar = [
+            s.id
+            for s in SessaoService.listar_todas(db, apenas_ativas=True)
+            if s.status == "conectado"
+        ]
+        db.commit()  # libera quaisquer locks pendentes
+        db.close()   # devolve conexão ao pool
+        db = None    # sentinela pra impedir uso acidental abaixo
 
-        for sessao in sessoes_ativas:
-            # Só reconectar se estava conectado antes
-            if sessao.status == "conectado":
+        sessoes_reconectadas = 0
+        for sid in ids_para_reconectar:
+            sub_db = SessionLocal()
+            try:
+                sessao_obj = SessaoService.obter_por_id(sub_db, sid)
+                nome = sessao_obj.nome if sessao_obj else f"id={sid}"
+                logger.info("Reconectando sessão: %s", nome)
+                SessaoService.reconectar_sessao(sub_db, sid)
+                sessoes_reconectadas += 1
+            except Exception as e:
+                logger.warning("Erro ao reconectar %s: %s", sid, e)
+            finally:
+                # Garantia: callback on_status já abriu/fechou sua própria session,
+                # mas a `sub_db` desta iteração também precisa fechar antes da próxima.
                 try:
-                    logger.info("Reconectando sessão: %s", sessao.nome)
-                    SessaoService.reconectar_sessao(db, sessao.id)
-                    sessoes_reconectadas += 1
-                except Exception as e:
-                    logger.warning("Erro ao reconectar %s: %s", sessao.nome, e)
+                    sub_db.commit()
+                except Exception:
+                    sub_db.rollback()
+                sub_db.close()
 
         if sessoes_reconectadas > 0:
             logger.info("%d sessão(ões) reconectada(s)", sessoes_reconectadas)
+
+        # Reabre `db` pra continuar o startup (limpeza de logs, scheduler, etc.)
+        db = SessionLocal()
 
         # Limpeza de logs antigos (>30 dias)
         try:
@@ -451,6 +482,14 @@ def startup_event():
         except Exception as e_midia:
             logger.warning(f"Erro ao iniciar cron de midias: {e_midia}")
 
+        # Watchdog de mensagens orfas (fallback de "ultima instancia" pra
+        # pipelines travados silenciosamente — skill resiliencia-erros).
+        try:
+            from mensagem import mensagem_watchdog
+            mensagem_watchdog.iniciar()
+        except Exception as e_wd:
+            logger.warning(f"Erro ao iniciar watchdog de mensagens: {e_wd}")
+
         logger.info("Fluxi iniciado com sucesso! Acesse: http://localhost:8000")
     finally:
         db.close()
@@ -469,6 +508,11 @@ async def shutdown_event():
         midia_cron.parar()
     except Exception as e:
         logger.warning("Erro ao parar cron de midias: %s", e)
+    try:
+        from mensagem import mensagem_watchdog
+        mensagem_watchdog.parar()
+    except Exception as e:
+        logger.warning("Erro ao parar watchdog de mensagens: %s", e)
 
 
 # Registrar routers API

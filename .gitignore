@@ -178,6 +178,12 @@ sessoes/
 sessoes_*/
 *.session
 
+# Runtime sandboxes / workspaces
+workspaces/
+agent_data/
+test_sandbox/
+fluxi_sandbox/
+
 # Ícones intermediários da geração (PNG 1024px). Versionamos só os webp finais.
 static/icons/*/raw/
 

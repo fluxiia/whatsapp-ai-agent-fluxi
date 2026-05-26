@@ -258,22 +258,71 @@ class MensagemService:
 
         Roteia pra pipeline específica por plataforma. Quem chama é o
         callback `on_mensagem` montado em sessao_service.
+
+        SUPERVISOR EXPLÍCITO (skill `resiliencia-erros`):
+        Qualquer exceção que escapar do tratamento interno das pipelines cai
+        aqui no try/except externo, dispara `MensagemFallbackService.acionar`
+        (audit + mensagem ao usuário) e termina o turno limpo. Eh o ÚNICO
+        try/except `except Exception` legítimo do pipeline.
         """
         from canal.canal_base import Plataforma
+        from mensagem import mensagem_fallback_service
 
-        if evento.plataforma == Plataforma.WHATSAPP:
-            # `evento.raw` é o MessageEv original — preserva 100% do pipeline atual.
-            await MensagemService.processar_mensagem_recebida(
-                db, evento.sessao_id, evento.raw
-            )
-        elif evento.plataforma == Plataforma.TELEGRAM:
-            await MensagemService.processar_evento_telegram(db, evento)
-        else:
-            fluxi_log.warning(
-                "mensagem", "roteamento", "Plataforma desconhecida no evento",
-                extra={"plataforma": str(evento.plataforma)},
+        try:
+            if evento.plataforma == Plataforma.WHATSAPP:
+                # `evento.raw` é o MessageEv original — preserva 100% do pipeline atual.
+                await MensagemService.processar_mensagem_recebida(
+                    db, evento.sessao_id, evento.raw
+                )
+            elif evento.plataforma == Plataforma.TELEGRAM:
+                await MensagemService.processar_evento_telegram(db, evento)
+            else:
+                fluxi_log.warning(
+                    "mensagem", "roteamento", "Plataforma desconhecida no evento",
+                    extra={"plataforma": str(evento.plataforma)},
+                    session_id=evento.sessao_id,
+                )
+        except Exception as exc:
+            # Imprevisto. Pipeline NUNCA derruba o callback do canal.
+            chat_id = getattr(evento, "chat_id", "") or ""
+            fluxi_log.error(
+                "mensagem", "supervisor",
+                "Excecao imprevista no pipeline — acionando fallback",
+                exc_info=True,
                 session_id=evento.sessao_id,
+                extra={"chat_id": chat_id, "exception": type(exc).__name__},
             )
+            try:
+                # Tenta achar a Mensagem que estava sendo processada (pra marcar respondida).
+                from mensagem.mensagem_model import Mensagem
+
+                mensagem_db = None
+                msg_id_ext = getattr(evento, "mensagem_id_externo", None)
+                if msg_id_ext:
+                    mensagem_db = (
+                        db.query(Mensagem)
+                        .filter(
+                            Mensagem.sessao_id == evento.sessao_id,
+                            Mensagem.mensagem_id_externo == msg_id_ext,
+                        )
+                        .first()
+                    )
+                await mensagem_fallback_service.acionar(
+                    db,
+                    sessao_id=evento.sessao_id,
+                    chat_id=chat_id,
+                    exc=exc,
+                    mensagem_db=mensagem_db,
+                    contexto_extra={"plataforma": str(evento.plataforma)},
+                )
+            except Exception:
+                # Fallback do fallback — log e segue. Nao propagar pro callback do canal.
+                fluxi_log.error(
+                    "mensagem", "supervisor",
+                    "Fallback service falhou — turno terminado em silêncio",
+                    exc_info=True,
+                    session_id=evento.sessao_id,
+                )
 
     @staticmethod
     async def processar_evento_telegram(db: Session, evento) -> None:

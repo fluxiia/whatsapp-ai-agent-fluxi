@@ -411,6 +411,31 @@ class ConfiguracaoService:
                 "categoria": "geral",
                 "editavel": True
             },
+            # Fallback de IA (supervisor — skill resiliencia-erros)
+            {
+                "chave": "sistema_fallback_ativo",
+                "valor": "true",
+                "tipo": "bool",
+                "descricao": "Se ativo, falhas no pipeline disparam mensagem explicativa ao usuário. Desligar para diagnóstico/testes.",
+                "categoria": "geral",
+                "editavel": True
+            },
+            {
+                "chave": "sistema_fallback_mensagem",
+                "valor": "Desculpe, tive um problema técnico ao processar sua mensagem. Já registrei o ocorrido e vou olhar. Pode tentar novamente em alguns instantes?",
+                "tipo": "string",
+                "descricao": "Texto enviado ao usuário quando a IA falha. Editável sem deploy.",
+                "categoria": "geral",
+                "editavel": True
+            },
+            {
+                "chave": "sistema_orphan_minutos",
+                "valor": "5",
+                "tipo": "int",
+                "descricao": "Após N minutos sem resposta, watchdog considera mensagem 'travada' e dispara fallback.",
+                "categoria": "geral",
+                "editavel": True
+            },
             # Agente - Limites
             {
                 "chave": "agente_max_ferramentas",
