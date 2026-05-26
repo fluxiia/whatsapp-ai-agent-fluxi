@@ -49,16 +49,16 @@
             <tbody>
                 {% for provedor in provedores %}
                 <tr>
-                    <td style="text-align: center; color: var(--color-text-muted);">{{ provedor.id }}</td>
-                    
-                    <td>
+                    <td data-label="ID" style="text-align: center; color: var(--color-text-muted);">{{ provedor.id }}</td>
+
+                    <td data-label="Provedor">
                         <div class="flex flex-col">
                             <span style="font-weight: 600; color: var(--color-text-primary);">{{ provedor.nome }}</span>
                             <span style="font-size: 0.75rem; color: var(--color-text-secondary); font-family: monospace;">{{ provedor.base_url }}</span>
                         </div>
                     </td>
 
-                    <td>
+                    <td data-label="Descrição">
                         <span style="color: var(--color-text-secondary); font-size: 0.8125rem;">
                             {{ provedor.descricao or 'Nenhuma descrição fornecida.' }}
                         </span>
@@ -69,7 +69,7 @@
                         {% endif %}
                     </td>
 
-                    <td>
+                    <td data-label="Status">
                         {% if provedor.ativo %}
                             <span class="tag" style="background: var(--color-success-light); color: var(--color-success); border: 1px solid rgba(16,185,129,0.3); font-size: 0.65rem;">
                                 ONLINE / ATIVO
@@ -81,7 +81,7 @@
                         {% endif %}
                     </td>
 
-                    <td style="text-align: right;">
+                    <td data-label="Ações" style="text-align: right;">
                         <div class="flex items-center justify-end gap-xs">
                             <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-small is-outline text-primary" style="padding: 2px 8px; border: none;" title="Inspecionar Nó">
                                 <i class="fas fa-cog"></i>

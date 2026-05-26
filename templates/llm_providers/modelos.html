@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container" style="max-width: 1200px;">
     <!-- Page Header Moderno -->
-    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+    <div class="flex items-center justify-between flex-mobile-col mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md); gap: var(--space-md);">
         <div>
             <h1 class="page-title" style="font-size: 1.25rem;">
                 <i class="fas fa-cubes text-primary mb-xs" style="color: #6841A8;"></i> {{ titulo }}
@@ -16,7 +16,7 @@
             </p>
         </div>
         
-        <div class="flex items-center gap-sm">
+        <div class="flex items-center gap-sm" style="flex-wrap: wrap;">
             <a href="/provedores-llm/{{ provedor.id }}/testar" class="button is-small is-primary" style="background: #6841A8; border: none;">
                 <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Probe Refresh
             </a>

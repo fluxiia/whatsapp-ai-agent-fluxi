@@ -49,7 +49,7 @@
                             {% for rag in rags %}
                             <tr style="border-bottom: 1px solid var(--color-border); background: var(--color-surface); transition: background 0.2s;">
                                 <!-- Coluna Nome e Descrição -->
-                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                                <td data-label="Banco" style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
                                     <div class="flex items-center gap-xs mb-xs">
                                         <i class="fas fa-layer-group" style="color: var(--color-primary); font-size: 0.75rem;"></i>
                                         <span style="font-weight: 600; color: var(--color-text-primary);">{{ rag.nome }}</span>
@@ -63,7 +63,7 @@
                                 </td>
                                 
                                 <!-- Coluna Status e Meta -->
-                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                                <td data-label="Status" style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
                                     <div class="flex flex-col gap-xs">
                                         <!-- Readiness -->
                                         {% if rag.treinado %}
@@ -84,7 +84,7 @@
                                 </td>
                                 
                                 <!-- Coluna Ações -->
-                                <td class="text-right" style="padding: var(--space-md) var(--space-lg); vertical-align: top; text-align: right;">
+                                <td data-label="Ações" class="text-right" style="padding: var(--space-md) var(--space-lg); vertical-align: top; text-align: right;">
                                     <div class="flex items-center justify-end gap-sm mb-xs">
                                         <a href="/rags/{{ rag.id }}/texto" class="button is-small is-outline" style="border: 1px solid var(--color-border); padding: 4px 8px;" title="Adicionar Fontes">
                                             <i class="fas fa-plus" style="color: var(--color-text-secondary);"></i> Fontes

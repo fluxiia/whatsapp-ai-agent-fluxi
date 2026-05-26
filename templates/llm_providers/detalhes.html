@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container" style="max-width: 1200px;">
     <!-- Page Header Moderno -->
-    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+    <div class="flex items-center justify-between flex-mobile-col mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md); gap: var(--space-md);">
         <div>
             <h1 class="page-title" style="font-size: 1.25rem;">
                 <i class="fas fa-microchip text-primary mb-xs" style="color: #6841A8;"></i> {{ provedor.nome }}
@@ -21,7 +21,7 @@
             </p>
         </div>
         
-        <div class="flex items-center gap-sm">
+        <div class="flex items-center gap-sm" style="flex-wrap: wrap;">
             <form method="POST" action="/provedores-llm/{{ provedor.id }}/testar" style="margin: 0;">
                 <button type="submit" class="button is-small is-outline">
                     <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Probe Conexão
@@ -48,8 +48,8 @@
     {% endif %}
 
     <!-- Modern Tabs Container -->
-    <div class="tabs-container" style="border-bottom: 2px solid var(--color-border); margin-bottom: var(--space-lg);">
-        <ul class="flex gap-md" style="list-style: none; padding: 0; margin: 0; margin-bottom: -2px;">
+    <div class="tabs-container" style="border-bottom: 2px solid var(--color-border); margin-bottom: var(--space-lg); overflow-x: auto; -webkit-overflow-scrolling: touch;">
+        <ul class="flex gap-md" style="list-style: none; padding: 0; margin: 0; margin-bottom: -2px; white-space: nowrap; min-width: max-content;">
             <li class="tab-item is-active" data-tab="testar" style="padding: var(--space-sm) var(--space-md); cursor: pointer; border-bottom: 2px solid #6841A8; color: #6841A8; font-weight: 600; font-size: 0.875rem;">
                 <i class="fas fa-vial"></i> Área de Teste
             </li>

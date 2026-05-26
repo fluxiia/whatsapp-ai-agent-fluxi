@@ -79,7 +79,7 @@
                         <tbody>
                             {% for agente in agentes %}
                             <tr style="border-bottom: 1px solid var(--color-border);">
-                                <td style="padding: var(--space-md) var(--space-lg);">
+                                <td data-label="Persona" style="padding: var(--space-md) var(--space-lg);">
                                     <div class="flex flex-col">
                                         <div class="flex items-center gap-xs">
                                             <a href="/agentes/{{ agente.id }}" style="font-weight: 600; font-size: 0.9375rem; color: var(--color-text-primary); text-decoration: none;">{{ agente.nome }}</a>
@@ -92,23 +92,23 @@
                                         </span>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Modelo LLM">
                                     <span style="color: var(--color-text-secondary);">
                                         <i class="fas fa-brain" style="font-size: 0.75rem; margin-right: 4px;"></i> {{ agente.modelo_llm or 'Default' }}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Ferramentas">
                                     <span style="color: var(--color-text-secondary);">
                                         <i class="fas fa-tools" style="font-size: 0.75rem; margin-right: 4px;"></i> {{ agente.ferramentas.all()|length }} associadas
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Skills">
                                     <a href="/agentes/{{ agente.id }}?tab=skills" style="color: var(--color-warning); text-decoration: none; font-size: 0.8rem;">
                                         <i class="fas fa-brain" style="font-size: 0.75rem; margin-right: 4px;"></i>
                                         {{ skills_por_agente.get(agente.id, 0) }}
                                     </a>
                                 </td>
-                                <td class="text-right" style="padding: var(--space-md) var(--space-lg);">
+                                <td data-label="Ações" class="text-right" style="padding: var(--space-md) var(--space-lg);">
                                     <div class="flex items-center justify-end gap-sm">
                                         <a href="/agentes/{{ agente.id }}?tab=ferramentas" class="button is-outline is-small" style="padding: var(--space-xs) var(--space-sm);" title="Associar Ferramentas">
                                             <i class="fas fa-boxes" style="color: var(--color-text-secondary);"></i>

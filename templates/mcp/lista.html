@@ -83,7 +83,7 @@
                     <tr style="border-bottom: 1px solid var(--color-border); transition: background 0.2s;" onmouseover="this.style.background='var(--color-surface)'" onmouseout="this.style.background='transparent'">
                         
                         <!-- Coluna 1: Status LED -->
-                        <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle; text-align: center;">
+                        <td data-label="Status" style="padding: var(--space-md) var(--space-lg); vertical-align: middle; text-align: center;">
                             {% if mcp_client.conectado %}
                                 <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--color-success); box-shadow: 0 0 8px var(--color-success); margin: 0 auto;" title="Conectado / Saudável"></div>
                             {% else %}
@@ -92,7 +92,7 @@
                         </td>
 
                         <!-- Coluna 2: Serviço/Host -->
-                        <td style="vertical-align: middle;">
+                        <td data-label="Serviço" style="vertical-align: middle;">
                             <div class="flex flex-col">
                                 <span style="font-weight: 700; color: var(--color-text-primary); font-size: 0.9375rem;">{{ mcp_client.nome }}</span>
                                 <span style="font-size: 0.75rem; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px;" title="{{ mcp_client.descricao }}">
@@ -102,7 +102,7 @@
                         </td>
 
                         <!-- Coluna 3: Protocolo/Transport -->
-                        <td style="vertical-align: middle;">
+                        <td data-label="Transporte" style="vertical-align: middle;">
                             <div class="flex items-center gap-xs">
                                 {% if mcp_client.transport_type.value == 'stdio' or mcp_client.transport_type == 'stdio' %}
                                     <span class="tag" style="background: var(--color-info-light); color: var(--color-info); font-family: monospace; font-size: 0.65rem;">
@@ -122,14 +122,14 @@
                         </td>
 
                         <!-- Coluna 4: Metrics/Tools -->
-                        <td style="vertical-align: middle;">
+                        <td data-label="Tools" style="vertical-align: middle;">
                             <span class="tag" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); font-family: monospace; font-size: 0.75rem;">
                                 {{ mcp_client.total_tools }} tools ativas
                             </span>
                         </td>
 
                         <!-- Coluna 5: Diagnóstico -->
-                        <td style="vertical-align: middle;">
+                        <td data-label="Diagnóstico" style="vertical-align: middle;">
                             {% if mcp_client.ultimo_erro %}
                                 <div style="font-size: 0.7rem; color: var(--color-error); font-family: monospace; background: var(--color-error-light); padding: 4px; border-radius: 4px; border: 1px solid var(--color-error); max-width: 230px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ mcp_client.ultimo_erro }}">
                                     ERRO: {{ mcp_client.ultimo_erro }}
@@ -141,7 +141,7 @@
                         </td>
 
                         <!-- Coluna 6: Ações Rúbricas -->
-                        <td style="vertical-align: middle; text-align: right; padding-right: var(--space-lg);">
+                        <td data-label="Ações" style="vertical-align: middle; text-align: right; padding-right: var(--space-lg);">
                             <div class="flex items-center justify-end gap-xs">
                                 <button onclick="sincronizarMCP({{ mcp_client.id }})" class="button is-small is-outline text-primary" style="padding: 2px 8px; border: none; background: transparent;" title="Sincronizar Tools do Node (Pull)">
                                     <i class="fas fa-sync-alt"></i>

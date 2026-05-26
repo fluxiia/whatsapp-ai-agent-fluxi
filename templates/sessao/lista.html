@@ -83,15 +83,15 @@
                             {% if sessao.agentes %}
                             {% for agente in sessao.agentes %}
                             <tr class="{% if agente.id == sessao.agente_ativo_id %}active-agent-row{% endif %}">
-                                <td class="font-mono">{{ agente.codigo }}</td>
-                                <td>
+                                <td class="font-mono" data-label="Código">{{ agente.codigo }}</td>
+                                <td data-label="Persona / Agente">
                                     <div class="flex flex-col">
                                         <span class="agent-name-small">{{ agente.nome }}</span>
                                         <span class="agent-role-mini">{{ agente.agente_papel|truncate(60) or 'Sem papel
                                             definido' }}</span>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     {% if agente.id == sessao.agente_ativo_id %}
                                     <div class="status-pill active">
                                         <i class="fas fa-check-circle"></i> ACOPLADO AGORA
@@ -102,7 +102,7 @@
                                     </div>
                                     {% endif %}
                                 </td>
-                                <td style="text-align: right;">
+                                <td data-label="Ações" style="text-align: right;">
                                     <div class="flex items-center justify-end gap-xs">
                                         {% if agente.id != sessao.agente_ativo_id %}
                                         <form action="/agentes/{{ agente.id }}/ativar" method="POST" style="margin: 0;">

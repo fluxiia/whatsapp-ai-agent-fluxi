@@ -406,17 +406,17 @@
                     {% if entries %}
                     {% for entry in entries %}
                     <tr>
-                        <td class="log-timestamp">
+                        <td data-label="Horário" class="log-timestamp">
                             {{ entry.timestamp.strftime('%d/%m %H:%M:%S') if entry.timestamp else '-' }}
                         </td>
-                        <td>
+                        <td data-label="Nível">
                             <span class="level-badge level-{{ entry.level }}">{{ entry.level }}</span>
                         </td>
-                        <td class="log-module">
+                        <td data-label="Módulo" class="log-module">
                             {{ entry.module }}{% if entry.sub_module %}<span style="color: var(--color-text-tertiary);">.{{ entry.sub_module }}</span>{% endif %}
                         </td>
-                        <td class="log-message">{{ entry.message[:150] }}{% if entry.message|length > 150 %}...{% endif %}</td>
-                        <td>
+                        <td data-label="Mensagem" class="log-message">{{ entry.message[:150] }}{% if entry.message|length > 150 %}...{% endif %}</td>
+                        <td data-label="">
                             {% if entry.extra_json or entry.traceback %}
                             <button class="btn-expand" onclick="toggleDetail({{ entry.id }})" title="Expandir detalhes">
                                 <i class="fas fa-chevron-down" id="icon-{{ entry.id }}"></i>
@@ -548,11 +548,11 @@
             const hasDetail = e.extra_json || e.traceback;
 
             html += `<tr>
-                <td class="log-timestamp">${ts}</td>
-                <td><span class="level-badge level-${e.level}">${e.level}</span></td>
-                <td class="log-module">${e.module}${sub}</td>
-                <td class="log-message">${msg}</td>
-                <td>${hasDetail ? `<button class="btn-expand" onclick="toggleDetail(${e.id})"><i class="fas fa-chevron-down" id="icon-${e.id}"></i></button>` : ''}</td>
+                <td data-label="Horário" class="log-timestamp">${ts}</td>
+                <td data-label="Nível"><span class="level-badge level-${e.level}">${e.level}</span></td>
+                <td data-label="Módulo" class="log-module">${e.module}${sub}</td>
+                <td data-label="Mensagem" class="log-message">${msg}</td>
+                <td data-label="">${hasDetail ? `<button class="btn-expand" onclick="toggleDetail(${e.id})"><i class="fas fa-chevron-down" id="icon-${e.id}"></i></button>` : ''}</td>
             </tr>`;
 
             if (hasDetail) {

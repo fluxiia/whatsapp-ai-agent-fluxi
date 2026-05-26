@@ -18,8 +18,8 @@
     <div class="flex flex-col gap-md">
         {% for r in resumos %}
         <div class="card" style="border-left: 3px solid var(--color-primary, #6841A8);">
-            <div class="flex items-center justify-between" style="padding: var(--space-md) var(--space-lg);">
-                <div class="flex flex-col gap-xs">
+            <div class="flex items-center justify-between flex-mobile-col coding-row" style="padding: var(--space-md) var(--space-lg); gap: var(--space-md);">
+                <div class="flex flex-col gap-xs" style="min-width: 0;">
                     <div class="flex items-center gap-md">
                         <span style="font-weight: 600; font-size: 0.95rem;">
                             <i class="fas fa-robot" style="color: var(--color-primary, #6841A8); margin-right: 0.4rem;"></i>
@@ -33,8 +33,8 @@
                         <span class="badge" style="font-size: 0.7rem; background: var(--color-surface-raised, #f1f5f9); color: var(--color-text-secondary);">idle</span>
                         {% endif %}
                     </div>
-                    <div class="flex items-center gap-md" style="font-size: 0.8rem; color: var(--color-text-secondary);">
-                        <span><i class="fas fa-folder" style="margin-right: 0.3rem; opacity: 0.5;"></i>{{ r.cs.workspace_path }}</span>
+                    <div class="flex items-center gap-md" style="font-size: 0.8rem; color: var(--color-text-secondary); flex-wrap: wrap;">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;"><i class="fas fa-folder" style="margin-right: 0.3rem; opacity: 0.5;"></i>{{ r.cs.workspace_path }}</span>
                         <span><i class="fas fa-hashtag" style="margin-right: 0.3rem; opacity: 0.5;"></i><code style="font-size: 0.78rem;">{{ r.cs.routing_prefix }}</code></span>
                         <span><i class="fas fa-tasks" style="margin-right: 0.3rem; opacity: 0.5;"></i>{{ r.total }} tarefas</span>
                     </div>
@@ -43,7 +43,7 @@
                         <span style="color: #ef4444;"><i class="fas fa-times-circle" style="margin-right: 0.25rem;"></i>{{ r.failed }} falhas</span>
                     </div>
                 </div>
-                <div class="flex items-center gap-sm">
+                <div class="flex items-center gap-sm" style="flex-wrap: wrap;">
                     <a href="/coding/chat/{{ r.cs.id }}" class="button is-primary is-small">
                         <i class="fas fa-comments"></i>&nbsp; Chat
                     </a>

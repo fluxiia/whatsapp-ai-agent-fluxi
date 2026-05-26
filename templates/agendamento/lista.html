@@ -49,7 +49,7 @@
                         <tbody>
                             {% for t in tarefas %}
                             <tr style="border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
-                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                                <td data-label="Tarefa" style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
                                     <div class="flex items-center gap-xs mb-xs">
                                         <span style="font-weight: 600; color: var(--color-text-primary);">{{ t.titulo }}</span>
                                     </div>
@@ -58,7 +58,7 @@
                                         · {{ t.tipo.value }}
                                     </p>
                                 </td>
-                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                <td data-label="Quando" style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
                                     <code style="font-size: 0.75rem;">{{ t.quando }}</code>
                                     {% if t.proxima_execucao %}
                                     <p style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 2px;">
@@ -69,14 +69,14 @@
                                         execuções: {{ t.total_execucoes }}{% if t.max_execucoes %} / {{ t.max_execucoes }}{% endif %}
                                     </p>
                                 </td>
-                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                <td data-label="Destinatário" style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
                                     {% if t.telefone_destino %}
                                     <code style="font-size: 0.75rem;">{{ t.telefone_destino }}</code>
                                     {% else %}
                                     <span style="color: var(--color-text-muted); font-size: 0.75rem;">—</span>
                                     {% endif %}
                                 </td>
-                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                <td data-label="Status" style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
                                     {% if t.status.value == 'pendente' %}
                                     <span style="font-size: 0.75rem; background: var(--color-info); color: white; padding: 3px 8px; border-radius: var(--radius-sm); font-weight: 600;">Pendente</span>
                                     {% elif t.status.value == 'executando' %}
@@ -92,7 +92,7 @@
                                     <p style="font-size: 0.7rem; color: var(--color-danger); margin-top: 4px; max-width: 200px;">{{ t.erro[:120] }}</p>
                                     {% endif %}
                                 </td>
-                                <td style="padding: var(--space-md) var(--space-lg); text-align: right; white-space: nowrap;">
+                                <td data-label="Ações" style="padding: var(--space-md) var(--space-lg); text-align: right; white-space: nowrap;">
                                     {% if t.status.value in ('pendente', 'falhou') %}
                                     <form method="POST" action="/agendamentos/{{ t.id }}/disparar" style="display:inline;">
                                         <button type="submit" class="button is-small is-primary is-outline" style="margin-right: 4px;" title="Executa agora, ignorando o horário">Disparar</button>

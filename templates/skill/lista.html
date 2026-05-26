@@ -48,7 +48,7 @@
                         <tbody>
                             {% for skill in skills %}
                             <tr style="border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
-                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                                <td data-label="Skill" style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
                                     <div class="flex items-center gap-xs mb-xs">
                                         <span style="font-size: 1rem;">{{ skill.icone or '🔧' }}</span>
                                         <span style="font-weight: 600; color: var(--color-text-primary);">{{ skill.nome }}</span>
@@ -58,17 +58,17 @@
                                     </div>
                                     <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.4; max-width: 340px;">{{ skill.descricao }}</p>
                                 </td>
-                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                <td data-label="Categoria" style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
                                     <span style="font-size: 0.75rem; background: var(--color-bg-secondary); padding: 3px 8px; border-radius: var(--radius-sm); color: var(--color-text-secondary);">{{ skill.categoria }}</span>
                                 </td>
-                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                <td data-label="Status" style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
                                     {% if skill.ativa %}
                                     <span style="font-size: 0.75rem; background: var(--color-success); color: white; padding: 3px 8px; border-radius: var(--radius-sm); font-weight: 600;">Ativa</span>
                                     {% else %}
                                     <span style="font-size: 0.75rem; background: var(--color-text-muted); color: white; padding: 3px 8px; border-radius: var(--radius-sm);">Inativa</span>
                                     {% endif %}
                                 </td>
-                                <td style="padding: var(--space-md) var(--space-lg); text-align: right; white-space: nowrap;">
+                                <td data-label="Ações" style="padding: var(--space-md) var(--space-lg); text-align: right; white-space: nowrap;">
                                     <a href="/skills/{{ skill.id }}" class="button is-small is-outline" style="margin-right: 4px;">Ver</a>
                                     <a href="/skills/{{ skill.id }}/editar" class="button is-small is-outline">Editar</a>
                                 </td>

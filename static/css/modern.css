@@ -352,6 +352,15 @@ body {
     display: flex;
     align-items: center;
     gap: var(--space-xl);
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
 }
 
 .page-title {
@@ -849,6 +858,238 @@ body {
 
     .mobile-menu-btn {
         display: flex !important;
+    }
+
+    /* Topbar-right: esconder atalhos de ícones (já estão no sidebar) */
+    .topbar-right .topbar-icon-link {
+        display: none;
+    }
+
+    .topbar-right .topbar-divider {
+        display: none;
+    }
+
+    /* User menu compacto: só avatar */
+    .topbar-right .user-menu-name,
+    .topbar-right .user-menu-chevron {
+        display: none;
+    }
+
+    .topbar-right .user-menu > summary {
+        padding: 4px !important;
+    }
+
+    .topbar-right {
+        gap: 4px;
+    }
+}
+
+/* Mobile small: encolher um pouco mais a topbar */
+@media (max-width: 480px) {
+    .topbar {
+        padding: 0 var(--space-sm) !important;
+    }
+
+    .topbar-left {
+        gap: var(--space-md);
+    }
+}
+
+/* ===== MENU SUPERIOR MOBILE (chips) ===== */
+.mobile-top-menu {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-top-menu {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 10px 12px;
+        background: var(--color-bg);
+        border-bottom: 1px solid var(--color-border);
+        position: sticky;
+        top: var(--topbar-height, 64px);
+        z-index: 999;
+    }
+
+    .mobile-top-menu::-webkit-scrollbar {
+        display: none;
+    }
+
+    .mobile-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 0 auto;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        color: var(--color-text-secondary);
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+        min-height: 36px;
+    }
+
+    .mobile-chip i {
+        font-size: 0.875rem;
+        opacity: 0.85;
+    }
+
+    .mobile-chip:hover {
+        background: var(--color-brand-soft, #F3EBFB);
+        color: var(--color-primary, #6841A8);
+        border-color: var(--color-primary, #6841A8);
+    }
+
+    .mobile-chip.active {
+        background: linear-gradient(135deg, #6841A8, #4B2B7E);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 2px 6px rgba(104, 65, 168, 0.25);
+    }
+
+    .mobile-chip.active i {
+        opacity: 1;
+    }
+}
+
+/* Dark mode chip overrides */
+[data-theme="dark"] .mobile-chip {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-border);
+}
+
+/* ===== TAP TARGETS MOBILE (WCAG 2.5.5 — alvo mínimo ~40-44px) ===== */
+@media (max-width: 640px) {
+    /* Bulma is-small e botões custom: subir altura mínima */
+    .main-content .button.is-small,
+    .main-content .button.is-outline.is-small,
+    .main-content a.button.is-small,
+    .main-content .op-btn,
+    .main-content .btn-expand,
+    .main-content .btn-filter,
+    .main-content .technical-btn,
+    .main-content .main-btn {
+        min-height: 40px;
+        min-width: 40px;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    /* Inputs também: mais fáceis de tocar */
+    .main-content input.input.is-small,
+    .main-content select.is-small,
+    .main-content .select.is-small select {
+        min-height: 40px;
+    }
+}
+
+/* ===== TABELAS → CARDS em mobile (≤640px) =====
+   Em telas pequenas, qualquer <table> dentro do main-content vira pilha de cards.
+   Cada <tr> = card, cada <td> com `data-label` exibe seu rótulo. */
+@media (max-width: 640px) {
+    .main-content table {
+        display: block;
+        width: 100%;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    .main-content table thead {
+        /* Esconde header em mobile — labels vão nos <td>::before */
+        position: absolute;
+        left: -9999px;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+    }
+
+    .main-content table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .main-content table tr {
+        display: block;
+        margin-bottom: 12px;
+        padding: 14px 16px;
+        background: var(--color-surface, #ffffff);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .main-content table tr:hover {
+        background: var(--color-surface, #ffffff);
+        transform: none;
+    }
+
+    .main-content table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 0;
+        border: none;
+        text-align: right;
+        font-size: 0.875rem;
+        word-break: break-word;
+    }
+
+    .main-content table td:first-child {
+        padding-top: 0;
+        border-top: none;
+    }
+
+    .main-content table td:last-child {
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .main-content table td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        text-align: left;
+    }
+
+    /* Quando td não tem data-label, comporta-se como block normal */
+    .main-content table td:not([data-label]) {
+        display: block;
+        text-align: left;
+        padding: 4px 0;
+    }
+
+    .main-content table td:not([data-label])::before {
+        content: none;
+    }
+
+    /* Empty state ainda funciona */
+    .main-content table td[colspan] {
+        display: block;
+        text-align: center;
+        padding: 16px 0;
+    }
+}
+
+/* Tablet/desktop: tabelas com scroll horizontal interno (mantém comportamento) */
+@media (min-width: 641px) and (max-width: 1024px) {
+    .main-content .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
