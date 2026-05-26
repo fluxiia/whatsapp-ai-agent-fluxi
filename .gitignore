@@ -178,6 +178,9 @@ sessoes/
 sessoes_*/
 *.session
 
+# Ícones intermediários da geração (PNG 1024px). Versionamos só os webp finais.
+static/icons/*/raw/
+
 # Upload directories
 uploads/
 uploads_*/
