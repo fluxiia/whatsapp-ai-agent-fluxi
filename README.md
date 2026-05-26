@@ -223,23 +223,71 @@ Ideal para cálculos, validações ou transformações de dados.
 
 ---
 
-## 📸 Screenshots
+## 📸 Tour pela interface
 
-<div align="center">
+Sequência real da primeira execução (screenshots gerados pelo script
+[`scripts/screenshot_telas.py`](scripts/screenshot_telas.py)).
 
-| Dashboard | Sessão WhatsApp |
-|-----------|-----------------|
-| ![Dashboard](data/screenshot01.png) | ![Sessão](data/screenshot05.png) |
+### 1. Primeiro acesso → cadastro do admin
 
-| Wizard de Ferramentas | Provedores LLM |
-|-----------------------|----------------|
-| ![Ferramentas](data/screenshot02.png) | ![LLM](data/screenshot03.png) |
+Acessou `/` sem usuário no banco? Redireciona pra `/signup?bootstrap=1`.
+O primeiro a se cadastrar vira **administrador**.
 
-| MCP Clients |
-|-------------|
-| ![MCP](data/screenshot04.png) |
+| Tela vazia | Formulário preenchido |
+|------------|----------------------|
+| ![Signup vazio](data/screenshots/01_signup_vazio.png) | ![Signup preenchido](data/screenshots/02_signup_preenchido.png) |
 
-</div>
+### 2. Onboarding guiado no dashboard
+
+Logado, sem nada configurado, o dashboard mostra um wizard de 4 passos:
+**cérebro (LLM) → canal → agente → testar**.
+
+![Dashboard wizard](data/screenshots/03_dashboard.png)
+
+A tela de login fica assim quando você acessa de outra sessão:
+
+![Login](data/screenshots/04_login.png)
+
+### 3. Criar uma conexão (canal)
+
+Em **Conexões & Agentes** você adiciona uma sessão. O `<select>` revela
+campos diferentes por canal.
+
+| Lista vazia | Form (WhatsApp default) |
+|-------------|------------------------|
+| ![Sessões vazia](data/screenshots/05_sessoes_vazia.png) | ![Nova sessão WA](data/screenshots/06_sessao_nova_whatsapp.png) |
+
+| Telegram (campo bot_token) | Web Chat (hint público) |
+|----------------------------|-------------------------|
+| ![Nova TG](data/screenshots/07_sessao_nova_telegram.png) | ![Nova WC](data/screenshots/08_sessao_nova_webchat.png) |
+
+### 4. Sessão criada → painel da conexão e do agente
+
+A lista mostra badge da plataforma. Ao entrar nos detalhes, você tem
+configurações do canal + agentes vinculados.
+
+| Lista de sessões | Detalhes da sessão | Painel do agente |
+|------------------|--------------------|-----------------|
+| ![Sessões](data/screenshots/09_sessoes_lista.png) | ![Detalhes](data/screenshots/10_sessao_detalhes.png) | ![Agente](data/screenshots/11_agente.png) |
+
+### 5. Módulos globais — skills, ferramentas, RAG, MCP
+
+Telas reutilizáveis por qualquer agente, no menu lateral.
+
+| Skills | Ferramentas | RAG (Conhecimento) |
+|--------|-------------|-------------------|
+| ![Skills](data/screenshots/12_skills.png) | ![Ferramentas](data/screenshots/13_ferramentas.png) | ![RAG](data/screenshots/14_rags.png) |
+
+| MCP Servers | Provedores LLM | Configurações |
+|-------------|----------------|--------------|
+| ![MCP](data/screenshots/15_mcp.png) | ![LLM](data/screenshots/16_provedores_llm.png) | ![Config](data/screenshots/17_configuracoes.png) |
+
+### 6. Web Chat público (sem login)
+
+URL `/chat/<sessao_id>` é compartilhável. Quem abre não precisa de conta
+no Fluxi — fala direto com o agente.
+
+![Web Chat](data/screenshots/18_webchat.png)
 
 ---
 
