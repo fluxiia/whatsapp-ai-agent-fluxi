@@ -794,27 +794,36 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
         if not cliente:
             return {"resultado": {"erro": "canal nao disponivel para esta sessao"}, "output": "llm", "enviado_usuario": False}
 
+        # Interface unificada CanalClient (canal_base.py): enviar_imagem / enviar_audio /
+        # enviar_video / enviar_documento aceitam `chat_id` como string e cada adapter
+        # converte internamente (WA monta JID, TG usa direto).
+        # `jid_destino` vinha do pipeline WA (LID) — passa pra string. Pra TG eh ignorado.
+        dest = telefone_cliente
         if jid_destino is not None:
-            jid = jid_destino
-        else:
-            from neonize.utils import build_jid
-            jid = build_jid(telefone_cliente)
+            user = getattr(jid_destino, "User", None)
+            server = getattr(jid_destino, "Server", None)
+            if user and server:
+                dest = f"{user}@{server}"
+            elif user:
+                dest = str(user)
 
         size_kb = len(file_bytes) / 1024
         tipo_envio = "documento"
         try:
             if ext in IMAGE_EXTS:
-                cliente.send_image(jid, file_bytes, caption=caption)
+                ok = cliente.enviar_imagem(dest, file_bytes, legenda=caption or "")
                 tipo_envio = "imagem"
             elif ext in AUDIO_EXTS:
-                cliente.send_audio(jid, file_bytes, ptt=False)
+                ok = cliente.enviar_audio(dest, file_bytes, ptt=False)
                 tipo_envio = "audio"
             elif ext in VIDEO_EXTS:
-                cliente.send_video(jid, file_bytes, caption=caption)
+                ok = cliente.enviar_video(dest, file_bytes, legenda=caption or "")
                 tipo_envio = "video"
             else:
-                cliente.send_document(jid, file_bytes, filename=filename or "arquivo")
+                ok = cliente.enviar_documento(dest, file_bytes, nome_arquivo=filename or "arquivo")
                 tipo_envio = "documento"
+            if ok is False:
+                return {"resultado": {"erro": f"canal retornou falha ao enviar {tipo_envio}"}, "output": "llm", "enviado_usuario": False}
         except Exception as e:
             logger.exception("[enviar_arquivo] erro no envio: %s", e)
             return {"resultado": {"erro": f"erro ao enviar: {e}"}, "output": "llm", "enviado_usuario": False}
@@ -1209,12 +1218,19 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
             "function": {
                 "name": "enviar_arquivo",
                 "description": (
-                    "Envia um arquivo (imagem/audio/video/documento) ao usuario via canal ativo. "
-                    "Use o prefixo apropriado em `ref`:\n"
-                    "• id:<media_id> - midia ja registrada (recebida do usuario ou gerada anteriormente)\n"
-                    "• url:<https://...> - URL publica, o canal baixa direto\n"
-                    "• file:<path_absoluto> - arquivo local (so paths dentro de uploads/)\n"
-                    "• base64:<data> - bytes embutidos (use so quando os anteriores nao se aplicarem)\n"
+                    "Envia um arquivo (imagem/audio/video/documento) ao usuario via canal ativo.\n\n"
+                    "REGRA IMPORTANTE SOBRE media_id:\n"
+                    "Quando o usuario envia uma midia (foto, audio, etc.), aparece no historico uma "
+                    "anotacao no formato [midia anexada: tipo=..., media_id=\"s1_XXXXX_upload_YYYY\"]. "
+                    "Este media_id eh REAL e foi registrado no sistema — use ele exatamente como aparece. "
+                    "NUNCA invente nomes de arquivo (ex: 'input_file_0.png') nem URLs do tipo "
+                    "openai/oaiusercontent — esses sao alucinacao e vao falhar.\n\n"
+                    "Prefixos aceitos em `ref`:\n"
+                    "• id:<media_id> - midia ja registrada. O media_id aparece em [midia anexada: ...] "
+                    "no historico desta conversa. Exemplo de id real: 's1_5511_upload_a1b2c3d4ef'.\n"
+                    "• url:<https://...> - URL publica REAL e acessivel (nao invente URLs).\n"
+                    "• file:<path_absoluto> - arquivo local (so paths dentro de uploads/).\n"
+                    "• base64:<data> - bytes embutidos (use so quando os anteriores nao se aplicarem).\n\n"
                     "Tipo de envio (imagem/audio/video/documento) eh determinado pela extensao do arquivo."
                 ),
                 "parameters": {

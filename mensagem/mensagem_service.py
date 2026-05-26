@@ -82,6 +82,123 @@ class MensagemService:
         return f"{user}@{server}"
 
     @staticmethod
+    async def _executar_comando_se_aplicavel(
+        db: Session,
+        sessao,
+        canal,
+        chat_id: str,
+        telefone_cliente: str,
+        texto: str,
+    ) -> bool:
+        """Detecta comando cadastrado em `sessao_comandos` e executa.
+
+        Reusavel entre pipelines (WA tem versao inline mais antiga; TG usa essa).
+        Retorna True se o texto era um comando e foi executado (caller deve
+        encerrar o turno). Retorna False se nao era comando — caller segue
+        pipeline normal.
+
+        Cobre: ativar, desativar, limpar, ajuda, status, listar. trocar_agente
+        fica fora desta camada — ainda exige integracao com AgenteService.
+        """
+        if not texto:
+            return False
+
+        from sessao.sessao_comando_service import SessaoComandoService
+
+        comando = SessaoComandoService.obter_por_gatilho(db, sessao.id, texto)
+        if comando is None:
+            return False
+
+        # Envio uniforme via interface CanalClient (funciona p/ WA e TG).
+        def _send(msg: str) -> None:
+            try:
+                if hasattr(canal, "enviar_texto"):
+                    canal.enviar_texto(chat_id, msg)
+            except Exception:
+                fluxi_log.error(
+                    "mensagem", "comando", "Falha ao enviar resposta de comando",
+                    exc_info=True, session_id=sessao.id,
+                )
+
+        cid = comando.comando_id
+
+        if cid == "ativar":
+            fluxi_log.info("mensagem", "comando", "Comando ativar IA", extra={"gatilho": comando.gatilho}, session_id=sessao.id)
+            sessao.auto_responder = True
+            db.commit()
+            _send(comando.resposta or "🤖 *IA Ativada!*")
+            return True
+
+        if cid == "desativar":
+            fluxi_log.info("mensagem", "comando", "Comando desativar IA", extra={"gatilho": comando.gatilho}, session_id=sessao.id)
+            sessao.auto_responder = False
+            db.commit()
+            _send(comando.resposta or "😴 *IA Desativada!*")
+            return True
+
+        if cid == "limpar":
+            n = (
+                db.query(Mensagem)
+                .filter(Mensagem.sessao_id == sessao.id, Mensagem.chat_id == chat_id)
+                .delete(synchronize_session=False)
+            )
+            # Compat: alguns registros legados de TG podem ter chat_id=None,
+            # mas telefone_cliente preenchido. Tenta tambem por essa chave.
+            n += (
+                db.query(Mensagem)
+                .filter(
+                    Mensagem.sessao_id == sessao.id,
+                    Mensagem.chat_id.is_(None),
+                    Mensagem.telefone_cliente == telefone_cliente,
+                )
+                .delete(synchronize_session=False)
+            )
+            db.commit()
+            fluxi_log.info(
+                "mensagem", "comando", "Histórico limpo via #limpar",
+                extra={"chat_id": chat_id, "deletadas": n}, session_id=sessao.id,
+            )
+            _send(comando.resposta or f"🧹 Histórico apagado ({n} mensagens).")
+            return True
+
+        if cid == "ajuda":
+            try:
+                texto_ajuda = SessaoComandoService.gerar_texto_ajuda(db, sessao.id)
+            except Exception:
+                texto_ajuda = comando.resposta or "Comandos disponíveis: #ativar #desativar #limpar #ajuda #status"
+            _send(texto_ajuda)
+            return True
+
+        if cid == "status":
+            status_txt = (
+                f"📊 Sessão: {sessao.nome}\n"
+                f"Plataforma: {sessao.plataforma}\n"
+                f"Auto-responder: {'✅' if sessao.auto_responder else '❌'}\n"
+                f"Status: {sessao.status}"
+            )
+            _send(comando.resposta or status_txt)
+            return True
+
+        # Outros (listar / trocar_agente) ainda não portados — deixa o pipeline normal seguir.
+        return False
+
+    @staticmethod
+    def _anexar_nota_midia(texto_atual, media_id: str, tipo: str) -> str:
+        """Anexa nota visivel ao LLM contendo o media_id real.
+
+        Sem isso o LLM tenta inventar nomes de arquivo ou URLs ao chamar
+        `enviar_arquivo`. A nota fica no `conteudo_texto` da Mensagem,
+        que entra no historico que o agente le. Pequena poluicao em troca
+        de viabilizar reenvio.
+        """
+        nota = (
+            f"\n\n[mídia anexada: tipo={tipo}, media_id=\"{media_id}\". "
+            f"Para reenviar esta mídia ao usuário, chame a ferramenta "
+            f"enviar_arquivo com ref=\"id:{media_id}\".]"
+        )
+        return (texto_atual or "") + nota
+
+    @staticmethod
     def _extrair_texto_mensagem(message) -> str:
         """Extrai texto de mensagens WhatsApp (conversation/extendedTextMessage)."""
         if hasattr(message, 'conversation') and message.conversation:
@@ -369,6 +486,29 @@ class MensagemService:
             )
             return
 
+        # ─── Detecção de comando (#limpar / #ativar / #desativar / #ajuda etc.)
+        # Pipeline do WhatsApp já tem isso embutido; aqui replicamos pra TG
+        # antes de gravar mensagem ou chamar agente. Se for comando, o canal
+        # responde direto e a função retorna sem passar pelo LLM.
+        if evento.tipo == TipoMidia.TEXTO and evento.texto:
+            try:
+                comando_executado = await MensagemService._executar_comando_se_aplicavel(
+                    db=db,
+                    sessao=sessao,
+                    canal=canal,
+                    chat_id=chat_id,
+                    telefone_cliente=chat_id,  # TG: chat_id faz papel de telefone_cliente
+                    texto=evento.texto.strip(),
+                )
+                if comando_executado:
+                    # Comando interceptado — não cria db_mensagem nem chama agente.
+                    return
+            except Exception:
+                fluxi_log.error(
+                    "mensagem", "telegram", "Erro ao processar comando — seguindo pipeline normal",
+                    exc_info=True, session_id=sessao_id,
+                )
+
         db_mensagem = Mensagem(
             sessao_id=sessao_id,
             plataforma="telegram",
@@ -399,6 +539,9 @@ class MensagemService:
                         vinculada_tipo="mensagem",
                     )
                     db_mensagem.media_id = _m.media_id
+                    db_mensagem.conteudo_texto = MensagemService._anexar_nota_midia(
+                        db_mensagem.conteudo_texto, _m.media_id, "audio"
+                    )
                 except Exception:
                     fluxi_log.warning("mensagem", "audio", "Falha ao registrar midia TG", exc_info=True, session_id=sessao_id)
 
@@ -451,6 +594,9 @@ class MensagemService:
                         vinculada_tipo="mensagem",
                     )
                     db_mensagem.media_id = _m.media_id
+                    db_mensagem.conteudo_texto = MensagemService._anexar_nota_midia(
+                        db_mensagem.conteudo_texto, _m.media_id, "imagem"
+                    )
                 except Exception:
                     fluxi_log.warning("mensagem", "imagem", "Falha ao registrar midia TG", exc_info=True, session_id=sessao_id)
 
@@ -478,6 +624,9 @@ class MensagemService:
                     db_mensagem.media_id = _m.media_id
                     db_mensagem.conteudo_imagem_path = _m.path
                     db_mensagem.conteudo_mime_type = _m.mime
+                    db_mensagem.conteudo_texto = MensagemService._anexar_nota_midia(
+                        db_mensagem.conteudo_texto, _m.media_id, db_mensagem.tipo
+                    )
                 except Exception:
                     fluxi_log.error("mensagem", db_mensagem.tipo, "Erro ao registrar midia TG", exc_info=True, session_id=sessao_id)
             else:
@@ -933,6 +1082,9 @@ class MensagemService:
                                 vinculada_tipo="mensagem",
                             )
                             db_mensagem.media_id = _m.media_id
+                            db_mensagem.conteudo_texto = MensagemService._anexar_nota_midia(
+                                db_mensagem.conteudo_texto, _m.media_id, "audio"
+                            )
                         except Exception:
                             fluxi_log.warning("mensagem", "audio", "Falha ao registrar midia (legacy ok)", exc_info=True, session_id=sessao_id)
 
@@ -1018,6 +1170,9 @@ class MensagemService:
                                 vinculada_tipo="mensagem",
                             )
                             db_mensagem.media_id = _m.media_id
+                            db_mensagem.conteudo_texto = MensagemService._anexar_nota_midia(
+                                db_mensagem.conteudo_texto, _m.media_id, "imagem"
+                            )
                         except Exception:
                             fluxi_log.warning("mensagem", "imagem", "Falha ao registrar midia (legacy ok)", exc_info=True, session_id=sessao_id)
             except Exception as e:
@@ -1069,6 +1224,9 @@ class MensagemService:
                         db_mensagem.media_id = _m.media_id
                         db_mensagem.conteudo_imagem_path = _m.path
                         db_mensagem.conteudo_mime_type = _m.mime
+                        db_mensagem.conteudo_texto = MensagemService._anexar_nota_midia(
+                            db_mensagem.conteudo_texto, _m.media_id, tipo_mensagem
+                        )
                         fluxi_log.info(
                             "mensagem", tipo_mensagem,
                             "Midia registrada",
