@@ -12,6 +12,7 @@ class ToolType(str, Enum):
     """Tipos de ferramenta."""
     WEB = "web"
     CODE = "code"
+    NATIVE = "native"  # Chama service layer diretamente via NATIVE_REGISTRY
 
 
 class ToolScope(str, Enum):

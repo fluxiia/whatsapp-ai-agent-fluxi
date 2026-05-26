@@ -1,0 +1,274 @@
+{% extends "onboarding/base.html" %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+    .chat-wrap {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: var(--space-lg);
+    }
+    @media (max-width: 720px) { .chat-wrap { grid-template-columns: 1fr; } }
+
+    .chat-box {
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        padding: var(--space-md);
+        height: 360px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+    .chat-box::-webkit-scrollbar { width: 6px; }
+    .chat-box::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+    .msg {
+        max-width: 80%;
+        padding: 0.55rem 0.8rem;
+        border-radius: 14px;
+        font-size: 0.88rem;
+        line-height: 1.45;
+        word-wrap: break-word;
+    }
+    .msg-user {
+        background: var(--color-primary);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+    .msg-agent {
+        background: var(--color-surface);
+        color: var(--color-text-primary);
+        align-self: flex-start;
+        border: 1px solid var(--color-border);
+        border-bottom-left-radius: 4px;
+    }
+    .msg-meta {
+        font-size: 0.7rem;
+        color: var(--color-text-muted);
+        margin-top: 0.2rem;
+    }
+
+    .typing {
+        display: inline-flex;
+        gap: 4px;
+        padding: 0.5rem 0.8rem;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        align-self: flex-start;
+    }
+    .typing span {
+        width: 6px; height: 6px;
+        background: var(--color-text-muted);
+        border-radius: 50%;
+        animation: bounce 1.2s infinite ease-in-out;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes bounce { 0%,80%,100% {transform:scale(0.6);opacity:0.5;} 40% {transform:scale(1);opacity:1;} }
+
+    .chat-input-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: var(--space-md);
+    }
+    .chat-input-row .ob-input { flex: 1; }
+
+    .info-side {
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        padding: var(--space-md);
+        font-size: 0.85rem;
+    }
+    .info-side h3 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--color-text-primary);
+        margin: 0 0 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.7rem;
+        color: var(--color-text-tertiary);
+    }
+    .info-side .info-row {
+        padding: 0.4rem 0;
+        border-bottom: 1px dashed var(--color-border);
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: var(--color-text-secondary);
+    }
+    .info-side .info-row:last-child { border-bottom: 0; }
+    .info-side .info-row strong { color: var(--color-text-primary); }
+
+    .suggest-chips {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-bottom: var(--space-sm);
+    }
+    .suggest-chips button {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        color: var(--color-text-secondary);
+        cursor: pointer;
+    }
+    .suggest-chips button:hover {
+        border-color: var(--color-primary-light);
+        color: var(--color-primary);
+    }
+</style>
+{% endblock %}
+
+{% block ob_content %}
+<div class="ob-card">
+    <h2>4. Mande uma mensagem e veja como ele responde</h2>
+    <p class="ob-card-lead">
+        Este e um teste direto com o agente — nada e enviado pelo canal real ainda.
+        Quando estiver satisfeito, clique em <strong>Ativar e finalizar</strong>.
+    </p>
+
+    <div class="chat-wrap">
+        <div>
+            <div class="chat-box" id="chat-box">
+                <div class="msg msg-agent">
+                    Oi! Eu sou <strong>{{ agente.nome }}</strong>. Manda uma mensagem
+                    pra eu te mostrar como vou responder.
+                </div>
+            </div>
+
+            <div class="suggest-chips">
+                <button type="button" onclick="usarSugestao(this)">Oi, quem e voce?</button>
+                <button type="button" onclick="usarSugestao(this)">O que voce pode fazer?</button>
+                <button type="button" onclick="usarSugestao(this)">Me da um exemplo de como me ajuda</button>
+            </div>
+
+            <div class="chat-input-row">
+                <input class="ob-input" type="text" id="chat-input"
+                       placeholder="Digite uma mensagem..." autocomplete="off">
+                <button class="ob-btn ob-btn-primary" id="btn-send" onclick="enviar()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <aside class="info-side">
+            <h3>Resumo</h3>
+            <div class="info-row"><span>Canal</span><strong>{{ sessao.plataforma|capitalize }}</strong></div>
+            <div class="info-row"><span>Conexao</span><strong>{{ sessao.nome }}</strong></div>
+            <div class="info-row"><span>Agente</span><strong>{{ agente.nome }}</strong></div>
+            <div class="info-row"><span>Status</span>
+                <span class="ob-status-pill ok"><span class="dot"></span> Pronto</span>
+            </div>
+
+            {% if sessao.plataforma == "webchat" %}
+            <div style="margin-top:var(--space-md);">
+                <a href="/chat/{{ sessao.id }}" target="_blank" class="ob-btn ob-btn-secondary" style="width:100%;justify-content:center;">
+                    <i class="fas fa-external-link-alt"></i> Abrir webchat publico
+                </a>
+            </div>
+            {% endif %}
+        </aside>
+    </div>
+
+    <form method="post" action="/onboarding/finalizar" id="form-finalizar">
+        <div class="ob-actions">
+            <div class="ob-actions-left">
+                <a href="/onboarding/agente" class="ob-btn ob-btn-ghost">
+                    <i class="fas fa-arrow-left"></i> Ajustar agente
+                </a>
+            </div>
+            <div class="ob-actions-right">
+                <button type="submit" class="ob-btn ob-btn-primary">
+                    <i class="fas fa-check"></i> Ativar e finalizar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block ob_scripts %}
+<script>
+const chatBox = document.getElementById('chat-box');
+const input = document.getElementById('chat-input');
+const btnSend = document.getElementById('btn-send');
+
+function appendMsg(texto, tipo, meta) {
+    const div = document.createElement('div');
+    div.className = 'msg msg-' + tipo;
+    div.innerText = texto;
+    chatBox.appendChild(div);
+    if (meta) {
+        const m = document.createElement('div');
+        m.className = 'msg-meta';
+        m.style.alignSelf = tipo === 'user' ? 'flex-end' : 'flex-start';
+        m.innerText = meta;
+        chatBox.appendChild(m);
+    }
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function appendTyping() {
+    const t = document.createElement('div');
+    t.className = 'typing';
+    t.id = 'typing';
+    t.innerHTML = '<span></span><span></span><span></span>';
+    chatBox.appendChild(t);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+function removeTyping() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
+}
+
+function usarSugestao(btn) {
+    input.value = btn.innerText;
+    input.focus();
+}
+
+async function enviar() {
+    const texto = input.value.trim();
+    if (!texto) return;
+    appendMsg(texto, 'user');
+    input.value = '';
+    input.disabled = true;
+    btnSend.disabled = true;
+    appendTyping();
+
+    try {
+        const fd = new FormData();
+        fd.append('texto', texto);
+        const r = await fetch('/onboarding/teste/enviar', { method: 'POST', body: fd });
+        const data = await r.json();
+        removeTyping();
+        if (data.ok) {
+            const meta = data.tempo_ms ? `${data.modelo || 'modelo'} • ${Math.round(data.tempo_ms)}ms` : null;
+            appendMsg(data.texto, 'agent', meta);
+        } else {
+            appendMsg(`Erro: ${data.erro || 'falha desconhecida'}`, 'agent');
+        }
+    } catch (err) {
+        removeTyping();
+        appendMsg(`Erro de rede: ${err}`, 'agent');
+    } finally {
+        input.disabled = false;
+        btnSend.disabled = false;
+        input.focus();
+    }
+}
+
+input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') enviar();
+});
+input.focus();
+</script>
+{% endblock %}

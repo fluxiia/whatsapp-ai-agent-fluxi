@@ -2,197 +2,158 @@
 
 {% block wizard_content %}
 <form method="POST" action="/ferramentas/wizard/step2">
-    <div class="box">
-        <h2 class="title is-4">
-            <i class="fas fa-sliders-h"></i> Parâmetros da Ferramenta
-        </h2>
-        <p class="subtitle is-6">Defina os argumentos que a ferramenta receberá</p>
+    <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <i class="fas fa-sliders-h text-warning" style="font-size: 1.25rem;"></i>
+        <div>
+            <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin: 0;">Parâmetros da Ferramenta</h2>
+            <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin: 2px 0 0 0;">Defina quais informações o usuário ou a inteligência artificial precisará informar para que a ferramenta funcione.</p>
+        </div>
+    </div>
 
-        <!-- Lista de Parâmetros Existentes -->
-        {% if wizard_data.params %}
-        <div class="mb-5">
-            <h3 class="subtitle is-5">Parâmetros Definidos:</h3>
+    <!-- Lista de Parâmetros Existentes -->
+    {% if wizard_data.params %}
+    <div class="mb-lg">
+        <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-primary); text-transform: uppercase; margin-bottom: var(--space-sm);">Parâmetros já criados</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-sm">
             {% for param_name, param_config in wizard_data.params.items() %}
-            <div class="param-item">
-                <div class="level is-mobile">
-                    <div class="level-left">
-                        <div class="level-item">
-                            <div>
-                                <p class="heading">Nome</p>
-                                <p class="title is-5">{{ param_name }}</p>
-                            </div>
-                        </div>
-                        <div class="level-item">
-                            <div>
-                                <p class="heading">Tipo</p>
-                                <p class="subtitle is-6">
-                                    <span class="tag is-info">{{ param_config.type }}</span>
-                                </p>
-                            </div>
-                        </div>
-                        <div class="level-item">
-                            <div>
-                                <p class="heading">Obrigatório</p>
-                                <p class="subtitle is-6">
-                                    {% if param_config.required %}
-                                    <span class="tag is-success">Sim</span>
-                                    {% else %}
-                                    <span class="tag is-light">Não</span>
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </div>
+            <div class="p-sm flex flex-col justify-between" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); position: relative;">
+                
+                <div class="flex items-center justify-between mb-xs">
+                    <div class="flex items-center gap-xs">
+                        <code style="font-size: 0.75rem; font-weight: 700; color: #6366f1; background: #e0e7ff; padding: 2px 6px; border-radius: 4px;">{{ param_name }}</code>
+                        
+                        <span style="font-size: 0.65rem; font-family: monospace; color: var(--color-text-secondary); background: var(--color-surface); padding: 2px 4px; border: 1px solid var(--color-border);">
+                            {% if param_config.type == 'string' %}Texto{% elif param_config.type == 'int' %}Número Inteiro{% elif param_config.type == 'float' %}Número Decimal{% elif param_config.type == 'bool' %}Verdadeiro/Falso{% elif param_config.type == 'array' %}Lista{% elif param_config.type == 'enum' %}Opções Fechadas{% else %}{{ param_config.type }}{% endif %}
+                        </span>
+                        
+                        {% if param_config.required %}
+                            <span style="font-size: 0.65rem; color: #b91c1c; font-weight: 600;"><i class="fas fa-asterisk"></i> Obrigatório</span>
+                        {% else %}
+                            <span style="font-size: 0.65rem; color: var(--color-text-muted);">Opcional</span>
+                        {% endif %}
                     </div>
-                    <div class="level-right">
-                        <div class="level-item">
-                            <button type="submit" name="remover_param" value="{{ param_name }}" 
-                                    class="button is-small is-danger is-light">
-                                <span class="icon"><i class="fas fa-trash"></i></span>
-                            </button>
-                        </div>
-                    </div>
+                    
+                    <button type="submit" name="remover_param" value="{{ param_name }}" class="button is-small is-danger text-error" style="background: transparent; border: none; padding: 2px 8px; height: auto;" title="Remover Parâmetro">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
+                
                 {% if param_config.description %}
-                <p class="help"><strong>Descrição:</strong> {{ param_config.description }}</p>
+                    <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin: 0; line-height: 1.4;">{{ param_config.description }}</p>
                 {% endif %}
+                
                 {% if param_config.type == 'enum' and param_config.options %}
-                <p class="help"><strong>Opções:</strong> {{ param_config.options|join(', ') }}</p>
+                    <p style="font-size: 0.7rem; color: #92400e; background: #fef3c7; padding: 4px; border-radius: 4px; margin-top: 4px; border: 1px dashed #f59e0b; margin-bottom: 0;">
+                        Opções aceitas: [{{ param_config.options|join(', ') }}]
+                    </p>
                 {% endif %}
             </div>
             {% endfor %}
         </div>
-        {% endif %}
+    </div>
+    {% endif %}
 
-        <!-- Adicionar Novo Parâmetro -->
-        <div class="box" style="background: #f9f9f9;">
-            <h3 class="subtitle is-5">
-                <i class="fas fa-plus-circle"></i> Adicionar Parâmetro
-            </h3>
+    <!-- Adicionar Novo Parâmetro -->
+    <div class="box" style="padding: var(--space-md); border: 1px dashed var(--color-border); background: var(--color-surface); box-shadow: none;">
+        <div class="flex items-center gap-sm mb-md">
+            <i class="fas fa-plus-circle text-primary"></i>
+            <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary); margin: 0;">Criar Novo Parâmetro</h3>
+        </div>
 
-            <div class="columns">
-                <div class="column is-4">
-                    <div class="field">
-                        <label class="label">Nome do Parâmetro</label>
-                        <div class="control">
-                            <input class="input" type="text" name="param_nome"
-                                   placeholder="Ex: cep, cidade, valor"
-                                   pattern="[a-z_]+"
-                                   title="Apenas letras minúsculas e underscores">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="column is-3">
-                    <div class="field">
-                        <label class="label">Tipo</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select name="param_type" id="param_type">
-                                    <option value="string">String</option>
-                                    <option value="int">Integer</option>
-                                    <option value="float">Float</option>
-                                    <option value="bool">Boolean</option>
-                                    <option value="array">Array</option>
-                                    <option value="enum">Enum</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="column is-2">
-                    <div class="field">
-                        <label class="label">Obrigatório</label>
-                        <div class="control">
-                            <label class="checkbox">
-                                <input type="checkbox" name="param_required" value="true" checked>
-                                Sim
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="column is-3">
-                    <div class="field">
-                        <label class="label">&nbsp;</label>
-                        <div class="control">
-                            <button type="submit" name="adicionar_param" value="true" class="button is-success is-fullwidth">
-                                <span class="icon"><i class="fas fa-plus"></i></span>
-                                <span>Adicionar</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">Descrição</label>
+        <div class="grid grid-cols-12 gap-md items-end">
+            
+            <div class="field col-span-12 md:col-span-4" style="margin-bottom: 0;">
+                <label class="label text-secondary" style="font-size: 0.75rem;">NOME DO PARÂMETRO</label>
                 <div class="control">
-                    <input class="input" type="text" name="param_description"
-                           placeholder="Ex: CEP no formato 00000-000 ou 00000000">
+                    <input class="input" type="text" name="param_nome"
+                           placeholder="Ex: cep, nome, idade"
+                           pattern="[a-z_]+"
+                           title="Apenas letras minúsculas e underscores"
+                           style="background: var(--color-bg-secondary); border-color: var(--color-border); font-family: monospace; font-size: 0.8125rem;">
                 </div>
             </div>
 
-            <!-- Campo condicional para Enum -->
-            <div class="field" id="enum_options_field" style="display: none;">
-                <label class="label">Opções (separadas por vírgula)</label>
-                <div class="control">
-                    <input class="input" type="text" name="param_options"
-                           placeholder="Ex: opcao1, opcao2, opcao3">
-                </div>
-                <p class="help">Para tipo Enum, defina as opções válidas</p>
-            </div>
-
-            <!-- Campo condicional para Array -->
-            <div class="field" id="array_item_type_field" style="display: none;">
-                <label class="label">Tipo dos Itens</label>
+            <div class="field col-span-12 md:col-span-3" style="margin-bottom: 0;">
+                <label class="label text-secondary" style="font-size: 0.75rem;">TIPO DE DADO</label>
                 <div class="control">
                     <div class="select is-fullwidth">
-                        <select name="param_item_type">
-                            <option value="string">String</option>
-                            <option value="int">Integer</option>
-                            <option value="float">Float</option>
+                        <select name="param_type" id="param_type" style="background: var(--color-bg-secondary); border-color: var(--color-border); font-size: 0.8125rem;">
+                            <option value="string">Texto (String)</option>
+                            <option value="int">Número Inteiro (Ex: 10)</option>
+                            <option value="float">Número Quebrado (Ex: 10.5)</option>
+                            <option value="bool">SIM ou NÃO (Verdadeiro/Falso)</option>
+                            <option value="array">Uma lista de itens</option>
+                            <option value="enum">Escolher de uma lista fechada</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field col-span-12 md:col-span-2" style="margin-bottom: 0;">
+                <label class="label text-secondary" style="font-size: 0.75rem;">OBRIGATÓRIO?</label>
+                <div class="control" style="height: 40px; display: flex; align-items: center;">
+                    <label class="checkbox flex items-center gap-xs">
+                        <input type="checkbox" name="param_required" value="true" checked style="accent-color: #6366f1;">
+                        <span style="font-size: 0.8125rem; font-weight: 600;">Sim</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="field col-span-12 md:col-span-3" style="margin-bottom: 0;">
+                <button type="submit" name="adicionar_param" value="true" class="button is-primary is-fullwidth" style="background: #10b981; border: none; font-weight: 600; font-size: 0.8125rem; height: 40px;">
+                    <i class="fas fa-plus"></i> Adicionar Parâmetro
+                </button>
+            </div>
+            
+        </div>
+
+        <div class="field mt-md mb-xs">
+            <label class="label text-secondary" style="font-size: 0.75rem;">DESCRIÇÃO (O que a I.A. deve saber sobre isso?)</label>
+            <div class="control">
+                <input class="input" type="text" name="param_description"
+                       placeholder="Ex: Pegue o CEP e digite no formato 00000-000."
+                       style="background: var(--color-bg-secondary); border-color: var(--color-border); font-size: 0.8125rem;">
+            </div>
+        </div>
+
+        <!-- Campos condicionais (Enum/Array) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-md mt-sm">
+            <div class="field" id="enum_options_field" style="display: none; background: #fffbeb; padding: 10px; border: 1px dashed #d97706; border-radius: 4px;">
+                <label class="label" style="font-size: 0.7rem; color: #b45309; text-transform: uppercase;">Coloque as opções separadas por vírgula</label>
+                <div class="control">
+                    <input class="input" type="text" name="param_options" placeholder="Ex: ativo, inativo, bloqueado" style="font-size: 0.8125rem; font-family: monospace;">
+                </div>
+            </div>
+
+            <div class="field" id="array_item_type_field" style="display: none; background: #f0fdf4; padding: 10px; border: 1px dashed #22c55e; border-radius: 4px;">
+                <label class="label" style="font-size: 0.7rem; color: #166534; text-transform: uppercase;">Qual será o tipo do item dentro da lista?</label>
+                <div class="control">
+                    <div class="select is-small is-fullwidth">
+                        <select name="param_item_type" style="font-family: monospace;">
+                            <option value="string">Será um Texto</option>
+                            <option value="int">Será um Número Inteiro</option>
+                            <option value="float">Será um Número Quebrado</option>
                         </select>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="help-box">
-            <p class="has-text-weight-bold">
-                <span class="icon"><i class="fas fa-lightbulb"></i></span>
-                Tipos de Parâmetros:
-            </p>
-            <ul style="margin-left: 2rem;">
-                <li><strong>String:</strong> Texto (ex: nome, endereço)</li>
-                <li><strong>Integer:</strong> Número inteiro (ex: quantidade, idade)</li>
-                <li><strong>Float:</strong> Número decimal (ex: preço, temperatura)</li>
-                <li><strong>Boolean:</strong> Verdadeiro ou falso</li>
-                <li><strong>Array:</strong> Lista de valores</li>
-                <li><strong>Enum:</strong> Opções pré-definidas (ex: status: ativo, inativo)</li>
-            </ul>
-        </div>
     </div>
 
-    <!-- Botões -->
-    <div class="field is-grouped is-grouped-right">
-        <div class="control">
-            <button type="submit" name="voltar" value="true" class="button is-light is-medium">
-                <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                <span>Voltar</span>
-            </button>
-        </div>
-        <div class="control">
-            <button type="submit" name="continuar" value="true" class="button is-primary is-medium">
-                <span>Próximo</span>
-                <span class="icon"><i class="fas fa-arrow-right"></i></span>
-            </button>
-        </div>
+    <!-- Actions -->
+    <div class="flex items-center justify-between" style="margin-top: var(--space-xl); padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+        <button type="submit" name="voltar" value="true" class="button is-outline text-muted">
+            <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Voltar
+        </button>
+        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;">
+            Salvar e Avançar <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
+        </button>
     </div>
 </form>
 
 <script>
-    // Mostrar/ocultar campos condicionais
     document.getElementById('param_type').addEventListener('change', function() {
         const enumField = document.getElementById('enum_options_field');
         const arrayField = document.getElementById('array_item_type_field');

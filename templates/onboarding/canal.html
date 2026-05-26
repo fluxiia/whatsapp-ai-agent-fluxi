@@ -1,0 +1,67 @@
+{% extends "onboarding/base.html" %}
+
+{% block ob_content %}
+<div class="ob-card">
+    <h2>2. Por onde seu agente vai conversar?</h2>
+    <p class="ob-card-lead">
+        Cada canal e independente. Voce pode ter varios depois. Por ora, escolha um para
+        comecar.
+    </p>
+
+    <div class="ob-options cols-3">
+        <a class="ob-option" href="/onboarding/canal/whatsapp" style="text-decoration:none;">
+            <div style="display:flex;align-items:center;gap:0.7rem;">
+                <div class="ob-option-icon" style="background:#25D36620;color:#25D366;">
+                    <i class="fab fa-whatsapp"></i>
+                </div>
+                <div style="flex:1;">
+                    <div class="ob-option-title">WhatsApp</div>
+                    <div class="ob-option-desc">Conexao via QR code (Neonize).</div>
+                </div>
+            </div>
+            <div class="ob-option-desc" style="margin-top:0.4rem;">
+                Voce vai escanear um QR code no celular, como no WhatsApp Web.
+            </div>
+        </a>
+
+        <a class="ob-option" href="/onboarding/canal/telegram" style="text-decoration:none;">
+            <div style="display:flex;align-items:center;gap:0.7rem;">
+                <div class="ob-option-icon" style="background:#0088cc20;color:#0088cc;">
+                    <i class="fab fa-telegram-plane"></i>
+                </div>
+                <div style="flex:1;">
+                    <div class="ob-option-title">Telegram</div>
+                    <div class="ob-option-desc">Bot via token (sem QR).</div>
+                </div>
+            </div>
+            <div class="ob-option-desc" style="margin-top:0.4rem;">
+                Crie um bot no @BotFather, cole o token aqui. Pronto.
+            </div>
+        </a>
+
+        <a class="ob-option" href="/onboarding/canal/webchat" style="text-decoration:none;">
+            <div style="display:flex;align-items:center;gap:0.7rem;">
+                <div class="ob-option-icon" style="background:#6366f120;color:#6366f1;">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div style="flex:1;">
+                    <div class="ob-option-title">Webchat</div>
+                    <div class="ob-option-desc">Chat embutivel no seu site.</div>
+                </div>
+            </div>
+            <div class="ob-option-desc" style="margin-top:0.4rem;">
+                Geramos uma URL publica de chat. Sem QR, sem token.
+            </div>
+        </a>
+    </div>
+
+    <div class="ob-actions">
+        <div class="ob-actions-left">
+            <a href="/onboarding/llm" class="ob-btn ob-btn-ghost">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+        <div class="ob-actions-right"></div>
+    </div>
+</div>
+{% endblock %}

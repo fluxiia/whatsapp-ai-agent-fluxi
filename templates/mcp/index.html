@@ -1,262 +1,259 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}MCP Clients - Fluxi.IA{% endblock %}
+{% block title %}Conectividade MCP - Central de Ferramentas - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <h1 class="title is-3" style="margin-bottom: 0.5rem; color: #1f2937;">
-        <i class="fas fa-plug" style="color: #8b5cf6;"></i> MCP Clients
-    </h1>
-    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0;">
-        Gerencie servidores MCP conectados aos seus agentes
-    </p>
-</div>
-
-<div class="box" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #7dd3fc; margin-bottom: 2rem;">
-    <h3 style="font-size: 1.25rem; font-weight: 700; color: #0c4a6e; margin-bottom: 0.75rem;">
-        <i class="fas fa-info-circle"></i> Model Context Protocol (MCP)
-    </h3>
-    <p style="color: #0c4a6e; line-height: 1.7;">
-        Conecte servidores MCP externos para adicionar ferramentas especializadas aos seus agentes. 
-        Cada agente pode ter até <strong>5 servidores MCP</strong> ativos.
-    </p>
-</div>
-
-<!-- AIO Sandbox Featured Banner -->
-<div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); border: 2px solid #8b5cf6; border-radius: 16px; padding: 2rem; margin-bottom: 2rem; position: relative; overflow: hidden;">
-    <div style="position: absolute; top: -30px; right: -30px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%); pointer-events: none;"></div>
-    <div style="position: absolute; bottom: -40px; left: -40px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(59,130,246,0.1) 0%, transparent 70%); pointer-events: none;"></div>
-
-    <div style="display: flex; gap: 1.5rem; align-items: start; flex-wrap: wrap; position: relative; z-index: 1;">
-        <div style="width: 64px; height: 64px; border-radius: 16px; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #3b82f6 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 20px rgba(139,92,246,0.4);">
-            <i class="fas fa-cube" style="color: white; font-size: 1.75rem;"></i>
+<div class="container">
+    <!-- Cabeçalho da Página: Estilo Mission Control -->
+    <div class="flex items-center justify-between mb-lg"
+        style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">Conectividade MCP</h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">Expanda as capacidades dos seus agentes conectando
+                servidores externos via Model Context Protocol.</p>
         </div>
-        <div style="flex: 1; min-width: 280px;">
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
-                <h2 style="font-size: 1.5rem; font-weight: 800; color: white; margin: 0;">AIO Sandbox</h2>
-                <span style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; padding: 0.2rem 0.75rem; border-radius: 50px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Novo</span>
-            </div>
-            <p style="color: #94a3b8; line-height: 1.7; margin-bottom: 1rem; font-size: 0.95rem;">
-                Dê <strong style="color: #e2e8f0;">superpoderes</strong> ao seu agente. Navegador web, terminal com Python e pip, gerenciador de arquivos e conversão de documentos &mdash; tudo isolado em Docker.
-            </p>
+        <div class="flex items-center gap-sm">
+            <a href="/sessoes" class="button is-outline is-small">Ver Canais</a>
+        </div>
+    </div>
 
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
-                <span style="background: rgba(139,92,246,0.15); color: #c4b5fd; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(139,92,246,0.3);">
-                    <i class="fas fa-globe"></i> Browser
-                </span>
-                <span style="background: rgba(59,130,246,0.15); color: #93c5fd; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(59,130,246,0.3);">
-                    <i class="fas fa-terminal"></i> Shell & Python
-                </span>
-                <span style="background: rgba(16,185,129,0.15); color: #6ee7b7; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(16,185,129,0.3);">
-                    <i class="fas fa-folder-open"></i> Arquivos
-                </span>
-                <span style="background: rgba(245,158,11,0.15); color: #fcd34d; padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(245,158,11,0.3);">
-                    <i class="fas fa-file-alt"></i> Documentos
-                </span>
+    <!-- Layout em Grid 2/3 - 1/3 -->
+    <div class="grid grid-cols-3">
+
+        <!-- COLUNA PRINCIPAL (2/3): Seleção de Agente para Gerir MCP -->
+        <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+
+            <div class="box"
+                style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-tertiary); border: none; margin-bottom: var(--space-md);">
+                <div class="flex items-center gap-sm mb-sm text-left">
+                    <i class="fas fa-info-circle" style="color: var(--color-primary);"></i>
+                    <strong style="font-size: 0.8125rem;">O que é o Protocolo MCP?</strong>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5;">
+                    O Model Context Protocol (MCP) permite que seus agentes acessem ferramentas complexas (como busca em
+                    bancos de dados, execução de código ou acesso a APIs locais) de forma segura. Selecione um agente
+                    abaixo para acoplar ou remover servidores.
+                </p>
             </div>
 
             {% if sessoes %}
-            <div id="aio-sandbox-form" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 1.25rem;">
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: end;">
-                    <div style="flex: 1; min-width: 180px;">
-                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem;">Agente</label>
-                        <div class="select is-fullwidth" style="border-radius: 8px;">
-                            <select id="aio-agente-select" style="background: #1e293b; color: #e2e8f0; border: 1px solid #475569; border-radius: 8px; width: 100%;">
-                                <option value="">Selecione um agente...</option>
-                                {% for sessao in sessoes %}
-                                {% for agente in sessao.agentes %}
-                                {% if agente.ativo %}
-                                <option value="{{ agente.id }}">{{ sessao.nome }} &rarr; {{ agente.nome }}</option>
-                                {% endif %}
-                                {% endfor %}
-                                {% endfor %}
-                            </select>
+            <h2
+                style="font-size: 0.75rem; font-weight: 800; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: -10px;">
+                Canais Disponíveis</h2>
+
+            {% for sessao in sessoes %}
+            <div class="box"
+                style="padding: var(--space-lg); border-color: var(--color-border); background: var(--color-surface);">
+                <div class="flex items-center justify-between mb-lg"
+                    style="border-bottom: 1px solid var(--color-border-light); padding-bottom: var(--space-sm);">
+                    <div class="flex items-center gap-md">
+                        <i class="fab fa-whatsapp" style="color: var(--color-success); font-size: 1.25rem;"></i>
+                        <div class="flex flex-col">
+                            <span style="font-weight: 800; font-size: 0.9375rem; color: var(--color-text-primary);">{{
+                                sessao.nome }}</span>
+                            <span style="font-size: 0.65rem; color: var(--color-text-secondary);">{{ sessao.telefone or
+                                'Sem número' }}</span>
                         </div>
                     </div>
-                    <div style="flex: 1; min-width: 220px;">
-                        <label style="display: block; font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem;">URL do Sandbox</label>
-                        <input id="aio-sandbox-url" class="input" type="text" value="http://fluxi-sandbox:8080/mcp" placeholder="http://localhost:8080/mcp" style="background: #1e293b; color: #e2e8f0; border: 1px solid #475569; border-radius: 8px;">
-                    </div>
-                    <div style="flex-shrink: 0;">
-                        <button id="aio-activate-btn" onclick="ativarAIOSandbox()" class="button is-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 50%, #3b82f6 100%); color: white; border: none; font-weight: 700; border-radius: 8px; box-shadow: 0 4px 15px rgba(139,92,246,0.4); padding-left: 1.5rem; padding-right: 1.5rem;">
-                            <span class="icon"><i class="fas fa-rocket"></i></span>
-                            <span>Ativar Sandbox</span>
-                        </button>
-                    </div>
+                    {% if sessao.total_mcp_clients > 0 %}
+                    <span class="status-badge status-conectado" style="font-size: 0.6rem;">{{ sessao.total_mcp_clients
+                        }} SERVIDORES ATIVOS</span>
+                    {% endif %}
                 </div>
-                <p style="color: #64748b; font-size: 0.8rem; margin-top: 0.75rem; line-height: 1.5;">
-                    <i class="fas fa-info-circle"></i>
-                    Use <code style="background: rgba(255,255,255,0.08); padding: 0.15rem 0.4rem; border-radius: 4px; color: #94a3b8;">http://fluxi-sandbox:8080/mcp</code> para docker-compose ou
-                    <code style="background: rgba(255,255,255,0.08); padding: 0.15rem 0.4rem; border-radius: 4px; color: #94a3b8;">http://localhost:8080/mcp</code> se o Fluxi roda local (python main.py).
-                </p>
-                <div id="aio-status" style="display: none; margin-top: 0.75rem; padding: 0.75rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600;"></div>
+
+                {% if sessao.agentes %}
+                <div class="grid grid-cols-2 gap-md">
+                    {% for agente in sessao.agentes %}
+                    {% if agente.ativo %}
+                    <a href="/mcp/agente/{{ agente.id }}/clients" class="agent-selection-card">
+                        <div class="flex items-center gap-md">
+                            <div class="mini-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="flex flex-col flex-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="agent-label">{{ agente.nome }}</span>
+                                    <span class="agent-code">#{{ agente.codigo }}</span>
+                                </div>
+                                <div class="flex items-center gap-xs mt-xs">
+                                    <i class="fas fa-plug"
+                                        style="font-size: 0.6rem; color: {% if agente.mcp_clients|length > 0 %}var(--color-primary){% else %}var(--color-text-muted){% endif %};"></i>
+                                    <span
+                                        style="font-size: 0.65rem; font-weight: 600; color: var(--color-text-secondary);">{{
+                                        agente.mcp_clients|length }}/5 Conectados</span>
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right"
+                                style="font-size: 0.75rem; color: var(--color-text-muted);"></i>
+                        </div>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-md" style="background: var(--color-bg-secondary); border-radius: 8px;">
+                    <span style="font-size: 0.75rem; color: var(--color-text-tertiary);">Nenhum agente ativo neste
+                        canal.</span>
+                </div>
+                {% endif %}
             </div>
+            {% endfor %}
             {% else %}
-            <div style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 1rem;">
-                <p style="color: #fcd34d; font-size: 0.875rem;">
-                    <i class="fas fa-exclamation-triangle"></i> Crie uma sessão e um agente primeiro para ativar o AIO Sandbox.
-                </p>
+            <div class="text-center p-2xl"
+                style="border: 2px dashed var(--color-border); border-radius: var(--radius-xl);">
+                <i class="fas fa-plug fa-3x mb-md" style="color: var(--color-text-muted); opacity: 0.2;"></i>
+                <h3 style="font-size: 1rem; color: var(--color-text-primary);">Nenhum Canal Ativado</h3>
+                <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: var(--space-lg);">
+                    Crie uma conexão primeiro para gerenciar seus servidores MCP.</p>
+                <a href="/sessoes/nova" class="button is-primary is-small">Criar Conexão</a>
             </div>
             {% endif %}
         </div>
-    </div>
-</div>
 
-{% if sessoes %}
-<h2 class="title is-4" style="margin-bottom: 1.5rem; color: #1f2937;">Selecione um Agente</h2>
-
-{% for sessao in sessoes %}
-<div class="box" style="margin-bottom: 2rem;">
-    <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
-        <i class="fab fa-whatsapp" style="color: #10b981;"></i>
-        {{ sessao.nome }}
-        {% if sessao.total_mcp_clients > 0 %}
-        <span style="background: #e0e7ff; color: #3730a3; padding: 0.25rem 0.75rem; border-radius: 50px; font-size: 0.875rem;">
-            {{ sessao.total_mcp_clients }} MCP{{ 's' if sessao.total_mcp_clients != 1 else '' }}
-        </span>
-        {% endif %}
-    </h3>
-    
-    {% if sessao.agentes %}
-    <div class="columns is-multiline">
-        {% for agente in sessao.agentes %}
-        {% if agente.ativo %}
-        <div class="column is-6-tablet is-4-desktop">
-            <a href="/mcp/agente/{{ agente.id }}/clients" style="display: block; text-decoration: none;">
-                <div style="background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 1rem; transition: all 0.2s; cursor: pointer;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-                        <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <i class="fas fa-robot" style="color: white;"></i>
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <strong style="color: #1f2937; display: block;">{{ agente.nome }}</strong>
-                            <code style="font-size: 0.75rem; color: #6b7280;">#{{'{'}}{{ agente.codigo }}{{'}'}}}</code>
-                        </div>
-                    </div>
-                    {% set mcp_count = [] %}
-                    {% for _ in range(0, 5) %}
-                        {% if loop.index0 < (agente.mcp_clients|length) %}
-                            {% set _ = mcp_count.append(1) %}
-                        {% endif %}
-                    {% endfor %}
-                    <div style="font-size: 0.875rem; color: #6b7280;">
-                        <i class="fas fa-plug"></i> {{ agente.mcp_clients|length }}/5 servidores MCP
-                    </div>
-                </div>
-            </a>
+        <!-- DICA DO OPERADOR -->
+        <div class="box" style="padding: var(--space-md) var(--space-lg); border-style: dashed;">
+            <p style="font-size: 0.65rem; color: var(--color-text-muted); line-height: 1.5;">
+                <i class="fas fa-lightbulb mr-xs" style="color: #f59e0b;"></i>
+                <strong>Limite Seguro:</strong> Recomendamos o uso de no máximo 3 servidores MCP por agente para manter
+                a latência de resposta baixa.
+            </p>
         </div>
-        {% endif %}
-        {% endfor %}
-    </div>
-    {% else %}
-    <p style="color: #9ca3af; text-align: center; padding: 1rem;">Nenhum agente ativo nesta sessão</p>
-    {% endif %}
-</div>
-{% endfor %}
 
-{% else %}
-<div style="text-align: center; padding: 4rem 2rem; background: white; border: 2px dashed #e5e7eb; border-radius: 12px;">
-    <div style="margin-bottom: 1.5rem;">
-        <span style="width: 80px; height: 80px; border-radius: 50%; background: rgba(139, 92, 246, 0.1); display: inline-flex; align-items: center; justify-content: center;">
-            <i class="fas fa-robot" style="font-size: 2.5rem; color: #8b5cf6;"></i>
-        </span>
     </div>
-    <h3 class="title is-4" style="margin-bottom: 0.75rem;">Nenhuma sessão ativa</h3>
-    <p style="color: #6b7280; margin-bottom: 2rem; line-height: 1.7;">
-        Crie uma sessão e agentes primeiro para gerenciar MCP clients.
-    </p>
-    <a href="/sessoes" class="button is-primary is-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border: none; border-radius: 8px; font-weight: 600;">
-        <span class="icon"><i class="fas fa-plus-circle"></i></span>
-        <span>Ir para Sessões</span>
-    </a>
 </div>
-{% endif %}
+</div>
+
+<style>
+    /* Estilos Específicos para Seleção de Agente MCP */
+    .agent-selection-card {
+        display: block;
+        text-decoration: none;
+        padding: var(--space-md);
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        transition: all var(--transition-base);
+    }
+
+    .agent-selection-card:hover {
+        background: var(--color-surface);
+        border-color: var(--color-primary);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .mini-avatar {
+        width: 36px;
+        height: 36px;
+        background: var(--color-primary);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+    }
+
+    .agent-label {
+        font-size: 0.8125rem;
+        font-weight: 800;
+        color: var(--color-text-primary);
+    }
+
+    .agent-code {
+        font-size: 0.55rem;
+        font-family: monospace;
+        background: var(--color-bg-tertiary);
+        padding: 1px 4px;
+        border-radius: 4px;
+        color: var(--color-text-tertiary);
+    }
+
+    /* Status Badge para MCP */
+    .status-badge.status-conectado {
+        background: var(--color-info-light);
+        color: var(--color-primary);
+        border: 1px solid var(--color-primary-light);
+    }
+</style>
 
 <script>
-async function ativarAIOSandbox() {
-    const agenteId = document.getElementById('aio-agente-select')?.value;
-    const sandboxUrl = document.getElementById('aio-sandbox-url')?.value?.trim();
-    const btn = document.getElementById('aio-activate-btn');
-    const statusDiv = document.getElementById('aio-status');
+    async function ativarAIOSandbox() {
+        const agenteId = document.getElementById('aio-agente-select')?.value;
+        const sandboxUrl = document.getElementById('aio-sandbox-url')?.value?.trim();
+        const btn = document.getElementById('aio-activate-btn');
+        const statusDiv = document.getElementById('aio-status');
 
-    if (!agenteId) {
-        mostrarStatus('Selecione um agente antes de ativar.', 'warning');
-        return;
-    }
-    if (!sandboxUrl) {
-        mostrarStatus('Informe a URL do sandbox.', 'warning');
-        return;
-    }
-
-    const originalHTML = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Conectando...</span>';
-    mostrarStatus('Aplicando preset e conectando ao AIO Sandbox...', 'info');
-
-    try {
-        const response = await fetch('/api/mcp/presets/aplicar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                preset_key: 'aio-sandbox',
-                agente_id: parseInt(agenteId, 10),
-                nome: null,
-                descricao: null,
-                inputs: { sandbox_url: sandboxUrl }
-            })
-        });
-
-        let data;
-        try {
-            data = await response.json();
-        } catch (e) {
-            const text = await response.text().catch(() => 'Erro desconhecido');
-            mostrarStatus(`Erro do servidor: ${text.substring(0, 150)}`, 'error');
-            btn.disabled = false;
-            btn.innerHTML = originalHTML;
+        if (!agenteId) {
+            mostrarStatus('Selecione um agente antes de ativar.', 'warning');
+            return;
+        }
+        if (!sandboxUrl) {
+            mostrarStatus('Informe a URL do sandbox.', 'warning');
             return;
         }
 
-        if (response.ok) {
-            const tools = data.total_tools || 0;
-            const connected = data.conectado;
-            if (connected) {
-                mostrarStatus(`AIO Sandbox ativado com sucesso! ${tools} tools sincronizadas. Redirecionando...`, 'success');
-            } else {
-                mostrarStatus(`Sandbox criado mas houve erro na conexao: ${data.ultimo_erro || 'verifique se o container esta rodando'}. Redirecionando...`, 'warning');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-xs"></i> ACOPLANDO...';
+        mostrarStatus('Configurando preset AIO Sandbox...', 'info');
+
+        try {
+            const response = await fetch('/api/mcp/presets/aplicar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    preset_key: 'aio-sandbox',
+                    agente_id: parseInt(agenteId, 10),
+                    nome: null,
+                    descricao: null,
+                    inputs: { sandbox_url: sandboxUrl }
+                })
+            });
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                mostrarStatus('Erro na resposta do servidor.', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                return;
             }
-            setTimeout(() => {
-                window.location.href = `/mcp/agente/${agenteId}/clients`;
-            }, 1500);
-        } else {
-            mostrarStatus(`Erro: ${data.detail || 'Falha ao ativar sandbox.'}`, 'error');
+
+            if (response.ok) {
+                mostrarStatus(`Sucesso! ${data.total_tools || 0} ferramentas sincronizadas.`, 'success');
+                setTimeout(() => {
+                    window.location.href = `/mcp/agente/${agenteId}/clients`;
+                }, 1000);
+            } else {
+                mostrarStatus(`Erro: ${data.detail || 'Falha ao ativar.'}`, 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        } catch (error) {
+            mostrarStatus('Erro de rede ao conectar.', 'error');
             btn.disabled = false;
             btn.innerHTML = originalHTML;
         }
-    } catch (error) {
-        mostrarStatus(`Erro de rede: ${error.message}`, 'error');
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
     }
-}
 
-function mostrarStatus(msg, tipo) {
-    const el = document.getElementById('aio-status');
-    if (!el) return;
-    el.style.display = 'block';
-    const cores = {
-        info:    { bg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.3)', color: '#93c5fd' },
-        success: { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', color: '#6ee7b7' },
-        warning: { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', color: '#fcd34d' },
-        error:   { bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.3)',  color: '#fca5a5' }
-    };
-    const c = cores[tipo] || cores.info;
-    el.style.background = c.bg;
-    el.style.border = '1px solid ' + c.border;
-    el.style.color = c.color;
-    const icons = { info: 'fa-circle-notch fa-spin', success: 'fa-check-circle', warning: 'fa-exclamation-triangle', error: 'fa-times-circle' };
-    el.innerHTML = '<i class="fas ' + (icons[tipo] || icons.info) + '"></i> ' + msg;
-}
+    function mostrarStatus(msg, tipo) {
+        const el = document.getElementById('aio-status');
+        if (!el) return;
+        el.style.display = 'block';
+        const cores = {
+            info: { bg: 'var(--color-info-light)', border: 'var(--color-info)', color: 'var(--color-info)' },
+            success: { bg: 'var(--color-success-light)', border: 'var(--color-success)', color: 'var(--color-success)' },
+            warning: { bg: 'var(--color-warning-light)', border: 'var(--color-warning)', color: 'var(--color-warning)' },
+            error: { bg: 'var(--color-error-light)', border: 'var(--color-error)', color: 'var(--color-error)' }
+        };
+        const c = cores[tipo] || cores.info;
+        el.style.background = c.bg;
+        el.style.border = '1px solid ' + c.border;
+        el.style.color = c.color;
+        el.innerHTML = msg;
+    }
 </script>
 
 {% endblock %}

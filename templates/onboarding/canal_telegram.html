@@ -1,0 +1,52 @@
+{% extends "onboarding/base.html" %}
+
+{% block ob_content %}
+<div class="ob-card">
+    <h2><i class="fab fa-telegram-plane" style="color:#0088cc;"></i> Conectar Telegram</h2>
+    <p class="ob-card-lead">
+        Voce vai precisar de um bot do Telegram. Se ainda nao tem, crie em
+        <a href="https://t.me/BotFather" target="_blank" rel="noopener" style="color:var(--color-primary);">@BotFather</a> em
+        menos de 1 minuto.
+    </p>
+
+    <form method="post" action="/onboarding/canal/criar">
+        <input type="hidden" name="canal" value="telegram">
+
+        <div class="ob-field">
+            <label>Nome da conexao</label>
+            <input class="ob-input" type="text" name="nome" required
+                   value="{{ form_nome or 'Meu bot Telegram' }}">
+            <div class="hint">So pra voce se localizar entre conexoes.</div>
+        </div>
+
+        <div class="ob-field">
+            <label>Token do bot (BotFather)</label>
+            <input class="ob-input ob-input-mono" type="text" name="telegram_bot_token" required
+                   placeholder="7123456789:AAH-abcDEF...">
+            <div class="hint">Cole o token completo. Sera armazenado criptografado.</div>
+        </div>
+
+        <div class="ob-alert ob-alert-info">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <strong>Como pegar o token:</strong> abra o Telegram &rarr; converse com <code>@BotFather</code>
+                &rarr; <code>/newbot</code> &rarr; escolha nome e username &rarr; copie o token que ele responde.
+                Cada bot so pode rodar em uma sessao por vez (limitacao do Telegram).
+            </div>
+        </div>
+
+        <div class="ob-actions">
+            <div class="ob-actions-left">
+                <a href="/onboarding/canal" class="ob-btn ob-btn-ghost">
+                    <i class="fas fa-arrow-left"></i> Trocar canal
+                </a>
+            </div>
+            <div class="ob-actions-right">
+                <button type="submit" class="ob-btn ob-btn-primary">
+                    Conectar bot <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

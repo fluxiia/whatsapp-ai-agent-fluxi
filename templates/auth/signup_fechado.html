@@ -1,0 +1,23 @@
+{% extends "auth/_base_auth.html" %}
+
+{% block card %}
+<div class="auth-header">
+    <div class="auth-logo" style="background: linear-gradient(135deg, #6b7280, #4b5563);">
+        <i class="fas fa-lock"></i>
+    </div>
+    <h1 class="auth-title">Cadastro fechado</h1>
+    <p class="auth-subtitle">Este Fluxi não está aceitando novos usuários.</p>
+</div>
+
+<div class="auth-body">
+    <p style="font-size: 0.93rem; color: var(--c-text-muted); line-height: 1.55;">
+        Se você precisa de acesso, peça ao administrador. Ele pode liberar novos cadastros definindo
+        <code style="background: var(--c-primary-soft); padding: 2px 6px; border-radius: 4px;">FLUXI_ALLOW_SIGNUP=true</code>
+        no arquivo <code>.env</code>.
+    </p>
+
+    <a href="/login" class="btn-primary" style="text-decoration: none; margin-top: 18px;">
+        <i class="fas fa-arrow-left"></i> Voltar pro login
+    </a>
+</div>
+{% endblock %}

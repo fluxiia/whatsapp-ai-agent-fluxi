@@ -1,169 +1,245 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
 {% block title %}Texto - {{ rag.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-        <a href="/rags" style="width: 48px; height: 48px; border-radius: 10px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #6b7280;">
-            <i class="fas fa-arrow-left"></i>
-        </a>
-        <div style="flex: 1; min-width: 0;">
-            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
-                <i class="fas fa-keyboard" style="color: #10b981;"></i> Gerenciar Texto
+<div class="container" style="max-width: 1000px;">
+    <!-- Page Header Menor e Contido -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-keyboard text-primary mb-xs"></i> Gerenciamento de Material Texto
             </h1>
-            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-                RAG: <strong>{{ rag.nome }}</strong>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/rags" style="color: var(--color-text-secondary); text-decoration: none;">Knowledge Bases</a> / 
+                <span style="color: var(--color-text-primary);">{{ rag.nome }} (Injeção Manual)</span>
             </p>
         </div>
-    </div>
-    
-    <!-- Status do RAG -->
-    <div style="background: {% if rag.treinado %}linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%){% else %}linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%){% endif %}; border: 2px solid {% if rag.treinado %}#86efac{% else %}#fde047{% endif %}; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="width: 48px; height: 48px; border-radius: 10px; background: {% if rag.treinado %}#10b981{% else %}#f59e0b{% endif %}; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-{% if rag.treinado %}check-circle{% else %}clock{% endif %}" style="color: white; font-size: 1.25rem;"></i>
-                </div>
-                <div>
-                    <p style="font-size: 0.875rem; color: {% if rag.treinado %}#065f46{% else %}#78350f{% endif %}; margin-bottom: 0.25rem;">Status</p>
-                    <p style="font-size: 1.125rem; font-weight: 700; color: {% if rag.treinado %}#065f46{% else %}#78350f{% endif %};">
-                        {% if rag.treinado %}✓ Treinado e Pronto{% else %}⏳ Aguardando Texto{% endif %}
-                    </p>
-                </div>
-            </div>
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
-                <div style="text-align: center;">
-                    <p style="font-size: 0.875rem; color: #6b7280;">Chunks</p>
-                    <p style="font-size: 1.5rem; font-weight: 800; color: #1f2937;">{{ rag.total_chunks }}</p>
-                </div>
-                {% if rag.treinado and rag.total_chunks > 0 %}
-                <div style="display: flex; gap: 0.5rem;">
-                    <a href="/rags/{{ rag.id }}/testar" class="button is-primary is-small">
-                        <span class="icon"><i class="fas fa-search"></i></span>
-                        <span>Testar</span>
-                    </a>
-                    <a href="/rags/{{ rag.id }}/chunks" class="button is-success is-small">
-                        <span class="icon"><i class="fas fa-puzzle-piece"></i></span>
-                        <span>Ver Chunks</span>
-                    </a>
-                    <a href="/rags/{{ rag.id }}/estatisticas" class="button is-info is-small">
-                        <span class="icon"><i class="fas fa-chart-bar"></i></span>
-                        <span>Estatísticas</span>
-                    </a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Adicionar Texto -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem;">
-        <i class="fas fa-plus-circle" style="color: #3b82f6;"></i> Adicionar Texto
-    </h2>
-    
-    <form id="texto-form" method="POST" action="/api/rags/{{ rag.id }}/adicionar-texto">
-        <div class="field">
-            <label class="label">Título do Conteúdo *</label>
-            <div class="control">
-                <input class="input" type="text" name="titulo" placeholder="Ex: Manual do Produto, Política da Empresa, etc." required>
-            </div>
-            <p class="help">Nome descritivo para identificar este conteúdo</p>
-        </div>
         
-        <div class="field">
-            <label class="label">Texto *</label>
-            <div class="control">
-                <textarea class="textarea" name="texto" rows="15" placeholder="Cole aqui todo o texto que deseja adicionar à base de conhecimento..." required></textarea>
-            </div>
-            <p class="help">Cole todo o texto que deseja processar. O sistema irá dividir automaticamente em chunks.</p>
-        </div>
-        
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Tamanho do Chunk</label>
-                    <div class="control">
-                        <input class="input" type="number" name="chunk_size" value="{{ rag.chunk_size }}" min="100" max="5000">
-                    </div>
-                    <p class="help">Caracteres por chunk (100-5000)</p>
-                </div>
-            </div>
-            <div class="column">
-                <div class="field">
-                    <label class="label">Overlap entre Chunks</label>
-                    <div class="control">
-                        <input class="input" type="number" name="chunk_overlap" value="{{ rag.chunk_overlap }}" min="0" max="1000">
-                    </div>
-                    <p class="help">Sobreposição para manter contexto (0-1000)</p>
-                </div>
-            </div>
-        </div>
-        
-        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-            <button type="submit" class="button is-primary is-medium">
-                <span class="icon"><i class="fas fa-plus"></i></span>
-                <span>Adicionar Texto</span>
-            </button>
-            <a href="/rags" class="button is-medium">
-                <span class="icon"><i class="fas fa-times"></i></span>
-                <span>Cancelar</span>
+        <div class="flex items-center gap-sm">
+            <a href="/rags" class="button is-small is-outline">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Voltar para RAGs
             </a>
         </div>
-    </form>
-</div>
-
-<!-- Informações do RAG -->
-<div class="box">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem;">
-        <i class="fas fa-info-circle" style="color: #10b981;"></i> Informações do RAG
-    </h2>
+    </div>
     
-    <div class="columns">
-        <div class="column is-6">
-            <div style="space-y: 1rem;">
-                <div>
-                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Nome</div>
-                    <div style="color: #6b7280;">{{ rag.nome }}</div>
+    <!-- GRID LAYOUT -->
+    <div class="grid grid-cols-3">
+        
+        <!-- SIDE PANE (MÉTRICAS DO BANCO) -->
+        <div class="flex flex-col gap-lg pr-lg" style="border-right: 1px solid var(--color-border);">
+            
+            <div class="box" style="padding: var(--space-md) var(--space-lg); background: {% if rag.treinado %}var(--color-success-light){% else %}var(--color-warning-light){% endif %}; border: 1px solid {% if rag.treinado %}var(--color-success){% else %}var(--color-warning){% endif %};">
+                <div class="flex items-center gap-sm mb-xs">
+                    <i class="fas fa-{% if rag.treinado %}check-circle{% else %}clock{% endif %}" style="color: {% if rag.treinado %}var(--color-success){% else %}var(--color-warning){% endif %};"></i>
+                    <strong style="font-size: 0.8125rem; color: {% if rag.treinado %}var(--color-success){% else %}var(--color-warning){% endif %};">Prontidão DB</strong>
                 </div>
-                <div>
-                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Provider</div>
-                    <div style="color: #6b7280; text-transform: capitalize;">{{ rag.provider }}</div>
-                </div>
-                <div>
-                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Modelo</div>
-                    <div style="color: #6b7280;">{{ rag.modelo_embed }}</div>
+                <div style="font-size: 1.125rem; font-weight: 700; color: {% if rag.treinado %}var(--color-success){% else %}var(--color-warning){% endif %};">
+                    {% if rag.treinado %}Status Operational{% else %}Aguardando Dados{% endif %}
                 </div>
             </div>
+
+            <div class="flex flex-col gap-md">
+                <!-- Metric Row 1 -->
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col">
+                        <span style="font-size: 1.25rem; font-weight: 600;">{{ rag.total_chunks }}</span>
+                        <span style="font-size: 0.75rem; color: var(--color-text-secondary);">Fragmentos (Chunks)</span>
+                    </div>
+                    <i class="fas fa-puzzle-piece" style="color: var(--color-text-muted);"></i>
+                </div>
+                <!-- Divisória suave -->
+                <div style="height: 1px; background: var(--color-border); width: 100%;"></div>
+                
+                <!-- Metric Row 2 -->
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col">
+                        <span style="font-size: 1.25rem; font-weight: 600;">{{ rag.provider|title }}</span>
+                        <span style="font-size: 0.75rem; color: var(--color-text-secondary);">Engine Neural</span>
+                    </div>
+                    <i class="fas fa-microchip" style="color: var(--color-primary);"></i>
+                </div>
+            </div>
+
+            {% if rag.treinado and rag.total_chunks > 0 %}
+            <div class="flex flex-col gap-xs mt-sm">
+                <a href="/rags/{{ rag.id }}/testar" class="button is-small is-primary" style="width: 100%; justify-content: center;">
+                    <i class="fas fa-flask" style="margin-right: 6px;"></i> Simulador Semântico
+                </a>
+                <a href="/rags/{{ rag.id }}/chunks" class="button is-small is-outline" style="width: 100%; justify-content: center;">
+                    <i class="fas fa-search" style="margin-right: 6px;"></i> Inspecionar Chunks
+                </a>
+            </div>
+            {% endif %}
+            
         </div>
-        <div class="column is-6">
-            <div style="space-y: 1rem;">
-                <div>
-                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Status</div>
-                    <div style="color: #6b7280;">
-                        {% if rag.treinado %}
-                        <span style="color: #10b981; font-weight: 600;">✓ Treinado</span>
-                        {% else %}
-                        <span style="color: #f59e0b; font-weight: 600;">⚠ Não Treinado</span>
-                        {% endif %}
+
+        <!-- MAIN WINDOW (INJEÇÃO DE TEXTO) -->
+        <div style="grid-column: span 2;" class="flex flex-col pl-lg gap-lg">
+            
+            <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); background: var(--color-bg-secondary);">
+                <div class="flex items-center gap-sm mb-sm text-left">
+                    <i class="fas fa-lightbulb" style="color: var(--color-info);"></i>
+                    <strong style="font-size: 0.8125rem;">Regras de Ouro RAG</strong>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: 0;">
+                    Sempre inclua contextos claros no corpo do texto. Evite frases ambíguas. O Datalake efetuará automaticamente os cálculos de fragmentação vetorial de acordo com os parâmetros setados e irá injetá-lo na nuvem de Embeddings.
+                </p>
+            </div>
+
+            <!-- Adicionar Texto Form -->
+            <form id="texto-form" method="POST" action="/api/rags/{{ rag.id }}/adicionar-texto" class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                
+                <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-file-import" style="color: var(--color-text-secondary);"></i>
+                    <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Buffer Textual de Alimentação</h2>
+                </div>
+                
+                <div class="form-group mb-lg">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Classificação de Metadado (Título) <span style="color: var(--color-error);">*</span>
+                    </label>
+                    <input class="input" type="text" name="titulo" placeholder="Ex: Tabela de Preços e Prazos Q3" required style="font-size: 0.875rem; width: 100%;">
+                </div>
+                
+                <div class="form-group mb-lg">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Pilha de Dados RAW <span style="color: var(--color-error);">*</span>
+                    </label>
+                    <textarea class="textarea" name="texto" rows="12" placeholder="Despeje todos os dados brutos aqui. Suporta markdown, bullets, CSV colapsado." required style="font-size: 0.875rem; width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: monospace;"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-lg mb-lg">
+                    <div class="form-group mb-0">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Target Chunk Size (Chars)</label>
+                        <input class="input" type="number" name="chunk_size" value="{{ rag.chunk_size }}" min="100" max="5000" style="font-size: 0.875rem; width: 100%;">
+                        <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Força de ruptura.</div>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Overlap Margin (Chars)</label>
+                        <input class="input" type="number" name="chunk_overlap" value="{{ rag.chunk_overlap }}" min="0" max="1000" style="font-size: 0.875rem; width: 100%;">
                     </div>
                 </div>
-                <div>
-                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Total de Chunks</div>
-                    <div style="color: #6b7280;">{{ rag.total_chunks }}</div>
+                
+                <div class="flex items-center justify-end gap-md mt-lg" style="padding-top: var(--space-lg); border-top: 1px solid var(--color-border);">
+                    <button type="submit" class="button is-primary">
+                        Inserir Arquivo no Modelo Matrix
+                    </button>
                 </div>
-                <div>
-                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Configurações</div>
-                    <div style="color: #6b7280;">Chunk: {{ rag.chunk_size }}, Overlap: {{ rag.chunk_overlap }}, Top-K: {{ rag.top_k }}</div>
+            </form>
+            <!-- Upload de Arquivo via MarkItDown -->
+            <form id="arquivo-form" enctype="multipart/form-data" class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                
+                <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-file-upload" style="color: var(--color-text-secondary);"></i>
+                    <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Ingestão de Arquivo</h2>
+                    <span class="tag is-small" style="margin-left: auto; background: var(--color-primary-light); color: var(--color-primary); font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 4px;">MarkItDown</span>
                 </div>
-            </div>
+
+                <div class="box mb-lg" style="padding: var(--space-sm) var(--space-md); background: var(--color-bg-secondary); border: none; box-shadow: none;">
+                    <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin: 0; line-height: 1.5;">
+                        <i class="fas fa-info-circle" style="color: var(--color-info); margin-right: 4px;"></i>
+                        Suporta: <strong>PDF, DOCX, PPTX, XLSX, XLS, imagens (JPG/PNG), HTML, CSV, JSON, XML</strong> e outros. O conteúdo é extraído e transformado em texto antes da vetorização.
+                    </p>
+                </div>
+                
+                <div class="form-group mb-lg">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Classificação de Metadado (Título) <span style="color: var(--color-error);">*</span>
+                    </label>
+                    <input class="input" type="text" name="titulo" placeholder="Ex: Manual de Produto v2.1" required style="font-size: 0.875rem; width: 100%;">
+                </div>
+
+                <div class="form-group mb-lg">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Arquivo <span style="color: var(--color-error);">*</span>
+                    </label>
+                    <div id="drop-zone" style="border: 2px dashed var(--color-border); border-radius: var(--radius-md); padding: var(--space-xl); text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s;">
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: var(--color-text-muted); margin-bottom: var(--space-sm); display: block;"></i>
+                        <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin: 0;">Arraste um arquivo aqui ou <strong style="color: var(--color-primary); cursor: pointer;" onclick="document.getElementById('arquivo-input').click()">clique para selecionar</strong></p>
+                        <p id="arquivo-nome" style="font-size: 0.8125rem; color: var(--color-primary); margin-top: var(--space-xs); display: none; font-weight: 600;"></p>
+                    </div>
+                    <input id="arquivo-input" type="file" name="arquivo" accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.csv,.json,.xml,.html,.htm,.txt,.md,.jpg,.jpeg,.png" required style="display: none;">
+                </div>
+
+                <div class="grid grid-cols-2 gap-lg mb-lg">
+                    <div class="form-group mb-0">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Target Chunk Size (Chars)</label>
+                        <input class="input" type="number" name="chunk_size" value="{{ rag.chunk_size }}" min="100" max="5000" style="font-size: 0.875rem; width: 100%;">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Overlap Margin (Chars)</label>
+                        <input class="input" type="number" name="chunk_overlap" value="{{ rag.chunk_overlap }}" min="0" max="1000" style="font-size: 0.875rem; width: 100%;">
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-end gap-md mt-lg" style="padding-top: var(--space-lg); border-top: 1px solid var(--color-border);">
+                    <button type="submit" class="button is-primary">
+                        <i class="fas fa-cogs" style="margin-right: 6px;"></i> Processar e Vetorizar Arquivo
+                    </button>
+                </div>
+            </form>
+
         </div>
     </div>
 </div>
 
 <script>
+document.getElementById('arquivo-input').addEventListener('change', function() {
+    const nome = this.files[0]?.name;
+    const nomeEl = document.getElementById('arquivo-nome');
+    if (nome) {
+        nomeEl.textContent = '📎 ' + nome;
+        nomeEl.style.display = 'block';
+        document.getElementById('drop-zone').style.borderColor = 'var(--color-primary)';
+        document.getElementById('drop-zone').style.background = 'var(--color-primary-light, rgba(99,102,241,0.05))';
+    }
+});
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = 'var(--color-primary)'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = 'var(--color-border)'; });
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        const input = document.getElementById('arquivo-input');
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change'));
+    }
+});
+
+document.getElementById('arquivo-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i> Extraindo e Vetorizando...';
+    submitButton.disabled = true;
+
+    try {
+        const response = await fetch('/api/rags/{{ rag.id }}/adicionar-arquivo', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert('Arquivo processado. ' + result.chunks_criados + ' chunks indexados.');
+            window.location.reload();
+        } else {
+            alert('Erro: ' + (result.detail || 'Falha ao processar arquivo.'));
+        }
+    } catch (error) {
+        alert('Erro crítico: ' + error.message);
+    } finally {
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+    }
+});
+
 document.getElementById('texto-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -172,7 +248,7 @@ document.getElementById('texto-form').addEventListener('submit', async function(
     const originalText = submitButton.innerHTML;
     
     // Mostrar loading
-    submitButton.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Processando...</span>';
+    submitButton.innerHTML = '<span class="icon" style="margin-right: 6px;"><i class="fas fa-spinner fa-spin"></i></span> Transpilação Ativa...';
     submitButton.disabled = true;
     
     try {
@@ -184,19 +260,17 @@ document.getElementById('texto-form').addEventListener('submit', async function(
         const result = await response.json();
         
         if (response.ok) {
-            alert('Texto adicionado com sucesso!');
+            alert('Fragmentação validada. Nova camada vetorial indexada.');
             window.location.reload();
         } else {
-            alert('Erro: ' + (result.detail || 'Erro desconhecido'));
+            alert('Falha na Engine: ' + (result.detail || 'Erro desconhecido na conversão do Embedding.'));
         }
     } catch (error) {
-        alert('Erro: ' + error.message);
+        alert('Exception CRITICAL: ' + error.message);
     } finally {
-        // Restaurar botão
         submitButton.innerHTML = originalText;
         submitButton.disabled = false;
     }
 });
 </script>
-
 {% endblock %}

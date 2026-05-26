@@ -2,114 +2,129 @@
 
 {% block wizard_content %}
 <form method="POST" action="/ferramentas/wizard/step1">
-    <div class="box">
-        <h2 class="title is-4">
-            <i class="fas fa-info-circle"></i> Definição Básica
-        </h2>
-        <p class="subtitle is-6">Configure as informações fundamentais da ferramenta</p>
-
-        <div class="field">
-            <label class="label">Nome da Ferramenta *</label>
-            <div class="control has-icons-left">
-                <input class="input is-medium" type="text" name="nome" required
-                       value="{{ wizard_data.nome or '' }}"
-                       placeholder="Ex: buscar_cep, consultar_clima, gerar_qrcode"
-                       pattern="[a-z_]+"
-                       title="Apenas letras minúsculas e underscores">
-                <span class="icon is-small is-left">
-                    <i class="fas fa-tag"></i>
-                </span>
-            </div>
-            <p class="help">Use snake_case (ex: buscar_produto, enviar_email)</p>
-        </div>
-
-        <div class="field">
-            <label class="label">Descrição *</label>
-            <div class="control">
-                <textarea class="textarea" name="descricao" rows="3" required
-                          placeholder="Ex: Busca informações de endereço a partir de um CEP brasileiro">{{ wizard_data.descricao or '' }}</textarea>
-            </div>
-            <p class="help">Descreva o que a ferramenta faz de forma clara e objetiva</p>
-        </div>
-
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Tipo de Ferramenta *</label>
-                    <div class="control">
-                        <label class="radio">
-                            <input type="radio" name="tool_type" value="web" 
-                                   {% if not wizard_data.tool_type or wizard_data.tool_type == 'web' %}checked{% endif %}>
-                            <span class="icon"><i class="fas fa-globe"></i></span>
-                            <strong>Web</strong> - Requisição HTTP
-                        </label>
-                        <p class="help ml-5">Faz chamadas para APIs externas (GET, POST, etc)</p>
-                    </div>
-                    <div class="control mt-3">
-                        <label class="radio">
-                            <input type="radio" name="tool_type" value="code"
-                                   {% if wizard_data.tool_type == 'code' %}checked{% endif %}>
-                            <span class="icon"><i class="fas fa-code"></i></span>
-                            <strong>Code</strong> - Código Python
-                        </label>
-                        <p class="help ml-5">Executa código Python local</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="column">
-                <div class="field">
-                    <label class="label">Escopo *</label>
-                    <div class="control">
-                        <label class="radio">
-                            <input type="radio" name="tool_scope" value="principal"
-                                   {% if not wizard_data.tool_scope or wizard_data.tool_scope == 'principal' %}checked{% endif %}>
-                            <span class="icon"><i class="fas fa-star"></i></span>
-                            <strong>Principal</strong>
-                        </label>
-                        <p class="help ml-5">Visível para o LLM (pode ser chamada diretamente)</p>
-                    </div>
-                    <div class="control mt-3">
-                        <label class="radio">
-                            <input type="radio" name="tool_scope" value="auxiliar"
-                                   {% if wizard_data.tool_scope == 'auxiliar' %}checked{% endif %}>
-                            <span class="icon"><i class="fas fa-cog"></i></span>
-                            <strong>Auxiliar</strong>
-                        </label>
-                        <p class="help ml-5">Usada para pós-processamento (não aparece para LLM)</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="help-box">
-            <p class="has-text-weight-bold">
-                <span class="icon"><i class="fas fa-lightbulb"></i></span>
-                Dica:
-            </p>
-            <ul style="margin-left: 2rem;">
-                <li><strong>Web:</strong> Use para integrar com APIs externas (ViaCEP, OpenWeather, etc)</li>
-                <li><strong>Code:</strong> Use para lógica customizada, cálculos, validações</li>
-                <li><strong>Principal:</strong> LLM pode chamar quando necessário</li>
-                <li><strong>Auxiliar:</strong> Usada em encadeamento ou pós-processamento</li>
-            </ul>
+    <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <i class="fas fa-info-circle text-primary" style="font-size: 1.25rem;"></i>
+        <div>
+            <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin: 0;">Informações Básicas da Ferramenta</h2>
+            <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin: 2px 0 0 0;">Defina o nome e o que essa nova ferramenta vai fazer</p>
         </div>
     </div>
 
-    <!-- Botões -->
-    <div class="field is-grouped is-grouped-right">
-        <div class="control">
-            <a href="/ferramentas" class="button is-light is-medium">
-                <span class="icon"><i class="fas fa-times"></i></span>
-                <span>Cancelar</span>
-            </a>
+    <div class="grid grid-cols-2 gap-lg">
+        <!-- Coluna Esquerda: Meta Básica -->
+        <div class="flex flex-col gap-md">
+            
+            <div class="field">
+                <label class="label text-secondary" style="font-size: 0.75rem; text-transform: uppercase;">Nome da Ferramenta *</label>
+                <div class="control has-icons-left relative" style="display: flex; align-items: center;">
+                    <i class="fas fa-tag text-primary" style="position: absolute; left: 12px; z-index: 1;"></i>
+                    <input class="input is-medium pl-lg" type="text" name="nome" required
+                           value="{{ wizard_data.nome or '' }}"
+                           placeholder="Ex: consultar_cep"
+                           pattern="[a-z_]+"
+                           title="Apenas letras minúsculas e underscores"
+                           style="background: var(--color-surface); font-size: 0.875rem; border-color: var(--color-border); text-indent: 1.5rem;">
+                </div>
+                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">Use apenas letras minúsculas e (_) underline. Exemplo: <code>consultar_banco</code>.</p>
+            </div>
+
+            <div class="field mt-md">
+                <label class="label text-secondary" style="font-size: 0.75rem; text-transform: uppercase;">O que essa ferramenta faz? *</label>
+                <div class="control">
+                    <textarea class="textarea" name="descricao" rows="4" required
+                              placeholder="Ex: Serve para buscar o endereço completo digitando o CEP."
+                              style="background: var(--color-surface); border-color: var(--color-border); font-size: 0.875rem;">{{ wizard_data.descricao or '' }}</textarea>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">A Inteligência Artificial vai ler essa descrição para entender quando ela deve usar essa ferramenta.</p>
+            </div>
+
         </div>
-        <div class="control">
-            <button type="submit" class="button is-primary is-medium">
-                <span>Próximo</span>
-                <span class="icon"><i class="fas fa-arrow-right"></i></span>
-            </button>
+
+        <!-- Coluna Direita: Arquitetura da Tool -->
+        <div class="flex flex-col gap-md">
+            
+            <div class="box" style="padding: var(--space-md); border: 1px solid var(--color-border); box-shadow: none; background: var(--color-bg-secondary);">
+                <label class="label text-secondary mb-sm" style="font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--color-border); padding-bottom: 4px;">Tipo de Ferramenta *</label>
+                
+                <label class="radio flex items-start gap-sm mb-sm p-sm" style="background: var(--color-surface); border-radius: var(--radius-md); border: 1px solid {% if not wizard_data.tool_type or wizard_data.tool_type == 'web' %}#6366f1{% else %}transparent{% endif %}; transition: all 0.2s; cursor: pointer;">
+                    <input type="radio" name="tool_type" value="web" class="mt-xs" style="accent-color: #6366f1;"
+                           {% if not wizard_data.tool_type or wizard_data.tool_type == 'web' %}checked{% endif %}>
+                    <div>
+                        <div class="flex items-center gap-xs mb-xs">
+                            <i class="fas fa-globe text-primary"></i>
+                            <strong style="font-size: 0.875rem; color: var(--color-text-primary);">Web / API Externa</strong>
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.4;">Ideal para buscar dados na internet (API) usando requisições HTTP (URL).</p>
+                    </div>
+                </label>
+                
+                <label class="radio flex items-start gap-sm p-sm" style="background: var(--color-surface); border-radius: var(--radius-md); border: 1px solid {% if wizard_data.tool_type == 'code' %}#f59e0b{% else %}transparent{% endif %}; transition: all 0.2s; cursor: pointer;">
+                    <input type="radio" name="tool_type" value="code" class="mt-xs" style="accent-color: #f59e0b;"
+                           {% if wizard_data.tool_type == 'code' %}checked{% endif %}>
+                    <div>
+                        <div class="flex items-center gap-xs mb-xs">
+                            <i class="fas fa-terminal text-warning"></i>
+                            <strong style="font-size: 0.875rem; color: var(--color-text-primary);">Código Interno (Python)</strong>
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.4;">Ideal para cálculos, salvar em banco de dados interno ou rotinas customizadas.</p>
+                    </div>
+                </label>
+            </div>
+
+            <div class="box" style="padding: var(--space-md); border: 1px solid var(--color-border); box-shadow: none; background: var(--color-bg-secondary);">
+                <label class="label text-secondary mb-sm" style="font-size: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--color-border); padding-bottom: 4px;">Visibilidade *</label>
+                
+                <div class="flex gap-md">
+                    <label class="radio flex-1 flex flex-col items-center justify-center p-sm text-center" style="background: var(--color-surface); border-radius: var(--radius-md); border: 1px solid {% if not wizard_data.tool_scope or wizard_data.tool_scope == 'principal' %}#10b981{% else %}transparent{% endif %}; transition: all 0.2s; cursor: pointer;">
+                        <input type="radio" name="tool_scope" value="principal" style="accent-color: #10b981; margin-bottom: 8px;"
+                               {% if not wizard_data.tool_scope or wizard_data.tool_scope == 'principal' %}checked{% endif %}>
+                        <i class="fas fa-star text-success mb-xs"></i>
+                        <strong style="font-size: 0.8125rem; color: var(--color-text-primary);">Ferramenta Principal</strong>
+                        <p style="font-size: 0.65rem; color: var(--color-text-secondary); margin-top: 4px;">A Inteligência Artificial pode usar automaticamente.</p>
+                    </label>
+
+                    <label class="radio flex-1 flex flex-col items-center justify-center p-sm text-center" style="background: var(--color-surface); border-radius: var(--radius-md); border: 1px solid {% if wizard_data.tool_scope == 'auxiliar' %}#64748b{% else %}transparent{% endif %}; transition: all 0.2s; cursor: pointer;">
+                        <input type="radio" name="tool_scope" value="auxiliar" style="accent-color: #64748b; margin-bottom: 8px;"
+                               {% if wizard_data.tool_scope == 'auxiliar' %}checked{% endif %}>
+                        <i class="fas fa-link text-muted mb-xs"></i>
+                        <strong style="font-size: 0.8125rem; color: var(--color-text-primary);">Ferramenta Oculta</strong>
+                        <p style="font-size: 0.65rem; color: var(--color-text-secondary); margin-top: 4px;">Usada apenas como um passo de outra ferramenta.</p>
+                    </label>
+                </div>
+            </div>
+
         </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center justify-between" style="margin-top: var(--space-xl); padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+        <a href="/ferramentas" class="button is-outline text-muted">
+            <i class="fas fa-times" style="margin-right: 6px;"></i> Cancelar e Voltar
+        </a>
+        <button type="submit" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;">
+            Salvar e Avançar <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
+        </button>
     </div>
 </form>
+
+<script>
+// Logic to visually update selection boxes based on radio state
+document.querySelectorAll('input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const name = this.name;
+        document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+            const container = r.closest('label');
+            if (r.checked) {
+                let color = '#6366f1';
+                if (r.value === 'code') color = '#f59e0b';
+                if (r.value === 'principal') color = '#10b981';
+                if (r.value === 'auxiliar') color = '#64748b';
+                container.style.borderColor = color;
+            } else {
+                container.style.borderColor = 'transparent';
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

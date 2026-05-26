@@ -1,201 +1,190 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Criar Ferramenta - Step {{ step_atual }} de 7{% endblock %}
+{% block title %}Criar Abstração - Step {{ step_atual }} de 7{% endblock %}
 
 {% block extra_css %}
 <style>
     .wizard-progress {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 2rem;
+        margin-bottom: 3rem;
         padding: 0;
         list-style: none;
+        position: relative;
     }
     
     .wizard-progress li {
         flex: 1;
         text-align: center;
         position: relative;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
     
     .wizard-progress li::before {
         content: attr(data-step);
         display: block;
-        width: 44px;
-        height: 44px;
-        line-height: 44px;
-        margin: 0 auto 0.5rem;
-        background: #e5e7eb;
+        width: 36px;
+        height: 36px;
+        line-height: 36px;
+        margin: 0 auto 0.75rem;
+        background: var(--color-surface);
+        border: 2px solid var(--color-border);
         border-radius: 50%;
-        color: #9ca3af;
+        color: var(--color-text-secondary);
         font-weight: 700;
-        font-size: 1.125rem;
-        transition: all 0.3s;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        position: relative;
+        z-index: 2;
     }
     
     .wizard-progress li.completed::before {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        background: var(--color-success);
+        border-color: var(--color-success);
         color: white;
         content: "✓";
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 0 0 4px var(--color-success-light);
     }
     
     .wizard-progress li.active::before {
-        background: linear-gradient(135deg, #8b5cf6 0%, #C75B9B 100%);
+        background: var(--color-primary);
+        border-color: var(--color-primary);
         color: white;
-        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-        transform: scale(1.1);
+        transform: scale(1.15);
+        box-shadow: 0 0 0 4px var(--color-info-light);
+    }
+
+    .wizard-progress li.active {
+        color: var(--color-primary);
     }
     
-    .wizard-progress li::after {
+    /* Linha conectora */
+    .wizard-progress::before {
         content: "";
         position: absolute;
-        top: 20px;
-        left: 50%;
-        width: 100%;
+        top: 18px;
+        left: 5%;
+        right: 5%;
         height: 2px;
-        background: #dbdbdb;
-        z-index: -1;
+        background: var(--color-border);
+        z-index: 1;
     }
     
-    .wizard-progress li:last-child::after {
-        display: none;
-    }
-    
-    .wizard-progress li.completed::after {
-        background: #48c774;
-    }
-    
-    .code-editor {
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
+    .code-editor, .json-viewer, .curl-preview {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 0.8125rem;
         line-height: 1.5;
-        background: #f5f5f5;
-        border: 1px solid #dbdbdb;
-        border-radius: 4px;
+        background: #0d1117;
+        color: #c9d1d9;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
         padding: 1rem;
+        width: 100%;
     }
     
-    .json-viewer {
-        background: #282c34;
-        color: #abb2bf;
-        padding: 1rem;
-        border-radius: 4px;
-        overflow-x: auto;
-        font-family: 'Courier New', monospace;
-        font-size: 14px;
-    }
-    
-    .json-key { color: #e06c75; }
-    .json-string { color: #98c379; }
-    .json-number { color: #d19a66; }
-    .json-boolean { color: #56b6c2; }
-    
-    .curl-preview {
-        background: #1e1e1e;
-        color: #d4d4d4;
-        padding: 1rem;
-        border-radius: 4px;
-        font-family: 'Courier New', monospace;
-        font-size: 13px;
-        overflow-x: auto;
-    }
+    .json-key { color: #79c0ff; }
+    .json-string { color: #a5d6ff; }
+    .json-number { color: #79c0ff; }
+    .json-boolean { color: #ff7b72; }
     
     .param-item {
-        background: #f5f5f5;
+        background: var(--color-bg-secondary);
         padding: 1rem;
-        border-radius: 4px;
+        border-radius: var(--radius-md);
         margin-bottom: 1rem;
-        border-left: 4px solid #667eea;
+        border-left: 3px solid var(--color-primary);
     }
     
     .variable-item {
-        background: #fff5f5;
+        background: var(--color-bg-tertiary);
         padding: 1rem;
-        border-radius: 4px;
+        border-radius: var(--radius-md);
         margin-bottom: 1rem;
-        border-left: 4px solid #f14668;
+        border-left: 3px solid var(--color-error);
     }
     
     .help-box {
-        background: #f0f7ff;
-        border-left: 4px solid #3273dc;
+        background: var(--color-info-light);
+        border-left: 3px solid var(--color-info);
         padding: 1rem;
         margin: 1rem 0;
-        border-radius: 4px;
+        border-radius: var(--radius-md);
+        color: var(--color-text-primary);
+        font-size: 0.875rem;
     }
     
     .help-box .icon {
-        color: #3273dc;
+        color: var(--color-info);
+        margin-right: 8px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-        <div style="width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, #8b5cf6 0%, #C75B9B 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i class="fas fa-magic" style="color: white; font-size: 1.5rem;"></i>
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
-                Criar Nova Ferramenta
+<div class="container" style="max-width: 1000px;">
+    <!-- Page Header Menor e Contido -->
+    <div class="flex items-center justify-between mb-xl" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-magic text-primary mb-xs"></i> 
+                Wizard de Inicialização (Plugin)
             </h1>
-            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-                <strong style="color: #8b5cf6;">Step {{ step_atual }}</strong> de 7 - Wizard de criação guiado
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/ferramentas" style="color: var(--color-text-secondary); text-decoration: none;">Ferramentas Globais</a> / 
+                <span style="color: var(--color-text-primary);">Configuração Guiada (Step {{ step_atual }})</span>
             </p>
         </div>
+        
+        <a href="/ferramentas" class="button is-small is-outline">
+            <i class="fas fa-times" style="margin-right: 4px;"></i> Abandonar
+        </a>
     </div>
-</div>
+
+    <!-- Mensagens -->
+    {% if erro %}
+    <div class="alert alert-error mb-lg">
+        <i class="fas fa-exclamation-circle"></i> <strong>Erro:</strong> {{ erro }}
+    </div>
+    {% endif %}
+
+    {% if sucesso %}
+    <div class="alert alert-success mb-lg">
+        <i class="fas fa-check-circle"></i> {{ sucesso }}
+    </div>
+    {% endif %}
+
     <!-- Progress Bar -->
     <ul class="wizard-progress">
         <li data-step="1" class="{% if step_atual >= 1 %}{% if step_atual > 1 %}completed{% else %}active{% endif %}{% endif %}">
-            <span>Básico</span>
+            <span class="mt-xs inline-block" style="font-size: 0.65rem;">Ferramenta</span>
         </li>
         <li data-step="2" class="{% if step_atual >= 2 %}{% if step_atual > 2 %}completed{% else %}active{% endif %}{% endif %}">
-            <span>Parâmetros</span>
+            <span class="mt-xs inline-block" style="font-size: 0.65rem;">O que pede</span>
         </li>
         <li data-step="3" class="{% if step_atual >= 3 %}{% if step_atual > 3 %}completed{% else %}active{% endif %}{% endif %}">
-            <span>Configuração</span>
+            <span class="mt-xs inline-block" style="font-size: 0.65rem;">Lógica interna</span>
         </li>
         <li data-step="4" class="{% if step_atual >= 4 %}{% if step_atual > 4 %}completed{% else %}active{% endif %}{% endif %}">
-            <span>Testar</span>
+            <span class="mt-xs inline-block" style="font-size: 0.65rem;">Testar</span>
         </li>
         <li data-step="5" class="{% if step_atual >= 5 %}{% if step_atual > 5 %}completed{% else %}active{% endif %}{% endif %}">
-            <span>Mapeamento</span>
+            <span class="mt-xs inline-block" style="font-size: 0.65rem;">O que usar</span>
         </li>
         <li data-step="6" class="{% if step_atual >= 6 %}{% if step_atual > 6 %}completed{% else %}active{% endif %}{% endif %}">
-            <span>Destino</span>
+            <span class="mt-xs inline-block" style="font-size: 0.65rem;">Entrega</span>
         </li>
         <li data-step="7" class="{% if step_atual == 7 %}active{% endif %}">
-            <span>Variáveis</span>
+            <span class="mt-xs inline-block" style="font-size: 0.65rem;">Tudo Pronto</span>
         </li>
     </ul>
 
-<!-- Mensagens -->
-{% if erro %}
-<div style="background: #fee2e2; border: 2px solid #ef4444; border-radius: 12px; padding: 1.25rem; margin-bottom: 2rem;">
-    <p style="color: #991b1b; font-weight: 600;">
-        <i class="fas fa-exclamation-circle"></i> <strong>Erro:</strong> {{ erro }}
-    </p>
-</div>
-{% endif %}
-
-{% if sucesso %}
-<div style="background: #dcfce7; border: 2px solid #10b981; border-radius: 12px; padding: 1.25rem; margin-bottom: 2rem;">
-    <p style="color: #166534; font-weight: 600;">
-        <i class="fas fa-check-circle"></i> {{ sucesso }}
-    </p>
-</div>
-{% endif %}
-
     <!-- Conteúdo do Step -->
-    <div class="columns">
-        <div class="column is-10 is-offset-1">
-            {% block wizard_content %}{% endblock %}
-        </div>
+    <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); margin-bottom: var(--space-2xl);">
+        {% block wizard_content %}{% endblock %}
     </div>
 </div>
 {% endblock %}

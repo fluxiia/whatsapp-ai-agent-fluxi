@@ -1,173 +1,139 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+{% block title %}{{ titulo }} - Mission Control - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Header -->
-    <div class="level">
-        <div class="level-left">
-            <div class="level-item">
-                <h1 class="title is-3">
-                    <i class="fas fa-{% if acao == 'criar' %}plus{% else %}edit{% endif %}"></i>
-                    {{ titulo }}
-                </h1>
-            </div>
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-{% if acao == 'criar' %}plug{% else %}edit{% endif %} text-primary mb-xs" style="color: #6366f1;"></i> {{ titulo }}
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/provedores-llm" style="color: var(--color-text-secondary); text-decoration: none;">Provedores LLM</a> / 
+                <span style="color: var(--color-text-primary);">Configuração de Endpoint</span>
+            </p>
         </div>
-        <div class="level-right">
-            <div class="level-item">
-                <a href="/provedores-llm" class="button is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                    <span>Voltar</span>
-                </a>
-            </div>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/provedores-llm" class="button is-small is-outline">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Voltar para Inventário
+            </a>
         </div>
     </div>
 
-    <!-- Form -->
-    <div class="columns">
-        <div class="column is-two-thirds">
-            <div class="box">
-                <form method="POST" action="/provedores-llm/salvar">
-                    <input type="hidden" name="acao" value="{{ acao }}">
-                    {% if provedor %}
-                    <input type="hidden" name="provedor_id" value="{{ provedor.id }}">
-                    {% endif %}
-                    
-                    <div class="field">
-                        <label class="label">Nome do Provedor</label>
-                        <div class="control">
-                            <input class="input" type="text" name="nome" 
-                                   value="{% if provedor %}{{ provedor.nome }}{% endif %}" 
-                                   placeholder="Ex: LM Studio Local" required>
-                        </div>
-                    </div>
-
-
-                    <div class="field">
-                        <label class="label">URL Base</label>
-                        <div class="control">
-                            <input class="input" type="url" name="base_url" 
-                                   value="{% if provedor %}{{ provedor.base_url }}{% else %}http://localhost:8080{% endif %}" 
-                                   placeholder="http://localhost:8080" required>
-                        </div>
-                        <p class="help">
-                            URL base da API do provedor. Exemplos:
-                            <br>• LM Studio: http://localhost:1234
-                            <br>• llama.cpp: http://localhost:8080
-                            <br>• Ollama: http://localhost:11434
-                            <br>• OpenRouter: https://openrouter.ai/api/v1
-                            <br>• OpenAI: https://api.openai.com/v1
-                        </p>
-                    </div>
-
-
-                    <div class="field">
-                        <label class="label">API Key (Opcional)</label>
-                        <div class="control">
-                            <input class="input" type="text" name="api_key" 
-                                   value="{% if provedor %}{{ provedor.api_key or '' }}{% endif %}" 
-                                   placeholder="Chave da API se necessário">
-                        </div>
-                        <p class="help">
-                            Alguns provedores podem exigir uma chave de API. Deixe em branco se não necessário.
-                        </p>
-                    </div>
-
-                    <div class="field">
-                        <label class="label">Descrição</label>
-                        <div class="control">
-                            <textarea class="textarea" name="descricao" 
-                                      placeholder="Descrição opcional do provedor">{% if provedor %}{{ provedor.descricao or '' }}{% endif %}</textarea>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <div class="control">
-                            <label class="checkbox">
-                                <input type="checkbox" name="ativo" value="true" 
-                                       {% if not provedor or provedor.ativo %}checked{% endif %}>
-                                Provedor ativo
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="field is-grouped">
-                        <div class="control">
-                            <button type="submit" class="button is-primary">
-                                <span class="icon">
-                                    <i class="fas fa-save"></i>
-                                </span>
-                                <span>Salvar</span>
-                            </button>
-                        </div>
-                        <div class="control">
-                            <a href="/provedores-llm" class="button is-light">Cancelar</a>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
+    <!-- Layout Dividido 2/3 Formulário e 1/3 Ajuda -->
+    <div class="grid grid-cols-3 gap-lg">
         
-        <div class="column is-one-third">
-            <!-- Informações sobre provedores -->
-            <div class="box">
-                <h3 class="title is-5">
-                    <i class="fas fa-info-circle"></i>
-                    Provedores Suportados
-                </h3>
-                
-                <div class="content">
-                    <p class="is-size-7">
-                        O sistema suporta qualquer provedor com API OpenAI-compatível:
-                    </p>
-                    
-                    <ul class="is-size-7">
-                        <li><strong>LM Studio:</strong> http://localhost:1234</li>
-                        <li><strong>llama.cpp:</strong> http://localhost:8080</li>
-                        <li><strong>Ollama:</strong> http://localhost:11434</li>
-                        <li><strong>OpenRouter:</strong> https://openrouter.ai/api/v1</li>
-                        <li><strong>OpenAI:</strong> https://api.openai.com/v1</li>
-                        <li><strong>Mistral:</strong> https://api.mistral.ai/v1</li>
-                        <li><strong>Cohere:</strong> https://api.cohere.ai/v1</li>
-                    </ul>
-                    
-                    <p class="is-size-7 has-text-grey">
-                        <i class="fas fa-lightbulb"></i>
-                        O sistema detectará automaticamente os modelos disponíveis ao testar a conexão.
-                    </p>
+        <!-- Formulário (2/3) -->
+        <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+            <form method="POST" action="/provedores-llm/salvar" class="flex flex-col gap-lg">
+                <input type="hidden" name="acao" value="{{ acao }}">
+                {% if provedor %}
+                <input type="hidden" name="provedor_id" value="{{ provedor.id }}">
+                {% endif %}
+
+                <!-- Bloco de Autenticação -->
+                <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); border-left: 4px solid #6366f1;">
+                    <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <i class="fas fa-server" style="color: var(--color-text-secondary);"></i>
+                        <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Dados de Conexão M2M</h2>
+                    </div>
+
+                    <div class="form-group mb-md">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                            Identificação do Nó / Provedor <span style="color: var(--color-error);">*</span>
+                        </label>
+                        <input type="text" class="input" name="nome" required
+                               value="{% if provedor %}{{ provedor.nome }}{% endif %}" 
+                               placeholder="Ex: Local LM Studio (Qwen 2)" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group mb-md">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                            URL Base (Endpoint OpenAI-Compatible) <span style="color: var(--color-error);">*</span>
+                        </label>
+                        <input type="url" class="input" name="base_url" required
+                               value="{% if provedor %}{{ provedor.base_url }}{% else %}http://localhost:1234/v1{% endif %}" 
+                               placeholder="http://localhost:1234/v1" style="width: 100%; font-family: monospace;">
+                        <span class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px; display: block;">Deve apontar para a raiz da API que suporta as rotas `/models` e `/chat/completions`.</span>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                            API Key (Bearer Token)
+                        </label>
+                        <input type="text" class="input" name="api_key" 
+                               value="{% if provedor %}{{ provedor.api_key or '' }}{% endif %}" 
+                               placeholder="sk-..." style="width: 100%; font-family: monospace;" autocomplete="off">
+                        <span class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px; display: block;">Muitos provedores locais (LM Studio, Ollama) não requerem autenticação local. Para OpenRouter/OpenAI, preencha.</span>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Configurações padrão -->
-            <div class="box">
-                <h3 class="title is-5">
-                    <i class="fas fa-cog"></i>
-                    Configurações Padrão
-                </h3>
-                
-                <div class="content">
-                    <table class="table is-narrow">
-                        <tbody>
-                            <tr>
-                                <td><strong>LM Studio</strong></td>
-                                <td>http://localhost:1234</td>
-                            </tr>
-                            <tr>
-                                <td><strong>llama.cpp</strong></td>
-                                <td>http://localhost:8080</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Ollama</strong></td>
-                                <td>http://localhost:11434</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <!-- Configurações Adicionais -->
+                <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                    <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <i class="fas fa-bars" style="color: var(--color-text-secondary);"></i>
+                        <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Configurações e Logs</h2>
+                    </div>
+
+                    <div class="form-group mb-md">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                            Descrição / Notas Internas
+                        </label>
+                        <textarea class="textarea" name="descricao" rows="2" placeholder="Opcional. Ex: Servidor da GPU secundária...">{% if provedor %}{{ provedor.descricao or '' }}{% endif %}</textarea>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="toggle-row" style="display: flex; align-items: flex-start; gap: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); cursor: pointer;">
+                            <input type="checkbox" name="ativo" value="true" {% if not provedor or provedor.ativo %}checked{% endif %} style="margin-top: 4px; transform: scale(1.1);">
+                            <div class="flex flex-col">
+                                <span style="font-size: 0.9375rem; font-weight: 600; color: var(--color-text-primary);">Habilitar Instância na Rede</span>
+                                <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px;">
+                                    Permitir que este endpoint seja descoberto pelos agentes como uma opção de modelo para inferência.
+                                </span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
+
+                <div class="flex justify-end gap-md">
+                    <button type="submit" class="button is-primary" style="background: #6366f1; border: none;">
+                        <i class="fas fa-save" style="margin-right: 6px;"></i> Salvar Novo Endpoint Remoto
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar / Instruções (1/3) -->
+        <div class="flex flex-col gap-lg pl-lg" style="grid-column: span 1;">
+            <div class="box" style="padding: var(--space-lg); border: none; background: var(--color-bg-secondary);">
+                <div class="flex items-center gap-sm mb-md" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-info-circle text-info"></i>
+                    <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Manual de Operação</h2>
+                </div>
+                
+                <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: var(--space-md);">O sistema detecta automaticamente a lista de modelos se a API respeitar o formato `/v1/models` da OpenAI.</p>
+
+                <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-primary); text-transform: uppercase; margin-bottom: 8px;">Locais (Offline)</h3>
+                <ul style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.6; margin-bottom: var(--space-md); font-family: monospace;">
+                    <li><strong>LM Studio:</strong> http://localhost:1234/v1</li>
+                    <li><strong>llama.cpp:</strong> http://localhost:8080</li>
+                    <li><strong>Ollama:</strong> http://localhost:11434/v1</li>
+                </ul>
+
+                <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-primary); text-transform: uppercase; margin-bottom: 8px;">Nuvem / Corporativos</h3>
+                <ul style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.6; font-family: monospace;">
+                    <li><strong>OpenRouter:</strong> https://openrouter.ai/api/v1</li>
+                    <li><strong>OpenAI:</strong> https://api.openai.com/v1</li>
+                    <li><strong>Mistral:</strong> https://api.mistral.ai/v1</li>
+                    <li><strong>Cohere:</strong> https://api.cohere.ai/v1</li>
+                    <li><strong>Groq:</strong> https://api.groq.com/openai/v1</li>
+                </ul>
             </div>
         </div>
+
     </div>
 </div>
 {% endblock %}

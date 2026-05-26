@@ -16,11 +16,16 @@ class Mensagem(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     sessao_id = Column(Integer, ForeignKey("sessoes.id"), nullable=False, index=True)
-    
+    # Canal de origem ('whatsapp' | 'telegram'). Default 'whatsapp' p/ retrocompat.
+    plataforma = Column(String(20), nullable=False, default="whatsapp", index=True)
+
     # Identificação
     telefone_cliente = Column(String(20), nullable=False, index=True)
     nome_cliente = Column(String(100), nullable=True)
     mensagem_id_whatsapp = Column(String(100), nullable=True, index=True)
+    # Genéricos (espelham os campos legados durante a migração).
+    chat_id = Column(String(100), nullable=True, index=True)
+    mensagem_id_externo = Column(String(100), nullable=True, index=True)
     
     # Tipo e direção
     tipo = Column(String(20), nullable=False, default="texto")  # texto, imagem, documento, audio, video

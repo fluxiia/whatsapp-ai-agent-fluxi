@@ -1,6 +1,8 @@
 """
 Serviço do agente LLM com integração OpenRouter.
 """
+import asyncio
+import logging
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 import httpx
@@ -8,6 +10,9 @@ import json
 import base64
 import time
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
+from log.log_service import fluxi_log
 from config.config_service import ConfiguracaoService
 from agente.agente_model import Agente, agente_ferramenta
 from agente.agente_schema import AgenteCriar, AgenteAtualizar
@@ -164,28 +169,35 @@ class AgenteService:
         agente_data = AgenteCriar(
             sessao_id=sessao_id,
             codigo="01",
-            nome="Assistente Padrão",
-            descricao="Agente de atendimento geral",
+            nome="Fluxi",
+            descricao="Super assistente pessoal multidisciplinar",
             agente_papel=ConfiguracaoService.obter_valor(
-                db, "agente_papel_padrao", "assistente pessoal"
+                db, "agente_papel_padrao",
+                "Você é Fluxi, um assistente pessoal altamente capaz e inteligente. Você combina o conhecimento de um especialista multidisciplinar com a empatia de um consultor de confiança. Fala em português brasileiro de forma natural e clara, adaptando o tom ao perfil de quem conversa — simples quando necessário, técnico quando exigido."
             ),
             agente_objetivo=ConfiguracaoService.obter_valor(
-                db, "agente_objetivo_padrao", "ajudar o usuário com suas dúvidas e tarefas"
+                db, "agente_objetivo_padrao",
+                "Ser o assistente mais útil e completo do dia a dia. Resolver dúvidas, executar tarefas, pesquisar informações, criar conteúdo, analisar dados, calcular, planejar e apoiar decisões. O objetivo é economizar o tempo do usuário e entregar resultados de alta qualidade em cada interação."
             ),
             agente_politicas=ConfiguracaoService.obter_valor(
-                db, "agente_politicas_padrao", "ser educado, respeitoso e prestativo"
+                db, "agente_politicas_padrao",
+                "Use português brasileiro natural e fluido. Adapte o tom: descontraído com quem usa linguagem informal, preciso com quem demonstra expertise. Respostas objetivas e sem floreios. Use listas e negrito quando organizar o conteúdo melhorar a leitura. Nunca use linguagem excessivamente formal. Limite emojis a situações onde genuinamente ajudam a comunicação."
             ),
             agente_tarefa=ConfiguracaoService.obter_valor(
-                db, "agente_tarefa_padrao", "responder perguntas de forma clara e objetiva"
+                db, "agente_tarefa_padrao",
+                "1. Leia a mensagem e identifique o que o usuário realmente precisa (intenção + contexto). 2. Se a tarefa for clara, execute diretamente sem perguntas desnecessárias. 3. Se houver ambiguidade, faça UMA pergunta precisa antes de prosseguir. 4. Para tarefas complexas, organize a resposta em etapas ou listas. 5. Ao finalizar, verifique se o resultado atende ao pedido e ofereça um próximo passo relevante quando fizer sentido."
             ),
             agente_objetivo_explicito=ConfiguracaoService.obter_valor(
-                db, "agente_objetivo_explicito_padrao", "fornecer informações úteis e precisas"
+                db, "agente_objetivo_explicito_padrao",
+                "Entregar uma resposta completa, acionável e direta ao ponto. Se o pedido envolver criação de texto, código, análise ou cálculo, apresente o resultado pronto para uso. Se envolver decisão, apresente as opções com prós e contras claros."
             ),
             agente_publico=ConfiguracaoService.obter_valor(
-                db, "agente_publico_padrao", "usuários em geral"
+                db, "agente_publico_padrao",
+                "Profissionais e empreendedores brasileiros que buscam produtividade, clareza e execução rápida no dia a dia."
             ),
             agente_restricoes=ConfiguracaoService.obter_valor(
-                db, "agente_restricoes_padrao", "responder em português brasileiro, ser conciso"
+                db, "agente_restricoes_padrao",
+                "Nunca invente fatos, dados ou referências — se não souber, diga claramente e sugira onde encontrar. Não prometa coisas fora do seu controle. Não gere conteúdo ofensivo, discriminatório ou que viole privacidade. Se o pedido for ambíguo ou potencialmente prejudicial, peça esclarecimento antes de responder."
             ),
             ativo=True
         )
@@ -194,7 +206,7 @@ class AgenteService:
         
         # Associar ferramentas padrão (configurável)
         nomes_ferramentas_padrao = ConfiguracaoService.obter_valor(
-            db, "agente_ferramentas_padrao", ["obter_data_hora_atual", "calcular"]
+            db, "agente_ferramentas_padrao", ["obter_data_hora_atual", "calcular", "buscar_internet", "previsao_tempo", "cotacao_moeda", "buscar_cep", "buscar_wikipedia", "gerar_senha"]
         )
         ferramentas_padrao = db.query(Ferramenta).filter(
             Ferramenta.nome.in_(nomes_ferramentas_padrao)
@@ -207,7 +219,7 @@ class AgenteService:
         return agente
 
     @staticmethod
-    def construir_system_prompt(agente: Agente) -> str:
+    def construir_system_prompt(agente: Agente, skills: Optional[List] = None) -> str:
         """
         Constrói o system prompt baseado na configuração do agente.
         Segue o padrão definido em agente.md
@@ -221,8 +233,8 @@ Se existir uma ferramenta adequada, USE-A OBRIGATORIAMENTE antes de responder.
 Não tente responder com conhecimento próprio se houver uma tool que pode buscar dados reais.
 Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
 """
-        
-        return (
+
+        prompt = (
             f"Você é: {agente.agente_papel}.\n"
             f"Objetivo: {agente.agente_objetivo}.\n"
             f"Políticas: {agente.agente_politicas}.\n"
@@ -233,16 +245,176 @@ Priorize SEMPRE o uso de tools para garantir respostas precisas e atualizadas.
             f"{instrucao_tools}"
         )
 
+        if skills:
+            prompt += "\n\n" + AgenteService._construir_secao_skills(skills)
+
+        return prompt
+
     @staticmethod
-    def _prompt_aio_sandbox() -> str:
-        """Prompt suplementar injetado quando o AIO Sandbox está ativo."""
+    def _construir_secao_skills(skills: List) -> str:
+        """Constrói a seção de skills para o system prompt (só metadados — progressive disclosure)."""
+        familias: Dict[str, List] = {}
+        for skill in skills:
+            familia = skill.nome.split("-")[0] if "-" in skill.nome else skill.nome
+            familias.setdefault(familia, []).append(skill)
+
+        linhas = [
+            "═══════════════════════════════════════",
+            "SKILLS DISPONÍVEIS",
+            "═══════════════════════════════════════",
+            "Você possui skills especializadas. Para acessar as instruções completas",
+            "de uma skill, use a ferramenta `invocar_skill` com o nome exato.",
+            "",
+            "Skills disponíveis:"
+        ]
+
+        for familia, membros in familias.items():
+            pai = next((m for m in membros if m.nome == familia), membros[0])
+            if len(membros) == 1 and membros[0].nome == familia:
+                linhas.append(f"  {pai.icone or '🔧'} [{pai.nome}] — {pai.descricao}")
+            else:
+                linhas.append(f"  {pai.icone or '🔧'} [{familia}] — {pai.descricao} (possui sub-skills)")
+                for sub in membros:
+                    if sub.nome != familia:
+                        linhas.append(f"      └─ [{sub.nome}] — {sub.descricao}")
+
+        linhas += [
+            "",
+            "REGRA: Quando o usuário solicitar algo que se encaixa em uma skill,",
+            "invoque-a ANTES de responder para receber as instruções completas.",
+            "Use `invocar_skill` com o nome exato (ex: skill_nome: \"vendas-abertura\").",
+            "═══════════════════════════════════════"
+        ]
+        return "\n".join(linhas)
+
+    @staticmethod
+    def _definir_tool_invocar_skill() -> Dict[str, Any]:
+        """Retorna a definição OpenAI da meta-tool invocar_skill."""
+        return {
+            "type": "function",
+            "function": {
+                "name": "invocar_skill",
+                "description": (
+                    "Acessa as instruções completas de uma skill disponível para este agente. "
+                    "Use quando precisar seguir um fluxo específico ou especialização definida numa skill. "
+                    "Depois de receber as instruções, SIGA-AS à risca."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "skill_nome": {
+                            "type": "string",
+                            "description": "Nome exato da skill a invocar (conforme listado no system prompt)"
+                        },
+                        "argumentos": {
+                            "type": "object",
+                            "description": "Parâmetros opcionais aceitos pela skill",
+                            "additionalProperties": True
+                        }
+                    },
+                    "required": ["skill_nome"]
+                }
+            }
+        }
+
+    @staticmethod
+    async def _executar_invocar_skill(
+        db: Session,
+        agente: Agente,
+        args: Dict[str, Any],
+        tools: list,
+        messages: list
+    ) -> Dict[str, Any]:
+        """Executa a tool invocar_skill: busca skill, roda script, injeta ferramentas extras."""
+        from skill.skill_service import SkillService
+        from ferramenta.ferramenta_service import FerramentaService
+
+        skill_nome = args.get("skill_nome", "").strip()
+        argumentos = args.get("argumentos") or {}
+
+        skill = SkillService.obter_por_nome(db, skill_nome)
+        if not skill or not skill.ativa:
+            return {
+                "resultado": {"erro": f"Skill '{skill_nome}' não encontrada ou inativa"},
+                "output": "llm"
+            }
+
+        skills_agente = SkillService.listar_skills_agente(db, agente.id)
+        nomes_permitidos = {s.nome for s in skills_agente}
+        if skill_nome not in nomes_permitidos:
+            return {
+                "resultado": {"erro": f"Skill '{skill_nome}' não está associada a este agente"},
+                "output": "llm"
+            }
+
+        dados_script = SkillService.executar_script(skill, argumentos)
+
+        ferramentas_extras = SkillService.obter_ferramentas_extras_da_skill(db, skill)
+        nomes_tools_atuais = {
+            t["function"]["name"] for t in (tools or []) if t.get("function")
+        }
+        for ferramenta_extra in ferramentas_extras:
+            if ferramenta_extra.nome not in nomes_tools_atuais:
+                tool_openai = FerramentaService.converter_para_openai_format(ferramenta_extra)
+                if tool_openai:
+                    tools.append(tool_openai)
+                    logger.debug("[SKILL] Ferramenta extra '%s' injetada para skill '%s'",
+                                 ferramenta_extra.nome, skill_nome)
+
+        instrucao = skill.instrucao_completa
+        if dados_script:
+            for chave, valor in dados_script.items():
+                instrucao = instrucao.replace(f"{{{chave}}}", str(valor))
+
+        retorno: Dict[str, Any] = {
+            "skill": skill_nome,
+            "instrucao": instrucao,
+            "versao": skill.versao,
+        }
+        if dados_script:
+            retorno["dados_contexto"] = dados_script
+
+        return {
+            "resultado": retorno,
+            "output": "llm",
+            "post_instruction": (
+                f"IMPORTANTE: Você invocou a skill '{skill_nome}'. "
+                f"Siga rigorosamente as instruções acima. "
+                f"Não desvie do fluxo definido pela skill."
+            )
+        }
+
+    @staticmethod
+    def _trim_messages_sandbox(messages: List[Dict], keep_recent: int = 2, max_old_chars: int = 350) -> List[Dict]:
+        """
+        Antes de cada chamada ao LLM no modo sandbox, trunca resultados antigos de tools
+        para evitar estouro de contexto com modelos locais.
+        Mantém as `keep_recent` tool-results mais recentes completas;
+        as anteriores são reduzidas a `max_old_chars` chars.
+        """
+        tool_indices = [i for i, m in enumerate(messages) if m.get("role") == "tool"]
+        to_truncate = set(tool_indices[:-keep_recent]) if len(tool_indices) > keep_recent else set()
+        if not to_truncate:
+            return messages
+        result = []
+        for i, m in enumerate(messages):
+            if i in to_truncate:
+                content = m.get("content", "")
+                if len(content) > max_old_chars:
+                    m = {**m, "content": content[:max_old_chars] + "...[resumido]"}
+            result.append(m)
+        return result
+
+    @staticmethod
+    def _prompt_sandbox() -> str:
+        """Prompt suplementar injetado quando o Sandbox Interno está ativo."""
         return """
 
 ═══════════════════════════════════════════════════
-🚀 MODO AGENTE AUTÔNOMO — AIO SANDBOX ATIVO
+🚀 MODO AGENTE AUTÔNOMO — SANDBOX INTERNO ATIVO
 ═══════════════════════════════════════════════════
 
-Você agora é um AGENTE SUPER AUTÔNOMO com poderes expandidos. O AIO Sandbox está conectado e pronto para uso. Isso significa que você tem acesso a um ambiente completo e isolado para executar ações reais no mundo digital.
+Você agora é um AGENTE SUPER AUTÔNOMO com poderes expandidos. O Sandbox Interno está ativo e pronto para uso. Isso significa que você tem acesso a um ambiente completo e isolado para executar ações reais no mundo digital.
 
 ── SUAS NOVAS CAPACIDADES ──────────────────────
 
@@ -281,16 +453,36 @@ Você agora é um AGENTE SUPER AUTÔNOMO com poderes expandidos. O AIO Sandbox e
 
 • RESILIÊNCIA A ERROS E TIMEOUTS: Se uma ferramenta falhar ou der timeout, NÃO desista. Tente:
   1. Dividir a tarefa em partes menores (ex: em vez de um script longo, execute em etapas)
-  2. Se o browser demorar, tente usar curl/wget via shell como alternativa
-  3. Se um comando der timeout, tente uma versão mais simples ou direta
-  4. Use shell para operações rápidas e browser apenas quando necessário
-  5. Informar o usuário apenas se TODAS as alternativas falharem, explicando o que tentou
+  2. Se um comando der timeout, tente uma versão mais simples ou direta
+  3. Informar o usuário apenas se TODAS as alternativas falharem, explicando o que tentou
 
 • OTIMIZAÇÃO DE PERFORMANCE: Prefira abordagens rápidas:
-  - Use curl/wget via shell em vez de browser para buscar dados de APIs e sites simples
   - Divida scripts Python longos em execuções menores
-  - Para pesquisas, prefira shell com curl a navegar com browser (é mais rápido)
-  - Use browser apenas para sites que exigem interação (login, JS dinâmico, screenshots)
+  - Use o browser para navegação, pesquisas e interação com sites
+
+• CAPTCHA / VERIFICAÇÃO HUMANA — FLUXO OBRIGATÓRIO:
+  Quando sandbox_browser_navigate retornar captcha_detected=true, OU ao detectar qualquer bloqueio:
+  1. Use sandbox_browser_detect_captcha para confirmar o tipo
+  2. Informe o usuário: "Encontrei um CAPTCHA. Por favor abra: [vnc_url] no seu browser, resolva o CAPTCHA e me avise quando terminar."
+  3. Use sandbox_browser_wait_user com seconds=60 para aguardar
+  4. Após o wait, continue normalmente (navegue, extraia conteúdo, etc.)
+  IMPORTANTE: O VNC mostra o Chrome em tempo real — o usuário resolve o CAPTCHA visualmente e você continua.
+
+• NAVEGAÇÃO NO BROWSER — FLUXO CORRETO:
+  NUNCA use sandbox_browser_get_html para ler páginas (HTML cru = centenas de tokens inúteis).
+  Use sempre este fluxo:
+  1. sandbox_browser_navigate → abre a página
+  2. sandbox_browser_get_page_state → lê conteúdo limpo + elementos [N] numerados
+  3. sandbox_browser_click_index(N) → clica em elemento pela posição (sem precisar de CSS selector)
+  4. sandbox_browser_fill → preenche inputs com texto
+  Exemplo de busca no Google:
+    navigate("https://google.com") →
+    get_page_state() → encontra [0]<searchbox> Pesquisa →
+    fill(text="consulta", selector="input[name=q]") →
+    click_index(1) → clica no botão Pesquisar →
+    get_page_state() → lê resultados
+  Para artigos/conteúdo: use sandbox_browser_get_markdown (usa Readability.js).
+  Para screenshots: use enviar_screenshot_whatsapp.
 
 • ENCADEAMENTO DE FERRAMENTAS: Combine múltiplas ferramentas para resolver tarefas complexas. Exemplos:
   - Pesquisar na web → Processar dados com Python → Salvar resultado em arquivo
@@ -310,7 +502,7 @@ Você agora é um AGENTE SUPER AUTÔNOMO com poderes expandidos. O AIO Sandbox e
 "Instale e configure X" → Use pip/shell para instalar, configure, teste e confirme
 
 ═══════════════════════════════════════════════════
-LEMBRE-SE: Você é um agente AUTÔNOMO e CAPAZ. Use seus poderes com confiança e responsabilidade. O sandbox é seu ambiente seguro — explore sem medo.
+LEMBRE-SE: Você é um agente AUTÔNOMO e CAPAZ. Use seus poderes com confiança e responsabilidade. O Sandbox Interno é seu ambiente seguro — explore sem medo.
 ═══════════════════════════════════════════════════
 
 ── ENVIO DE ARQUIVOS VIA WHATSAPP ──────────────
@@ -379,14 +571,12 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
         telefone_cliente: str,
         agente_id: int,
         args: Dict[str, Any],
-        jid_destino=None
+        jid_destino=None,
     ) -> Dict[str, Any]:
         """
-        Baixa um arquivo do AIO Sandbox via SDK e envia ao usuário via WhatsApp.
-        Usa file.download_file do SDK (direto, sem base64 via shell).
+        Baixa um arquivo do sandbox interno e envia ao usuário via WhatsApp.
         """
         import os
-        from sandbox_mcp.sandbox_service import SandboxService
         
         file_path = args.get("file_path", "")
         filename = args.get("filename") or os.path.basename(file_path)
@@ -400,20 +590,19 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
             }
         
         try:
-            print(f"📎 [SANDBOX-SDK] Baixando arquivo: {file_path}")
-            
-            # Baixar arquivo diretamente via SDK
-            file_bytes = await SandboxService.baixar_arquivo(agente_id, file_path)
-            
+            from internal_sandbox.internal_service import InternalService
+            logger.debug("[SANDBOX] Baixando arquivo: %s", file_path)
+            file_bytes = await InternalService.baixar_arquivo(agente_id, file_path)
+
             if not file_bytes:
                 return {
                     "resultado": {"erro": f"Arquivo não encontrado ou erro ao baixar: {file_path}"},
                     "output": "llm",
                     "enviado_usuario": False
                 }
-            
+
             file_size_kb = len(file_bytes) / 1024
-            print(f"📎 [SANDBOX-SDK] Arquivo baixado: {filename} ({file_size_kb:.1f} KB)")
+            logger.debug("[SANDBOX] Arquivo baixado: %s (%.1f KB)", filename, file_size_kb)
             
             # Passo 4: Determinar tipo de mídia pela extensão
             ext = os.path.splitext(filename)[1].lower()
@@ -470,21 +659,18 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
             else:
                 from neonize.utils import build_jid
                 jid = build_jid(telefone_cliente)
-            
+                logger.warning("[SANDBOX] JID fallback usado (build_jid sem server) para telefone %s — pode falhar com LID", telefone_cliente)
+
             if ext in IMAGE_EXTS:
-                print(f"🖼️  [SANDBOX] Enviando como imagem...")
                 cliente.send_image(jid, file_bytes, caption=caption)
                 tipo_envio = "imagem"
             elif ext in AUDIO_EXTS:
-                print(f"🎵 [SANDBOX] Enviando como áudio...")
                 cliente.send_audio(jid, file_bytes, ptt=False)
                 tipo_envio = "áudio"
             elif ext in VIDEO_EXTS:
-                print(f"🎬 [SANDBOX] Enviando como vídeo...")
                 cliente.send_video(jid, file_bytes, caption=caption)
                 tipo_envio = "vídeo"
             else:
-                print(f"📄 [SANDBOX] Enviando como documento...")
                 cliente.send_document(
                     jid,
                     file_bytes,
@@ -493,9 +679,8 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                     mimetype=mime_type
                 )
                 tipo_envio = "documento"
-            
-            print(f"✅ [SANDBOX] Arquivo enviado com sucesso: {filename} ({tipo_envio})")
-            
+
+            logger.info("[SANDBOX] Arquivo '%s' enviado como %s (%.1f KB)", filename, tipo_envio, file_size_kb)
             return {
                 "resultado": {
                     "sucesso": True,
@@ -506,11 +691,9 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                 "output": "llm",
                 "enviado_usuario": True
             }
-            
+
         except Exception as e:
-            print(f"❌ [SANDBOX] Erro ao enviar arquivo: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("[SANDBOX] Erro ao enviar arquivo: %s", e)
             return {
                 "resultado": {"erro": f"Erro ao enviar arquivo: {str(e)}"},
                 "output": "llm",
@@ -539,16 +722,16 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
             if not image_b64:
                 return resultado_completo
             
-            print(f"🔍 [SDK→WA] Imagem detectada: {len(image_b64)} chars base64")
+            logger.debug("[SDK->WA] Imagem detectada: %d chars base64", len(image_b64))
             img_bytes = base64.b64decode(image_b64)
             mime = resultado.get("mime_type", "image/png")
             size_kb = len(img_bytes) / 1024
-            
+
             from sessao.sessao_service import gerenciador_sessoes
-            
+
             cliente = gerenciador_sessoes.obter_cliente(sessao_id)
             if not cliente:
-                print(f"❌ [SDK→WA] Cliente WhatsApp não encontrado para sessão {sessao_id}")
+                logger.warning("[SDK->WA] Cliente WhatsApp não encontrado para sessão %s", sessao_id)
                 resultado_completo = dict(resultado_completo)
                 resultado_completo["resultado"] = {
                     "type": "image",
@@ -556,19 +739,17 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                     "size_kb": round(size_kb, 1)
                 }
                 return resultado_completo
-            
-            # Usar JID resolvido se disponível (suporta formato LID)
+
             if jid_destino is not None:
                 jid = jid_destino
             else:
                 from neonize.utils import build_jid
                 jid = build_jid(telefone_cliente)
-            
-            print(f"🖼️  [SDK→WA] Enviando imagem {size_kb:.0f}KB ({mime}) para {jid}...")
+                logger.warning("[SDK->WA] JID fallback usado (build_jid sem server) para telefone %s", telefone_cliente)
+
             cliente.send_image(jid, img_bytes, caption="")
-            print(f"✅ [SDK→WA] Imagem enviada com sucesso ({size_kb:.0f} KB)")
-            
-            # Substituir base64 por resumo leve para o LLM
+            logger.info("[SDK->WA] Imagem enviada com sucesso (%.0f KB, %s)", size_kb, mime)
+
             resultado_completo = dict(resultado_completo)
             resultado_completo["resultado"] = {
                 "type": "image",
@@ -577,11 +758,9 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
             }
             resultado_completo["enviado_usuario"] = True
             return resultado_completo
-        
+
         except Exception as e:
-            print(f"❌ [SDK→WA] Erro na interceptação de imagem: {type(e).__name__}: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("[SDK->WA] Erro na interceptação de imagem: %s: %s", type(e).__name__, e)
             return resultado_completo
 
     @staticmethod
@@ -590,25 +769,23 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
         telefone_cliente: str,
         agente_id: int,
         args: Dict[str, Any],
-        jid_destino=None
+        jid_destino=None,
     ) -> Dict[str, Any]:
         """
-        Tira um screenshot do sandbox e envia diretamente ao usuário via WhatsApp.
+        Tira um screenshot do sandbox interno e envia ao usuário via WhatsApp.
         Tool virtual: enviar_screenshot_whatsapp.
         """
-        from sandbox_mcp.sandbox_service import SandboxService
-        
         tipo = args.get("tipo", "pagina")
         full_page = args.get("full_page", False)
         caption = args.get("caption", "")
         
         try:
-            print(f"📸 [SANDBOX-SDK] Tirando screenshot tipo='{tipo}', full_page={full_page}")
-            
+            from internal_sandbox.internal_service import InternalService
+            logger.debug("[SANDBOX] Tirando screenshot tipo='%s', full_page=%s", tipo, full_page)
             if tipo == "tela":
-                img_bytes = await SandboxService.tirar_screenshot(agente_id)
+                img_bytes = await InternalService.tirar_screenshot(agente_id)
             else:
-                img_bytes = await SandboxService.tirar_screenshot_pagina(agente_id, full_page=full_page)
+                img_bytes = await InternalService.tirar_screenshot_pagina(agente_id, full_page=full_page)
             
             if not img_bytes:
                 return {
@@ -618,8 +795,8 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                 }
             
             size_kb = len(img_bytes) / 1024
-            print(f"📸 [SANDBOX-SDK] Screenshot capturado: {size_kb:.1f} KB")
-            
+            logger.debug("[SANDBOX] Screenshot capturado: %.1f KB", size_kb)
+
             from sessao.sessao_service import gerenciador_sessoes
             cliente = gerenciador_sessoes.obter_cliente(sessao_id)
             if not cliente:
@@ -628,16 +805,17 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                     "output": "llm",
                     "enviado_usuario": False
                 }
-            
+
             if jid_destino is not None:
                 jid = jid_destino
             else:
                 from neonize.utils import build_jid
                 jid = build_jid(telefone_cliente)
-            
+                logger.warning("[SANDBOX] JID fallback usado (build_jid sem server) para screenshot, telefone %s", telefone_cliente)
+
             cliente.send_image(jid, img_bytes, caption=caption)
-            print(f"✅ [SANDBOX-SDK] Screenshot enviado via WhatsApp ({size_kb:.1f} KB)")
-            
+            logger.info("[SANDBOX] Screenshot enviado via WhatsApp (%.1f KB)", size_kb)
+
             return {
                 "resultado": {
                     "sucesso": True,
@@ -648,9 +826,7 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                 "enviado_usuario": True
             }
         except Exception as e:
-            print(f"❌ [SANDBOX-SDK] Erro ao enviar screenshot: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("[SANDBOX] Erro ao enviar screenshot: %s", e)
             return {
                 "resultado": {"erro": f"Erro ao enviar screenshot: {str(e)}"},
                 "output": "llm",
@@ -751,7 +927,7 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
         
         # Obter modelo (do agente, ou padrão)
         modelo = agente.modelo_llm or ConfiguracaoService.obter_valor(
-            db, "openrouter_modelo_padrao", "google/gemini-2.0-flash-001"
+            db, "openrouter_modelo_padrao", "google/gemini-3.1-flash-lite-preview"
         )
         
         # Obter parâmetros (do agente, ou padrão)
@@ -771,8 +947,12 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
             db, "openrouter_presence_penalty", "0.0"
         ))
         
-        # Construir system prompt
-        system_prompt = AgenteService.construir_system_prompt(agente)
+        # Buscar skills ativas do agente
+        from skill.skill_service import SkillService
+        skills_agente = SkillService.listar_skills_agente(db, agente.id)
+
+        # Construir system prompt (com skills se houver)
+        system_prompt = AgenteService.construir_system_prompt(agente, skills=skills_agente if skills_agente else None)
         
         # Construir histórico
         historico = AgenteService.construir_historico_mensagens(
@@ -820,7 +1000,7 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
         
         # Buscar ferramentas ativas do agente
         ferramentas_disponiveis = AgenteService.listar_ferramentas(db, agente.id)
-        
+
         # Preparar tools no formato OpenAI
         tools = None
         if ferramentas_disponiveis:
@@ -839,7 +1019,6 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
             if not mcp_client.conectado:
                 continue
             
-            # Ignorar preset aio-sandbox (agora controlado pelo toggle sandbox_ativo)
             if mcp_client.preset_key == "aio-sandbox":
                 continue
             
@@ -851,23 +1030,13 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                 tool_openai = MCPService.converter_mcp_tool_para_openai(mcp_client, mcp_tool)
                 tools.append(tool_openai)
         
-        # Injetar tools do AIO Sandbox via SDK direto (controlado pelo toggle)
-        if agente.sandbox_ativo:
-            from sandbox_mcp.sandbox_service import SandboxService
-            from sandbox_mcp.sandbox_tools import obter_sandbox_tools
-            
-            # Conectar SDK se ainda não conectado
-            if not SandboxService.obter_cliente(agente.id):
-                sdk_url = agente.sandbox_url or ConfiguracaoService.obter_valor(
-                    db, "sandbox_sdk_url", "http://fluxi-sandbox:8080"
-                )
-                SandboxService.conectar(agente.id, sdk_url)
-            
-            # Injetar prompt + tools do sandbox
-            system_prompt += AgenteService._prompt_aio_sandbox()
+        # Injetar tool invocar_skill se o agente tiver skills
+        if skills_agente:
             if tools is None:
                 tools = []
-            tools.extend(obter_sandbox_tools())
+            tools.append(AgenteService._definir_tool_invocar_skill())
+
+        # Injetar tools do Sandbox Interno removido - agora é responsabilidade exclusiva do Coding Agent
 
         # Adicionar ferramenta de busca RAG se o agente tiver treinamento vinculado
         if agente.rag_id:
@@ -898,39 +1067,69 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                 }
             })
         
+        # Sincronizar messages[0] com o system_prompt final (sandbox + skills)
+        messages[0]["content"] = system_prompt
+
         # Variáveis de controle
         tokens_input_total = 0
         tokens_output_total = 0
         ferramentas_usadas = []
         texto_resposta_final = ""
-        if agente.sandbox_ativo:
-            max_iteracoes = ConfiguracaoService.obter_valor(db, "agente_max_iteracoes_sandbox", 25)
+        if agente.internal_sandbox_ativo:
+            max_iteracoes = int(ConfiguracaoService.obter_valor(db, "agente_max_iteracoes_sandbox", 25))
         else:
-            max_iteracoes = ConfiguracaoService.obter_valor(db, "agente_max_iteracoes_loop", 10)
+            max_iteracoes = int(ConfiguracaoService.obter_valor(db, "agente_max_iteracoes_loop", 10))
         iteracao = 0
-        
+        # Controle de loop: rastreia chamadas consecutivas à mesma ferramenta
+        _ultimas_tools: list = []
+        _MAX_REPETICOES_TOOL = 3
+
         # Loop principal de processamento
+        fluxi_log.info("agente", "loop", "Iniciando processamento", extra={
+            "agente_id": agente.id,
+            "modelo": modelo,
+            "max_iteracoes": max_iteracoes,
+            "sandbox": agente.internal_sandbox_ativo,
+            "n_tools": len(tools) if tools else 0,
+        }, session_id=sessao.id if sessao else None)
         try:
             while iteracao < max_iteracoes:
                 iteracao += 1
-                print(f"🔄 [AGENTE] Iteração {iteracao}/{max_iteracoes}")
-                
-                # Usar o novo sistema de integração LLM
-                print(f"📡 [AGENTE] Chamando LLM com {len(messages)} mensagens...")
-                resultado = await LLMIntegrationService.processar_mensagem_com_llm(
-                    db=db,
-                    messages=messages,
-                    modelo=modelo,
-                    agente_id=agente.id,
-                    temperatura=temperatura,
-                    max_tokens=max_tokens,
-                    top_p=top_p,
-                    frequency_penalty=frequency_penalty,
-                    presence_penalty=presence_penalty,
-                    tools=tools,
-                    stream=False
-                )
-                print(resultado)
+                fluxi_log.debug("agente", "loop", f"Iteracao {iteracao}/{max_iteracoes}", extra={
+                    "agente_id": agente.id,
+                    "iteracao": iteracao,
+                    "max_iteracoes": max_iteracoes,
+                }, session_id=sessao.id if sessao else None)
+
+                messages_llm = AgenteService._trim_messages_sandbox(messages) if agente.internal_sandbox_ativo else messages
+                # Timeout por iteração: 120s normais, 300s em sandbox (execuções longas)
+                _llm_timeout = 300.0 if agente.internal_sandbox_ativo else 120.0
+                try:
+                    resultado = await asyncio.wait_for(
+                        LLMIntegrationService.processar_mensagem_com_llm(
+                            db=db,
+                            messages=messages_llm,
+                            modelo=modelo,
+                            agente_id=agente.id,
+                            temperatura=temperatura,
+                            max_tokens=max_tokens,
+                            top_p=top_p,
+                            frequency_penalty=frequency_penalty,
+                            presence_penalty=presence_penalty,
+                            tools=tools,
+                            stream=False
+                        ),
+                        timeout=_llm_timeout,
+                    )
+                except asyncio.TimeoutError:
+                    fluxi_log.error("agente", "loop", f"Timeout LLM {_llm_timeout:.0f}s na iteracao {iteracao}", extra={
+                        "agente_id": agente.id, "modelo": modelo, "iteracao": iteracao,
+                        "timeout_s": _llm_timeout,
+                    }, session_id=sessao.id if sessao else None)
+                    raise ValueError(
+                        f"Timeout de {_llm_timeout:.0f}s atingido aguardando resposta do LLM "
+                        f"(iteração {iteracao}/{max_iteracoes}). Modelo: {modelo}"
+                    )
                 # Extrair dados da resposta
                 message_response = {
                     "role": "assistant",
@@ -949,50 +1148,105 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                 
                 # Verificar finish_reason
                 finish_reason = resultado.get("finish_reason", "stop")
-                print(f"✅ [AGENTE] LLM respondeu. finish_reason={finish_reason}")
-                
+                fluxi_log.info("agente", "loop", "Resposta LLM recebida", extra={
+                    "agente_id": agente.id,
+                    "iteracao": iteracao,
+                    "finish_reason": finish_reason,
+                    "tokens_in": resultado.get("tokens_input", 0),
+                    "tokens_out": resultado.get("tokens_output", 0),
+                    "modelo": modelo,
+                }, session_id=sessao.id if sessao else None)
+
                 # Verificar se há tool calls
                 tool_calls = message_response.get("tool_calls")
-               
-                if tool_calls and finish_reason == "tool_calls":
-                    print(f"🔧 [AGENTE] LLM chamou {len(tool_calls)} tool(s)")
-                    # Processar todas as ferramentas em paralelo
+
+                # Processa tool_calls se presentes — independente do finish_reason,
+                # pois diferentes LLMs retornam "stop", "tool_calls", "tool_use" ou None
+                if tool_calls:
+                    # Detectar loop: mesma(s) ferramenta(s) chamadas repetidamente
+                    tool_names_agora = sorted(
+                        tc.get("function", {}).get("name", "") for tc in tool_calls
+                    )
+                    _ultimas_tools.append(tool_names_agora)
+                    if len(_ultimas_tools) > _MAX_REPETICOES_TOOL:
+                        _ultimas_tools.pop(0)
+                    if (
+                        len(_ultimas_tools) == _MAX_REPETICOES_TOOL
+                        and all(t == _ultimas_tools[0] for t in _ultimas_tools)
+                    ):
+                        logger.warning(
+                            "[AGENTE %s] Loop de ferramentas detectado (%d repetições de %s). Interrompendo.",
+                            agente.id, _MAX_REPETICOES_TOOL, tool_names_agora
+                        )
+                        fluxi_log.warning("agente", "loop", f"Loop de ferramentas detectado: {tool_names_agora}", extra={
+                            "agente_id": agente.id, "repeticoes": _MAX_REPETICOES_TOOL,
+                            "tools": tool_names_agora,
+                        }, session_id=sessao.id if sessao else None)
+                        texto_resposta_final = (
+                            "Não foi possível concluir a operação: a ferramenta entrou em loop. "
+                            "Por favor, reformule sua solicitação."
+                        )
+                        break
+
+                    fluxi_log.info("agente", "ferramenta", f"LLM chamou {len(tool_calls)} ferramenta(s): {tool_names_agora}", extra={
+                        "agente_id": agente.id, "iteracao": iteracao,
+                        "tools": tool_names_agora, "n_tools": len(tool_calls),
+                    }, session_id=sessao.id if sessao else None)
                     for tool_call in tool_calls:
                         function_name = tool_call.get("function", {}).get("name")
                         function_args = tool_call.get("function", {}).get("arguments")
                         args_dict = json.loads(function_args) if isinstance(function_args, str) else function_args
                         
-                        # Detectar se é ferramenta do Sandbox SDK (prefixo sandbox_)
-                        if function_name.startswith("sandbox_") and agente.sandbox_ativo:
+                        _tool_inicio = time.time()
+                        # Detectar se é ferramenta do Sandbox Interno (prefixo sandbox_)
+                        if function_name.startswith("sandbox_") and agente.internal_sandbox_ativo:
                             try:
-                                from sandbox_mcp.sandbox_service import SandboxService
-                                print(f"🚀 [AGENTE] Executando tool Sandbox SDK: {function_name}")
-                                resultado_completo = await SandboxService.executar_tool(
+                                from internal_sandbox.internal_service import InternalService
+                                fluxi_log.info("agente", "ferramenta", f"Executando sandbox tool: {function_name}", extra={
+                                    "agente_id": agente.id, "tool": function_name, "tipo": "sandbox",
+                                }, session_id=sessao.id if sessao else None)
+                                resultado_completo = await InternalService.executar_tool(
                                     db, agente.id, function_name, args_dict
                                 )
-                                print(f"✅ [AGENTE] Tool Sandbox SDK executada: {resultado_completo.get('tempo_ms', 0)}ms")
+                                _tool_ms = int((time.time() - _tool_inicio) * 1000)
+                                fluxi_log.info("agente", "ferramenta", f"Sandbox tool concluida: {function_name} ({_tool_ms}ms)", extra={
+                                    "agente_id": agente.id, "tool": function_name, "tipo": "sandbox", "tempo_ms": _tool_ms,
+                                }, session_id=sessao.id if sessao else None)
                             except Exception as e:
-                                print(f"❌ [AGENTE] Erro ao executar tool Sandbox SDK: {str(e)}")
+                                logger.exception("[AGENTE %s] Erro ao executar tool Sandbox Interno %s: %s", agente.id, function_name, e)
+                                fluxi_log.error("agente", "ferramenta", f"Erro sandbox tool {function_name}: {e}", extra={
+                                    "agente_id": agente.id, "tool": function_name, "tipo": "sandbox",
+                                    "erro": str(e), "tempo_ms": int((time.time() - _tool_inicio) * 1000),
+                                }, exc_info=True, session_id=sessao.id if sessao else None)
                                 resultado_completo = {
-                                    "resultado": {"erro": f"Erro ao executar tool Sandbox: {str(e)}"},
+                                    "resultado": {"erro": f"Erro ao executar tool Sandbox Interno: {str(e)}"},
                                     "output": "llm",
                                     "enviado_usuario": False
                                 }
-                        
+
                         # Detectar se é ferramenta MCP (prefixo mcp_) — presets não-sandbox
                         elif function_name.startswith("mcp_"):
                             try:
                                 parts = function_name.split("_", 2)
                                 mcp_client_id = int(parts[1])
                                 original_tool_name = parts[2]
-                                
-                                print(f"🌐 [AGENTE] Executando tool MCP: {original_tool_name} (client {mcp_client_id})")
+                                fluxi_log.info("agente", "ferramenta", f"Executando MCP tool: {original_tool_name}", extra={
+                                    "agente_id": agente.id, "tool": original_tool_name,
+                                    "mcp_client_id": mcp_client_id, "tipo": "mcp",
+                                }, session_id=sessao.id if sessao else None)
                                 resultado_completo = await MCPService.executar_tool_mcp(
                                     db, mcp_client_id, original_tool_name, args_dict
                                 )
-                                print(f"✅ [AGENTE] Tool MCP executada com sucesso: {resultado_completo.get('tempo_ms', 0)}ms")
+                                _tool_ms = int((time.time() - _tool_inicio) * 1000)
+                                fluxi_log.info("agente", "ferramenta", f"MCP tool concluida: {original_tool_name} ({_tool_ms}ms)", extra={
+                                    "agente_id": agente.id, "tool": original_tool_name, "tipo": "mcp", "tempo_ms": _tool_ms,
+                                }, session_id=sessao.id if sessao else None)
                             except Exception as e:
-                                print(f"❌ [AGENTE] Erro ao executar tool MCP: {str(e)}")
+                                logger.exception("[AGENTE %s] Erro ao executar tool MCP %s: %s", agente.id, function_name, e)
+                                fluxi_log.error("agente", "ferramenta", f"Erro MCP tool {function_name}: {e}", extra={
+                                    "agente_id": agente.id, "tool": function_name, "tipo": "mcp",
+                                    "erro": str(e), "tempo_ms": int((time.time() - _tool_inicio) * 1000),
+                                }, exc_info=True, session_id=sessao.id if sessao else None)
                                 resultado_completo = {
                                     "resultado": {"erro": f"Erro ao executar tool MCP: {str(e)}"},
                                     "output": "llm",
@@ -1004,6 +1258,10 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                             # Executar busca no RAG
                             from rag.rag_service import RAGService
                             from rag.rag_metrica_service import RAGMetricaService
+                            fluxi_log.info("agente", "ferramenta", "Executando busca RAG", extra={
+                                "agente_id": agente.id, "rag_id": agente.rag_id, "tipo": "rag",
+                                "query": args_dict.get("query", "")[:100],
+                            }, session_id=sessao.id if sessao else None)
                             try:
                                 query = args_dict.get("query", "")
                                 num_resultados_padrao = ConfiguracaoService.obter_valor(db, "agente_rag_resultados_padrao", 3)
@@ -1038,7 +1296,7 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                                 for r in resultados_busca:
                                     contextos.append({
                                         "conteudo": r.get("context", ""),
-                                        "fonte": r.get("metadata", {}).get("source", ""),
+                                        "fonte": r.get("metadata", {}).get("titulo", ""),
                                     })
                                 
                                 resultado_completo = {
@@ -1051,43 +1309,75 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                                     "output": "llm"
                                 }
                             except Exception as e:
+                                fluxi_log.error("agente", "ferramenta", f"Erro busca RAG: {e}", extra={
+                                    "agente_id": agente.id, "rag_id": agente.rag_id, "tipo": "rag",
+                                    "erro": str(e),
+                                }, exc_info=True, session_id=sessao.id if sessao else None)
                                 resultado_completo = {
                                     "resultado": {"erro": f"Erro ao buscar: {str(e)}"},
                                     "output": "llm"
                                 }
+                        # Executar skill invocada pelo LLM
+                        elif function_name == "invocar_skill":
+                            fluxi_log.info("agente", "ferramenta", f"Executando skill: {args_dict.get('skill_name', '?')}", extra={
+                                "agente_id": agente.id, "tipo": "skill",
+                                "skill_name": args_dict.get("skill_name"),
+                            }, session_id=sessao.id if sessao else None)
+                            try:
+                                resultado_completo = await AgenteService._executar_invocar_skill(
+                                    db=db,
+                                    agente=agente,
+                                    args=args_dict,
+                                    tools=tools,
+                                    messages=messages
+                                )
+                            except Exception as e:
+                                logger.exception("[AGENTE %s] Erro ao executar invocar_skill: %s", agente.id, e)
+                                fluxi_log.error("agente", "ferramenta", f"Erro skill: {e}", extra={
+                                    "agente_id": agente.id, "tipo": "skill", "erro": str(e),
+                                }, exc_info=True, session_id=sessao.id if sessao else None)
+                                resultado_completo = {
+                                    "resultado": {"erro": f"Erro ao invocar skill: {str(e)}"},
+                                    "output": "llm"
+                                }
+
                         # Enviar arquivo do sandbox para o usuário via WhatsApp
-                        elif function_name == "enviar_arquivo_whatsapp" and agente.sandbox_ativo:
+                        elif function_name == "enviar_arquivo_whatsapp" and agente.internal_sandbox_ativo:
                             resultado_completo = await AgenteService._enviar_arquivo_sandbox(
                                 db=db,
                                 sessao_id=sessao.id,
                                 telefone_cliente=mensagem.telefone_cliente,
                                 agente_id=agente.id,
                                 args=args_dict,
-                                jid_destino=jid_destino
+                                jid_destino=jid_destino,
                             )
                         
                         # Enviar screenshot do sandbox via WhatsApp
-                        elif function_name == "enviar_screenshot_whatsapp" and agente.sandbox_ativo:
+                        elif function_name == "enviar_screenshot_whatsapp" and agente.internal_sandbox_ativo:
                             resultado_completo = await AgenteService._enviar_screenshot_sandbox(
                                 sessao_id=sessao.id,
                                 telefone_cliente=mensagem.telefone_cliente,
                                 agente_id=agente.id,
                                 args=args_dict,
-                                jid_destino=jid_destino
+                                jid_destino=jid_destino,
                             )
                         
                         else:
                             # Executar ferramenta normal do banco
+                            fluxi_log.info("agente", "ferramenta", f"Executando ferramenta: {function_name}", extra={
+                                "agente_id": agente.id, "tool": function_name, "tipo": "regular",
+                            }, session_id=sessao.id if sessao else None)
                             resultado_completo = await FerramentaService.executar_ferramenta(
                                 db,
                                 function_name,
                                 args_dict,
                                 sessao_id=sessao.id,
-                                telefone_cliente=mensagem.telefone_cliente
+                                telefone_cliente=mensagem.telefone_cliente,
+                                jid_destino=jid_destino,
                             )
                         
-                        # Interceptar imagens em resultados sandbox SDK e enviar direto ao WhatsApp
-                        if agente.sandbox_ativo and function_name.startswith("sandbox_"):
+                        # Interceptar imagens em resultados do sandbox interno
+                        if agente.internal_sandbox_ativo and function_name.startswith("sandbox_"):
                             resultado_completo = await AgenteService._extrair_e_enviar_imagens_sandbox(
                                 resultado_completo, sessao.id, mensagem.telefone_cliente,
                                 jid_destino=jid_destino
@@ -1117,13 +1407,12 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                         
                         # Adicionar resultado ao histórico apenas se output inclui LLM
                         if output_type in ["llm", "both"]:
-                            print(f"📤 [AGENTE] Conteúdo enviado ao LLM (primeiros 500 chars): {conteudo_tool[:500]}")
+                            logger.debug("[AGENTE %s] Resultado da tool adicionado ao histórico (output=%s, %d chars)", agente.id, output_type, len(conteudo_tool))
                             messages.append({
                                 "role": "tool",
                                 "tool_call_id": tool_call.get("id"),
                                 "content": conteudo_tool
                             })
-                            print(f"📝 [AGENTE] Resultado da tool adicionado ao histórico (output={output_type})")
                         else:
                             # Se output é apenas USER, informar ao LLM que foi enviado
                             messages.append({
@@ -1134,21 +1423,38 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                                     "mensagem": "Resultado enviado diretamente ao usuário via WhatsApp"
                                 }, ensure_ascii=False)
                             })
-                            print(f"📝 [AGENTE] Resultado enviado ao usuário (output={output_type})")
-                    
+                            logger.debug("[AGENTE %s] Resultado da tool enviado ao usuário (output=%s)", agente.id, output_type)
+
                     # Continuar o loop para processar os resultados das ferramentas
-                    print(f"🔁 [AGENTE] Todas as {len(tool_calls)} tool(s) processadas. Voltando ao LLM...")
+                    logger.debug("[AGENTE %s] %d tool(s) processadas. Continuando loop.", agente.id, len(tool_calls))
                     continue
                 else:
-                    # Não há tool calls - resposta final (texto)
-                    texto_resposta_final = message_response.get("content", "")
-                    print(f"✅ [AGENTE] Resposta final recebida: {len(texto_resposta_final)} caracteres")
+                    # Sem tool_calls — resposta final em texto
+                    texto_resposta_final = message_response.get("content", "") or ""
+                    # Detectar falha: LLM retornou vazio E finish_reason não é de stop normal
+                    _finish_ok = {"stop", "length", "end_turn", "max_tokens", "tool_calls", "tool_use"}
+                    if not texto_resposta_final and finish_reason not in _finish_ok:
+                        fluxi_log.error("agente", "loop", f"Resposta vazia do LLM (finish_reason={finish_reason})", extra={
+                            "agente_id": agente.id, "finish_reason": finish_reason, "iteracao": iteracao,
+                        }, session_id=sessao.id if sessao else None)
+                        raise ValueError(
+                            f"LLM retornou resposta vazia (finish_reason={finish_reason!r}). "
+                            "Provável estouro de contexto ou timeout do modelo local."
+                        )
+                    fluxi_log.info("agente", "loop", f"Resposta final recebida ({len(texto_resposta_final)} chars)", extra={
+                        "agente_id": agente.id, "iteracao": iteracao, "chars": len(texto_resposta_final),
+                    }, session_id=sessao.id if sessao else None)
                     break
-            
+
             # Calcular tempo total
             tempo_ms = int((time.time() - inicio) * 1000)
-            
-            print(f"🎯 [AGENTE] Processamento concluído em {tempo_ms}ms")
+            logger.info("[AGENTE %s] Processamento concluído em %dms (%d iterações)", agente.id, tempo_ms, iteracao)
+            fluxi_log.info("agente", "loop", f"Processamento concluido em {tempo_ms}ms", extra={
+                "agente_id": agente.id, "iteracoes": iteracao,
+                "tokens_in_total": tokens_input_total, "tokens_out_total": tokens_output_total,
+                "n_ferramentas": len(ferramentas_usadas), "tempo_ms": tempo_ms,
+                "modelo": modelo,
+            }, session_id=sessao.id if sessao else None)
             return {
                 "texto": texto_resposta_final,
                 "tokens_input": tokens_input_total,
@@ -1157,12 +1463,17 @@ enviar_screenshot_whatsapp quando quiser controlar o envio com legenda personali
                 "modelo": modelo,
                 "ferramentas": ferramentas_usadas if ferramentas_usadas else None
             }
-                
+
         except httpx.TimeoutException:
-            print(f"❌ [AGENTE] Timeout ao conectar com OpenRouter")
+            logger.error("[AGENTE %s] Timeout ao conectar com OpenRouter", agente.id)
+            fluxi_log.error("agente", "loop", "Timeout HTTP ao conectar com provider", extra={
+                "agente_id": agente.id, "modelo": modelo, "iteracao": iteracao,
+            }, session_id=sessao.id if sessao else None)
             raise ValueError("Timeout ao conectar com OpenRouter")
         except Exception as e:
-            print(f"❌ [AGENTE] Exceção capturada: {type(e).__name__}: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("[AGENTE %s] Exceção no loop: %s: %s", agente.id, type(e).__name__, e)
+            fluxi_log.error("agente", "loop", f"Excecao no loop: {type(e).__name__}: {e}", extra={
+                "agente_id": agente.id, "modelo": modelo, "iteracao": iteracao,
+                "erro_tipo": type(e).__name__, "erro": str(e),
+            }, exc_info=True, session_id=sessao.id if sessao else None)
             raise ValueError(f"Erro ao processar com LLM: {str(e)}")

@@ -1,0 +1,171 @@
+{% extends "base_modern.html" %}
+
+{% block title %}Agendamentos - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-clock text-primary mb-xs"></i> Agendamentos
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <span style="color: var(--color-text-secondary);">Tarefas que o sistema executa em horários definidos (lembretes, heartbeat, callbacks)</span>
+            </p>
+        </div>
+        <div class="flex items-center gap-sm">
+            <a href="/agendamentos/novo" class="button is-small is-primary">
+                <i class="fas fa-plus" style="margin-right: 4px;"></i> Novo agendamento
+            </a>
+        </div>
+    </div>
+
+    {% if request.query_params.get('sucesso') %}
+    <div style="background: var(--color-success); color: white; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
+        ✅ {{ request.query_params.get('sucesso') }}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-3">
+        <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+            {% if tarefas %}
+            <div class="card" style="border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden;">
+                <div class="card-header flex items-center justify-between" style="padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+                    <h2 style="font-size: 1rem; font-weight: 600;">
+                        <i class="fas fa-list" style="margin-right: 6px; color: var(--color-text-secondary);"></i> {{ tarefas|length }} tarefa(s)
+                    </h2>
+                </div>
+                <div style="padding: 0; overflow-x: auto;">
+                    <table class="table" style="font-size: 0.875rem; width: 100%; text-align: left; border-collapse: collapse;">
+                        <thead style="background: var(--color-bg-secondary);">
+                            <tr>
+                                <th style="padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border);">Título / Ação</th>
+                                <th style="padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border);">Quando</th>
+                                <th style="padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border);">Destinatário</th>
+                                <th style="padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border);">Status</th>
+                                <th class="text-right" style="padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border); text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in tarefas %}
+                            <tr style="border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                                    <div class="flex items-center gap-xs mb-xs">
+                                        <span style="font-weight: 600; color: var(--color-text-primary);">{{ t.titulo }}</span>
+                                    </div>
+                                    <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.4; max-width: 340px;">
+                                        <span style="background: var(--color-bg-secondary); padding: 1px 6px; border-radius: var(--radius-sm); font-family: monospace;">{{ t.acao.value }}</span>
+                                        · {{ t.tipo.value }}
+                                    </p>
+                                </td>
+                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                    <code style="font-size: 0.75rem;">{{ t.quando }}</code>
+                                    {% if t.proxima_execucao %}
+                                    <p style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 2px;">
+                                        próx.: {{ t.proxima_execucao.strftime("%d/%m %H:%M") }}
+                                    </p>
+                                    {% endif %}
+                                    <p style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 2px;">
+                                        execuções: {{ t.total_execucoes }}{% if t.max_execucoes %} / {{ t.max_execucoes }}{% endif %}
+                                    </p>
+                                </td>
+                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                    {% if t.telefone_destino %}
+                                    <code style="font-size: 0.75rem;">{{ t.telefone_destino }}</code>
+                                    {% else %}
+                                    <span style="color: var(--color-text-muted); font-size: 0.75rem;">—</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                    {% if t.status.value == 'pendente' %}
+                                    <span style="font-size: 0.75rem; background: var(--color-info); color: white; padding: 3px 8px; border-radius: var(--radius-sm); font-weight: 600;">Pendente</span>
+                                    {% elif t.status.value == 'executando' %}
+                                    <span style="font-size: 0.75rem; background: var(--color-warning); color: white; padding: 3px 8px; border-radius: var(--radius-sm); font-weight: 600;">Executando</span>
+                                    {% elif t.status.value == 'concluida' %}
+                                    <span style="font-size: 0.75rem; background: var(--color-success); color: white; padding: 3px 8px; border-radius: var(--radius-sm); font-weight: 600;">Concluída</span>
+                                    {% elif t.status.value == 'falhou' %}
+                                    <span style="font-size: 0.75rem; background: var(--color-danger); color: white; padding: 3px 8px; border-radius: var(--radius-sm); font-weight: 600;">Falhou</span>
+                                    {% else %}
+                                    <span style="font-size: 0.75rem; background: var(--color-text-muted); color: white; padding: 3px 8px; border-radius: var(--radius-sm);">{{ t.status.value }}</span>
+                                    {% endif %}
+                                    {% if t.erro %}
+                                    <p style="font-size: 0.7rem; color: var(--color-danger); margin-top: 4px; max-width: 200px;">{{ t.erro[:120] }}</p>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: var(--space-md) var(--space-lg); text-align: right; white-space: nowrap;">
+                                    {% if t.status.value in ('pendente', 'falhou') %}
+                                    <form method="POST" action="/agendamentos/{{ t.id }}/disparar" style="display:inline;">
+                                        <button type="submit" class="button is-small is-primary is-outline" style="margin-right: 4px;" title="Executa agora, ignorando o horário">Disparar</button>
+                                    </form>
+                                    {% endif %}
+                                    {% if t.status.value == 'pendente' %}
+                                    <form method="POST" action="/agendamentos/{{ t.id }}/cancelar" style="display:inline;">
+                                        <button type="submit" class="button is-small is-outline" style="margin-right: 4px;" onclick="return confirm('Cancelar esta tarefa?')">Cancelar</button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="POST" action="/agendamentos/{{ t.id }}/deletar" style="display:inline;">
+                                        <button type="submit" class="button is-small is-outline" onclick="return confirm('Remover permanentemente?')">Excluir</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="box" style="text-align: center; padding: var(--space-xl); border: 2px dashed var(--color-border); background: var(--color-surface); border-radius: var(--radius-lg);">
+                <p style="font-size: 2rem; margin-bottom: var(--space-sm);">⏰</p>
+                <p style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Nenhuma tarefa agendada</p>
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: var(--space-md);">
+                    O próprio agente pode criar agendamentos via ferramenta <code>fluxi_agendamento</code>,
+                    ou você pode criar via API <code>POST /api/agendamentos/</code>.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="flex flex-col gap-md" style="padding-left: var(--space-lg);">
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Como funciona</h3>
+                <p style="font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.5;">
+                    O scheduler (APScheduler) roda no mesmo processo do FastAPI e dispara tarefas no horário definido.
+                    Tarefas pendentes são <strong>repopuladas no startup</strong> a partir do banco — sobrevivem a reinícios.
+                </p>
+            </div>
+
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Tipos de ação</h3>
+                <ul style="font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.6; padding-left: 18px;">
+                    <li><strong>enviar_mensagem</strong>: texto direto para o telefone</li>
+                    <li><strong>rodar_ferramenta</strong>: executa ferramenta cadastrada</li>
+                    <li><strong>callback_agente</strong>: re-injeta prompt no agente como se fosse do usuário</li>
+                </ul>
+            </div>
+
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Resumo</h3>
+                <div class="flex flex-col gap-xs">
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Total:</span>
+                        <span style="font-weight: 600;">{{ tarefas|length }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Pendentes:</span>
+                        <span style="font-weight: 600; color: var(--color-info);">{{ tarefas|selectattr('status.value', 'equalto', 'pendente')|list|length }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Concluídas:</span>
+                        <span style="font-weight: 600; color: var(--color-success);">{{ tarefas|selectattr('status.value', 'equalto', 'concluida')|list|length }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Falhas:</span>
+                        <span style="font-weight: 600; color: var(--color-danger);">{{ tarefas|selectattr('status.value', 'equalto', 'falhou')|list|length }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

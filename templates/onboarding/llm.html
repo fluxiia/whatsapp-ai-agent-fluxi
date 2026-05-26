@@ -1,0 +1,187 @@
+{% extends "onboarding/base.html" %}
+
+{% block ob_content %}
+<div class="ob-card">
+    <h2>1. Configure o cerebro do agente</h2>
+    <p class="ob-card-lead">
+        O cerebro e o LLM que vai gerar as respostas. Detectamos automaticamente
+        se voce tem <strong>LM Studio</strong> ou <strong>Ollama</strong> rodando localmente.
+        Se preferir cloud, configure uma chave do <strong>OpenRouter</strong>.
+    </p>
+
+    <div id="ob-llm-loading" class="ob-alert ob-alert-info">
+        <i class="fas fa-circle-notch fa-spin"></i>
+        <div>Procurando provedores locais...</div>
+    </div>
+
+    <div id="ob-llm-detect-empty" class="ob-alert ob-alert-info" style="display:none;">
+        <i class="fas fa-info-circle"></i>
+        <div>Nenhum provedor local detectado. Voce pode configurar manualmente abaixo.</div>
+    </div>
+
+    <div id="ob-llm-options" class="ob-options cols-2" style="display:none;"></div>
+
+    <!-- Form de configuracao manual -->
+    <form method="post" action="/onboarding/llm/salvar" id="ob-llm-form" style="margin-top: var(--space-xl);">
+        <div class="ob-field">
+            <label>Nome do provedor</label>
+            <input class="ob-input" type="text" name="nome" id="f_nome" value="{{ form_nome or 'LM Studio Local' }}" required>
+        </div>
+
+        <div class="ob-field">
+            <label>URL base da API</label>
+            <input class="ob-input ob-input-mono" type="text" name="base_url" id="f_base_url"
+                   value="{{ form_base_url or 'http://localhost:1234/v1' }}" required>
+            <div class="hint">
+                Ex.: <code>http://localhost:1234/v1</code> (LM Studio),
+                <code>http://localhost:11434/v1</code> (Ollama),
+                <code>https://openrouter.ai/api/v1</code> (OpenRouter).
+            </div>
+        </div>
+
+        <div class="ob-field">
+            <label>Chave da API <span style="color:var(--color-text-muted);font-weight:400;">(opcional para local)</span></label>
+            <input class="ob-input ob-input-mono" type="password" name="api_key" id="f_api_key"
+                   value="{{ form_api_key or '' }}" placeholder="sk-or-v1-...">
+            <div class="hint">OpenRouter exige chave. LM Studio e Ollama nao precisam.</div>
+        </div>
+
+        <div style="display:flex;gap:var(--space-sm);align-items:center;margin-bottom:var(--space-md);">
+            <button type="button" id="btn-testar" class="ob-btn ob-btn-secondary">
+                <i class="fas fa-plug"></i> Testar conexao
+            </button>
+            <span id="ob-llm-test-status"></span>
+        </div>
+
+        <div class="ob-actions">
+            <div class="ob-actions-left">
+                <a href="/onboarding/" class="ob-btn ob-btn-ghost">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+            <div class="ob-actions-right">
+                <button type="submit" class="ob-btn ob-btn-primary" id="btn-continuar">
+                    Salvar e continuar <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block ob_scripts %}
+<script>
+(function () {
+    const loadingEl = document.getElementById('ob-llm-loading');
+    const emptyEl = document.getElementById('ob-llm-detect-empty');
+    const optsEl = document.getElementById('ob-llm-options');
+    const fNome = document.getElementById('f_nome');
+    const fUrl = document.getElementById('f_base_url');
+    const fKey = document.getElementById('f_api_key');
+    const btnTest = document.getElementById('btn-testar');
+    const testStatus = document.getElementById('ob-llm-test-status');
+
+    function preencher(nome, url, key) {
+        fNome.value = nome;
+        fUrl.value = url;
+        if (key !== undefined && key !== null) fKey.value = key;
+        // scroll suave ate o form
+        document.getElementById('ob-llm-form').scrollIntoView({behavior:'smooth', block:'start'});
+        // marcar selecionado
+        document.querySelectorAll('.ob-option').forEach(o => o.classList.remove('selected'));
+    }
+
+    function montarOpcao(p) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'ob-option';
+        card.innerHTML = `
+            <div style="display:flex;align-items:center;gap:0.7rem;">
+                <div class="ob-option-icon"><i class="fas ${p.icone}"></i></div>
+                <div style="flex:1;">
+                    <div class="ob-option-title">${p.nome}</div>
+                    <div class="ob-option-desc">${p.descricao}</div>
+                </div>
+            </div>
+            <span class="ob-option-badge ${p.disponivel ? 'ob-badge-online' : 'ob-badge-offline'}">
+                ${p.disponivel ? 'detectado' : 'offline'}
+            </span>
+            ${p.disponivel && p.modelos.length ? `<div class="ob-option-desc" style="margin-top:0.4rem;"><strong>${p.modelos.length}</strong> modelos disponiveis</div>` : ''}
+        `;
+        if (!p.disponivel) card.classList.add('disabled');
+        card.addEventListener('click', () => {
+            if (!p.disponivel) {
+                alert(`${p.nome} parece estar offline. Inicie o servidor ou escolha outro provedor.`);
+                return;
+            }
+            preencher(p.nome, p.base_url, '');
+            card.classList.add('selected');
+        });
+        return card;
+    }
+
+    function montarOpcaoCloud() {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'ob-option';
+        card.innerHTML = `
+            <div style="display:flex;align-items:center;gap:0.7rem;">
+                <div class="ob-option-icon"><i class="fas fa-cloud"></i></div>
+                <div style="flex:1;">
+                    <div class="ob-option-title">OpenRouter (cloud)</div>
+                    <div class="ob-option-desc">Acesso a GPT, Claude, Gemini, Llama e centenas de modelos pagos.</div>
+                </div>
+            </div>
+            <span class="ob-option-badge ob-badge-online">recomendado</span>
+            <div class="ob-option-desc" style="margin-top:0.4rem;">Voce vai precisar de uma chave da API.</div>
+        `;
+        card.addEventListener('click', () => {
+            preencher('OpenRouter', 'https://openrouter.ai/api/v1', '');
+            fKey.focus();
+            card.classList.add('selected');
+        });
+        return card;
+    }
+
+    // Detectar provedores locais ao carregar
+    fetch('/onboarding/llm/detectar')
+        .then(r => r.json())
+        .then(data => {
+            loadingEl.style.display = 'none';
+            optsEl.style.display = 'grid';
+            optsEl.innerHTML = '';
+            (data.provedores || []).forEach(p => optsEl.appendChild(montarOpcao(p)));
+            optsEl.appendChild(montarOpcaoCloud());
+            const algumOnline = (data.provedores || []).some(p => p.disponivel);
+            if (!algumOnline) {
+                emptyEl.style.display = 'flex';
+            }
+        })
+        .catch(err => {
+            loadingEl.style.display = 'none';
+            emptyEl.style.display = 'flex';
+            console.error(err);
+        });
+
+    // Testar conexao
+    btnTest.addEventListener('click', () => {
+        testStatus.innerHTML = `<span class="ob-status-pill"><span class="dot"></span> Testando...</span>`;
+        const fd = new FormData();
+        fd.append('base_url', fUrl.value);
+        fd.append('api_key', fKey.value || '');
+        fetch('/onboarding/llm/testar', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    testStatus.innerHTML = `<span class="ob-status-pill ok"><span class="dot"></span> ${data.mensagem}</span>`;
+                } else {
+                    testStatus.innerHTML = `<span class="ob-status-pill err"><span class="dot"></span> ${data.mensagem}</span>`;
+                }
+            })
+            .catch(err => {
+                testStatus.innerHTML = `<span class="ob-status-pill err"><span class="dot"></span> Erro: ${err}</span>`;
+            });
+    });
+})();
+</script>
+{% endblock %}

@@ -275,3 +275,37 @@ def listar_tools_mcp(mcp_client_id: int, db: Session = Depends(get_db)):
     """Lista tools de um cliente MCP."""
     tools = MCPService.listar_tools_ativas(db, mcp_client_id)
     return [MCPToolResposta.model_validate(t) for t in tools]
+
+
+@router.get("/registry")
+async def buscar_registry_mcp(
+    q: str = "",
+    page: int = 1,
+    page_size: int = 20
+):
+    """Busca servidores MCP no registry público Smithery (https://registry.smithery.ai)."""
+    resultado = await MCPService.buscar_no_registry(q=q, page=page, page_size=page_size)
+    return resultado
+
+
+@router.get("/registry/apikey")
+def obter_smithery_apikey(db: Session = Depends(get_db)):
+    """Retorna a Smithery API Key salva (parcialmente mascarada)."""
+    from config.config_service import ConfiguracaoService
+    chave = ConfiguracaoService.obter_valor(db, "smithery_api_key", "")
+    return {"configurada": bool(chave), "chave": chave}
+
+
+@router.post("/registry/apikey")
+async def salvar_smithery_apikey(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Salva a Smithery API Key nas configurações do sistema."""
+    from config.config_service import ConfiguracaoService
+    body = await request.json()
+    apikey = (body.get("apikey") or "").strip()
+    if not apikey:
+        raise HTTPException(status_code=400, detail="apikey não pode ser vazia")
+    ConfiguracaoService.definir_valor(db, "smithery_api_key", apikey)
+    return {"sucesso": True}

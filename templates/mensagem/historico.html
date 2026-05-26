@@ -1,351 +1,136 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Histórico de Mensagens - {{ sessao.nome }}{% endblock %}
-
-{% block extra_css %}
-<style>
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-    
-    .page-header h1 {
-        font-size: 1.75rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    
-    .page-header h1 i {
-        background: var(--fluxi-gradient);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    
-    .stats-row {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-        flex-wrap: wrap;
-    }
-    
-    .stat-card {
-        background: var(--bg-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 1rem 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        min-width: 180px;
-    }
-    
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-    }
-    
-    .stat-icon.purple {
-        background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%);
-        color: var(--fluxi-purple);
-    }
-    
-    .stat-icon.green {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-    }
-    
-    .stat-info h3 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-    }
-    
-    .stat-info p {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-    
-    .conversas-list {
-        background: var(--bg-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    
-    .conversa-item {
-        display: flex;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        cursor: pointer;
-        transition: all 0.2s;
-        text-decoration: none;
-        color: inherit;
-    }
-    
-    .conversa-item:last-child {
-        border-bottom: none;
-    }
-    
-    .conversa-item:hover {
-        background: var(--bg-hover);
-    }
-    
-    .conversa-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: var(--fluxi-gradient);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 600;
-        font-size: 1.25rem;
-        margin-right: 1rem;
-        flex-shrink: 0;
-    }
-    
-    .conversa-info {
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .conversa-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.25rem;
-    }
-    
-    .conversa-nome {
-        font-weight: 600;
-        color: var(--text-primary);
-        font-size: 1rem;
-    }
-    
-    .conversa-data {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-    }
-    
-    .conversa-preview {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .conversa-texto {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 400px;
-    }
-    
-    .conversa-badges {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-    }
-    
-    .badge-count {
-        background: var(--fluxi-gradient);
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 0.25rem 0.5rem;
-        border-radius: 50px;
-        min-width: 24px;
-        text-align: center;
-    }
-    
-    .badge-pending {
-        background: var(--warning);
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-    }
-    
-    .empty-state i {
-        font-size: 4rem;
-        color: var(--text-muted);
-        margin-bottom: 1rem;
-    }
-    
-    .empty-state h3 {
-        font-size: 1.25rem;
-        color: var(--text-secondary);
-        margin-bottom: 0.5rem;
-    }
-    
-    .empty-state p {
-        color: var(--text-muted);
-    }
-    
-    .search-box {
-        margin-bottom: 1.5rem;
-    }
-    
-    .search-input {
-        width: 100%;
-        max-width: 400px;
-        padding: 0.75rem 1rem 0.75rem 2.5rem;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 0.9375rem;
-        background: var(--bg-primary);
-        transition: all 0.2s;
-    }
-    
-    .search-input:focus {
-        outline: none;
-        border-color: var(--fluxi-purple);
-        box-shadow: 0 0 0 3px rgba(91, 78, 155, 0.1);
-    }
-    
-    .search-wrapper {
-        position: relative;
-        display: inline-block;
-    }
-    
-    .search-wrapper i {
-        position: absolute;
-        left: 0.875rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--text-muted);
-    }
-
-    @media (max-width: 768px) {
-        .conversa-texto {
-            max-width: 150px;
-        }
-        
-        .stats-row {
-            flex-direction: column;
-        }
-        
-        .stat-card {
-            width: 100%;
-        }
-    }
-</style>
-{% endblock %}
+{% block title %}Histórico de Mensagens - {{ sessao.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1>
-        <i class="fas fa-comments"></i>
-        Histórico de Mensagens
-    </h1>
-    <a href="/sessoes" class="button">
-        <i class="fas fa-arrow-left"></i>
-        Voltar
-    </a>
-</div>
-
-<div class="stats-row">
-    <div class="stat-card">
-        <div class="stat-icon purple">
-            <i class="fas fa-users"></i>
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-inbox text-primary mb-xs" style="color: #6366f1;"></i> Central de Mensagens
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/sessoes" style="color: var(--color-text-secondary); text-decoration: none;">Sessões Locais</a> / 
+                <span style="color: var(--color-text-primary);">{{ sessao.nome }} (I/O Handler)</span>
+            </p>
         </div>
-        <div class="stat-info">
-            <h3>{{ total_conversas }}</h3>
-            <p>Conversas</p>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/sessoes" class="button is-small is-outline">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Retornar ao Console
+            </a>
         </div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon green">
-            <i class="fas fa-comments"></i>
-        </div>
-        <div class="stat-info">
-            <h3>{{ total_mensagens }}</h3>
-            <p>Mensagens</p>
-        </div>
-    </div>
-</div>
 
-<div class="search-box">
-    <div class="search-wrapper">
-        <i class="fas fa-search"></i>
-        <input type="text" class="search-input" id="searchInput" placeholder="Buscar conversa..." onkeyup="filtrarConversas()">
-    </div>
-</div>
-
-<div class="conversas-list" id="conversasList">
-    {% if conversas %}
-        {% for conversa in conversas %}
-        <a href="/mensagens/sessao/{{ sessao.id }}/conversa/{{ conversa.telefone }}" class="conversa-item" data-telefone="{{ conversa.telefone }}" data-nome="{{ conversa.nome or '' }}">
-            <div class="conversa-avatar">
-                {{ (conversa.nome or conversa.telefone)[0].upper() }}
+    <!-- Cluster de Volume Rápido -->
+    <div class="grid grid-cols-4 gap-md mb-lg">
+        <div class="box flex flex-col justify-center p-md" style="border: none; box-shadow: var(--shadow-sm); border-left: 4px solid #6366f1;">
+            <span style="display: block; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: 4px;">Canais Abertos (Conversas)</span>
+            <span style="font-size: 1.75rem; font-weight: 700; color: var(--color-text-primary);">{{ total_conversas }}</span>
+        </div>
+        
+        <div class="box flex flex-col justify-center p-md" style="border: none; box-shadow: var(--shadow-sm); border-left: 4px solid #22c55e;">
+            <span style="display: block; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: 4px;">Total Processado</span>
+            <span style="font-size: 1.75rem; font-weight: 700; color: var(--color-text-primary);">{{ total_mensagens }}</span>
+        </div>
+        
+        <div style="grid-column: span 2;" class="flex items-center">
+            <div style="width: 100%; position: relative;">
+                <i class="fas fa-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--color-text-muted);"></i>
+                <input type="text" class="input" id="searchInput" placeholder="Filtrar por nome, número ou trecho da mensagem..." onkeyup="filtrarConversas()" style="width: 100%; padding-left: 40px; height: 100%; min-height: 48px; border-radius: var(--radius-lg); font-size: 0.875rem;">
             </div>
-            <div class="conversa-info">
-                <div class="conversa-header">
-                    <span class="conversa-nome">
-                        {% if conversa.nome %}
-                            {{ conversa.nome }}
-                        {% else %}
-                            +{{ conversa.telefone }}
-                        {% endif %}
-                    </span>
-                    <span class="conversa-data">
-                        {% if conversa.ultima_data %}
-                            {{ conversa.ultima_data.strftime('%d/%m %H:%M') }}
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="conversa-preview">
-                    <span class="conversa-texto">
-                        {% if conversa.tipo_ultima == 'imagem' %}
-                            <i class="fas fa-image"></i> Imagem
-                        {% elif conversa.tipo_ultima == 'audio' %}
-                            <i class="fas fa-microphone"></i> Áudio
-                        {% elif conversa.tipo_ultima == 'documento' %}
-                            <i class="fas fa-file"></i> Documento
-                        {% else %}
-                            {{ conversa.ultima_mensagem }}
-                        {% endif %}
-                    </span>
-                    <div class="conversa-badges">
-                        <span class="badge-count">{{ conversa.total_mensagens }}</span>
-                        {% if conversa.nao_respondidas > 0 %}
-                        <span class="badge-count badge-pending">{{ conversa.nao_respondidas }}</span>
-                        {% endif %}
+        </div>
+    </div>
+
+    <!-- Interface Estilo E-Mail / Inbox -->
+    <div class="box" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-sm); min-height: 500px;">
+        <div class="flex items-center gap-sm" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-history text-primary"></i>
+            <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Buffer de Histórico Recente</h2>
+        </div>
+        
+        <div class="conversas-list" id="conversasList" style="display: flex; flex-direction: column;">
+            {% if conversas %}
+                {% for conversa in conversas %}
+                <a href="/mensagens/sessao/{{ sessao.id }}/conversa/{{ conversa.telefone }}" class="conversa-item flex items-center justify-between" data-telefone="{{ conversa.telefone }}" data-nome="{{ conversa.nome or '' }}" style="padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--color-border); text-decoration: none; transition: background 0.2s;">
+                    
+                    <div class="flex items-center gap-md" style="flex: 1; min-width: 0;">
+                        <!-- Avatar B2B Initials -->
+                        <div style="width: 42px; height: 42px; border-radius: var(--radius-md); background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0;">
+                            {{ (conversa.nome or conversa.telefone)[0].upper() }}
+                        </div>
+                        
+                        <!-- Conteúdo da Linha -->
+                        <div class="flex flex-col" style="flex: 1; min-width: 0; overflow: hidden;">
+                            <div class="flex items-center gap-sm mb-xs">
+                                <span style="font-size: 0.9375rem; font-weight: 600; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    {% if conversa.nome %}
+                                        {{ conversa.nome }} <span style="color: var(--color-text-muted); font-weight: 400; font-size: 0.75rem; font-family: monospace; margin-left: 4px;">(+{{ conversa.telefone }})</span>
+                                    {% else %}
+                                        +{{ conversa.telefone }}
+                                    {% endif %}
+                                </span>
+                                
+                                {% if conversa.nao_respondidas > 0 %}
+                                    <span class="tag" style="background: var(--color-warning); color: white; font-size: 0.6rem; padding: 2px 6px;">{{ conversa.nao_respondidas }} PENDENTES</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="conversa-texto flex items-center gap-xs" style="font-size: 0.8125rem; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {% if conversa.tipo_ultima == 'imagem' %}
+                                    <i class="fas fa-image text-info" style="font-size: 0.75rem;"></i> Imagem Anexada
+                                {% elif conversa.tipo_ultima == 'audio' %}
+                                    <i class="fas fa-microphone text-warning" style="font-size: 0.75rem;"></i> Nota de Áudio
+                                {% elif conversa.tipo_ultima == 'documento' %}
+                                    <i class="fas fa-file-alt text-primary" style="font-size: 0.75rem;"></i> Payload Binário (Arquivo)
+                                {% else %}
+                                    {{ conversa.ultima_mensagem }}
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </a>
-        {% endfor %}
-    {% else %}
-        <div class="empty-state">
-            <i class="fas fa-inbox"></i>
-            <h3>Nenhuma conversa ainda</h3>
-            <p>As conversas aparecerão aqui quando clientes enviarem mensagens.</p>
-        </div>
-    {% endif %}
-</div>
-{% endblock %}
+                    
+                    <!-- Metadata da Linha -->
+                    <div class="flex flex-col items-end justify-center" style="flex-shrink: 0; margin-left: var(--space-lg);">
+                        <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 500; margin-bottom: 4px;">
+                            {% if conversa.ultima_data %}
+                                {{ conversa.ultima_data.strftime('%d/%m %H:%M') }}
+                            {% endif %}
+                        </span>
+                        <span style="font-size: 0.65rem; color: var(--color-text-secondary); background: var(--color-surface); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--color-border); font-family: monospace;">
+                            {{ conversa.total_mensagens }} MSGS
+                        </span>
+                    </div>
 
-{% block extra_js %}
+                </a>
+                {% endfor %}
+            {% else %}
+                <div class="flex flex-col items-center justify-center text-center" style="padding: 6rem 2rem;">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-surface); display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-md);">
+                        <i class="fas fa-comment-slash" style="font-size: 2.5rem; color: var(--color-text-muted);"></i>
+                    </div>
+                    <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Caixa de Entrada Vazia</h3>
+                    <p style="font-size: 0.875rem; color: var(--color-text-secondary); max-width: 400px;">
+                        Ainda não interceptamos nenhuma comunicação M2M ou de usuários nesta interface de socket.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.conversa-item:hover {
+    background: var(--color-surface) !important;
+    border-left: 3px solid #6366f1;
+    padding-left: calc(var(--space-lg) - 3px) !important;
+}
+</style>
+
 <script>
 function filtrarConversas() {
-    const input = document.getElementById('searchInput');
-    const filter = input.value.toLowerCase();
+    const filter = document.getElementById('searchInput').value.toLowerCase();
     const items = document.querySelectorAll('.conversa-item');
     
     items.forEach(item => {

@@ -1,256 +1,908 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
 {% block title %}{{ agente.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <nav class="breadcrumb" aria-label="breadcrumbs" style="margin-bottom: 0.75rem !important;">
-        <ul style="margin-bottom: 0 !important;">
-            <li><a href="/sessoes" style="color: #6b7280;"><i class="fas fa-home"></i> Sessões</a></li>
-            <li><a href="/sessoes/{{ agente.sessao.id }}/detalhes" style="color: #6b7280;">{{ agente.sessao.nome }}</a></li>
-            <li><a href="/agentes/sessao/{{ agente.sessao.id }}" style="color: #6b7280;">Agentes</a></li>
-            <li class="is-active"><a style="color: #C75B9B;">{{ agente.nome }}</a></li>
-        </ul>
-    </nav>
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 1.5rem;">
-        <div style="min-width: 0; flex: 1;">
-            <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
-                <i class="fas fa-robot" style="color: #5B4E9B;"></i> {{ agente.nome }}
+<div class="container">
+
+    <!-- Toast de feedback -->
+    <div id="toast" style="display:none; position:fixed; bottom:24px; right:24px; z-index:9999; padding:12px 20px; border-radius:var(--radius-lg); font-size:0.875rem; font-weight:600; box-shadow:0 4px 20px rgba(0,0,0,0.2);"></div>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-robot" style="color: var(--color-primary);"></i> {{ agente.nome }}
+                <span style="font-size:0.8rem; color:var(--color-text-muted); font-weight:400;">#{{ agente.codigo }}</span>
             </h1>
-            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-                #{{ agente.codigo }} - {{ agente.descricao or 'Agente IA' }}
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/sessoes/{{ sessao.id }}/detalhes" style="color: var(--color-text-secondary); text-decoration: none;">{{ sessao.nome }}</a> /
+                <a href="/agentes/sessao/{{ sessao.id }}" style="color: var(--color-text-secondary); text-decoration: none;">Personas</a> /
+                <span style="color: var(--color-text-primary);">{{ agente.nome }}</span>
             </p>
         </div>
-        <div style="flex-shrink: 0;">
-            <span class="status-badge" style="font-size: 1rem; padding: 0.5rem 1.25rem; border-radius: 50px; font-weight: 700; {% if agente.ativo %}background: #10b981; color: white;{% else %}background: #6b7280; color: white;{% endif %}">
-                {% if agente.ativo %}<i class="fas fa-check-circle"></i> ATIVO{% else %}<i class="fas fa-times-circle"></i> INATIVO{% endif %}
-            </span>
-        </div>
-    </div>
-</div>
 
-<!-- Actions -->
-<div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-    <a href="/agentes/{{ agente.id }}/editar" class="button" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-        <span class="icon"><i class="fas fa-edit"></i></span>
-        <span>Editar</span>
-    </a>
-    <a href="/agentes/{{ agente.id }}/ferramentas" class="button" style="border: 2px solid #8b5cf6; color: #8b5cf6; font-weight: 600; border-radius: 8px;">
-        <span class="icon"><i class="fas fa-tools"></i></span>
-        <span>Ferramentas</span>
-    </a>
-    {% if agente.sessao.agente_ativo_id != agente.id %}
-    <form method="POST" action="/agentes/{{ agente.id }}/ativar" style="display: inline;">
-        <button type="submit" class="button" style="border: 2px solid #10b981; color: #10b981; font-weight: 600; border-radius: 8px;">
-            <span class="icon"><i class="fas fa-crown"></i></span>
-            <span>Ativar Agente</span>
-        </button>
-    </form>
-    {% else %}
-    <span class="button" style="background: #10b981; color: white; font-weight: 600; border-radius: 8px; cursor: default;">
-        <span class="icon"><i class="fas fa-crown"></i></span>
-        <span>Agente Ativo</span>
-    </span>
-    {% endif %}
-</div>
-
-<!-- Modo Autônomo (Status) -->
-{% if agente.sandbox_ativo %}
-<div style="display: inline-flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; margin-bottom: 2rem;">
-    <i class="fas fa-rocket"></i> Modo Autônomo Ativo
-</div>
-{% endif %}
-
-<div class="columns">
-    <div class="column is-8">
-        <!-- Informações Principais -->
-        <div class="box" style="margin-bottom: 2rem;">
-            <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                <i class="fas fa-info-circle" style="color: #C75B9B;"></i> Informações Principais
-            </h2>
-            
-            <div style="display: grid; gap: 1.5rem;">
-                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem; align-items: start;">
-                    <div style="color: #6b7280; font-weight: 600;"><i class="fas fa-hashtag"></i> Código:</div>
-                    <div style="color: #1f2937; font-weight: 700; font-size: 1.125rem; background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ agente.codigo }}</div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem; align-items: start;">
-                    <div style="color: #6b7280; font-weight: 600;"><i class="fas fa-robot"></i> Nome:</div>
-                    <div style="color: #1f2937; font-weight: 600;">{{ agente.nome }}</div>
-                </div>
-                
-                {% if agente.descricao %}
-                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem; align-items: start;">
-                    <div style="color: #6b7280; font-weight: 600;"><i class="fas fa-file-alt"></i> Descrição:</div>
-                    <div style="color: #6b7280;">{{ agente.descricao }}</div>
-                </div>
-                {% endif %}
-                
-                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem; align-items: start;">
-                    <div style="color: #6b7280; font-weight: 600;"><i class="fas fa-brain"></i> Modelo LLM:</div>
-                    <div style="color: #1f2937; font-weight: 600;">{{ agente.modelo_llm or 'Padrão do Sistema' }}</div>
-                </div>
-                
-                {% if agente.temperatura %}
-                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 1rem; align-items: start;">
-                    <div style="color: #6b7280; font-weight: 600;"><i class="fas fa-thermometer-half"></i> Temperatura:</div>
-                    <div style="color: #1f2937;">{{ agente.temperatura }}</div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- System Prompt -->
-        <div class="box" style="margin-bottom: 2rem;">
-            <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                <i class="fas fa-brain" style="color: #5B4E9B;"></i> Personalidade (System Prompt)
-            </h2>
-            
-            <div style="display: grid; gap: 1.25rem;">
-                <div style="background: #f9fafb; border-radius: 12px; padding: 1.25rem; border-left: 4px solid #5B4E9B;">
-                    <p style="font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <i class="fas fa-user-tie"></i> Papel
-                    </p>
-                    <p style="color: #374151; line-height: 1.7;">{{ agente.agente_papel }}</p>
-                </div>
-
-                <div style="background: #f9fafb; border-radius: 12px; padding: 1.25rem; border-left: 4px solid #C75B9B;">
-                    <p style="font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <i class="fas fa-bullseye"></i> Objetivo
-                    </p>
-                    <p style="color: #374151; line-height: 1.7;">{{ agente.agente_objetivo }}</p>
-                </div>
-
-                <div style="background: #f9fafb; border-radius: 12px; padding: 1.25rem; border-left: 4px solid #10b981;">
-                    <p style="font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <i class="fas fa-shield-alt"></i> Políticas
-                    </p>
-                    <p style="color: #374151; line-height: 1.7;">{{ agente.agente_politicas }}</p>
-                </div>
-
-                <div style="background: #f9fafb; border-radius: 12px; padding: 1.25rem; border-left: 4px solid #3b82f6;">
-                    <p style="font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <i class="fas fa-tasks"></i> Tarefa
-                    </p>
-                    <p style="color: #374151; line-height: 1.7;">{{ agente.agente_tarefa }}</p>
-                </div>
-
-                <div style="background: #f9fafb; border-radius: 12px; padding: 1.25rem; border-left: 4px solid #f59e0b;">
-                    <p style="font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <i class="fas fa-users"></i> Público-Alvo
-                    </p>
-                    <p style="color: #374151; line-height: 1.7;">{{ agente.agente_publico }}</p>
-                </div>
-
-                <div style="background: #f9fafb; border-radius: 12px; padding: 1.25rem; border-left: 4px solid #ef4444;">
-                    <p style="font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                        <i class="fas fa-ban"></i> Restrições
-                    </p>
-                    <p style="color: #374151; line-height: 1.7;">{{ agente.agente_restricoes }}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Ferramentas -->
-        <div class="box" style="margin-bottom: 2rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                <h2 class="title is-5" style="margin-bottom: 0;">
-                    <i class="fas fa-tools" style="color: #8b5cf6;"></i> Ferramentas Disponíveis
-                </h2>
-                <a href="/agentes/{{ agente.id }}/ferramentas" class="button is-small" style="background: #8b5cf6; color: white; border: none; font-weight: 600;">
-                    <span class="icon"><i class="fas fa-edit"></i></span>
-                    <span>Configurar</span>
-                </a>
-            </div>
-            
-            {% set ferramentas_lista = agente.ferramentas.all() %}
-            {% if ferramentas_lista %}
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem;">
-                {% for ferramenta in ferramentas_lista %}
-                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 0.75rem 1rem; border-radius: 8px; border-left: 3px solid #8b5cf6;">
-                    <p style="font-weight: 600; color: #1f2937; font-size: 0.875rem;">
-                        <i class="fas fa-wrench" style="color: #8b5cf6;"></i> {{ ferramenta.nome }}
-                    </p>
-                </div>
-                {% endfor %}
-            </div>
-            <p style="color: #6b7280; margin-top: 1rem; font-size: 0.875rem;">
-                <i class="fas fa-check-circle" style="color: #10b981;"></i> <strong>{{ ferramentas_lista|length }}</strong> ferramenta(s) configurada(s)
-            </p>
+        <div class="flex items-center gap-sm">
+            {% if sessao.agente_ativo_id != agente.id %}
+            <button type="button" onclick="deletarAgente()" class="button is-small" style="background: var(--color-error); color: #fff; border: none;">
+                <i class="fas fa-trash-alt" style="margin-right: 4px;"></i> Deletar
+            </button>
+            <form method="POST" action="/agentes/{{ agente.id }}/ativar" style="margin: 0;">
+                <button type="submit" class="button is-small" style="background: var(--color-warning); color: #fff; border: none;">
+                    <i class="fas fa-power-off" style="margin-right: 4px;"></i> Tornar Ativo
+                </button>
+            </form>
             {% else %}
-            <div style="text-align: center; padding: 2rem; background: #fef3c7; border: 2px dashed #f59e0b; border-radius: 12px;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b; margin-bottom: 0.75rem;"></i>
-                <p style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">Nenhuma ferramenta configurada</p>
-                <p style="font-size: 0.875rem; color: #78350f; margin-bottom: 1rem;">Configure ferramentas para estender as capacidades deste agente</p>
-                <a href="/agentes/{{ agente.id }}/ferramentas" class="button" style="background: #f59e0b; color: white; border: none; font-weight: 600;">
-                    <span class="icon"><i class="fas fa-plus-circle"></i></span>
-                    <span>Configurar Ferramentas</span>
-                </a>
-            </div>
+            <span class="button is-small" style="background: var(--color-success); color: white; border: none; cursor: default;">
+                <i class="fas fa-crown" style="margin-right: 4px;"></i> Persona Central Ativa
+            </span>
+            {% endif %}
+
+            <!-- Badge Status Interno -->
+            {% if agente.ativo %}
+            <span style="padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; background: var(--color-success); color: white;">Online</span>
+            {% else %}
+            <span style="padding: 4px 8px; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; background: var(--color-text-muted); color: white;">Pausado</span>
             {% endif %}
         </div>
     </div>
 
-    <!-- Sidebar -->
-    <div class="column is-4">
-        <!-- Stats Card -->
-        <div class="box" style="background: linear-gradient(135deg, #5B4E9B 0%, #C75B9B 100%); color: white; margin-bottom: 1.5rem;">
-            <h3 style="font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1.5rem; opacity: 0.9;">
-                <i class="fas fa-chart-bar"></i> Estatísticas
-            </h3>
-            
-            <div style="display: grid; gap: 1.25rem;">
-                <div>
-                    <p style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total de Mensagens</p>
-                    <p style="font-size: 2.5rem; font-weight: 700; line-height: 1;">
-                        {{ total_mensagens|default(0) }}
-                    </p>
-                </div>
-                
-                <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 1rem;">
-                    <p style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Ferramentas Solicitadas</p>
-                    <p style="font-size: 2rem; font-weight: 700; line-height: 1;">
-                        {{ ferramentas_usadas|default(0) }}
-                    </p>
-                </div>
-                
-                <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 1rem;">
-                    <p style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Ferramentas Disponíveis</p>
-                    <p style="font-size: 2rem; font-weight: 700; line-height: 1;">
-                        {{ agente.ferramentas.all()|length }}
-                    </p>
-                </div>
+    <!-- Tab Navigation -->
+    <div style="display:flex; gap:4px; border-bottom:2px solid var(--color-border); margin-bottom:var(--space-lg); overflow-x:auto;">
+        <button type="button" class="tab-btn" data-tab="comportamento" onclick="mudarTab('comportamento')"
+            style="padding:8px 16px; border:none; background:none; cursor:pointer; font-size:0.875rem; font-weight:600; color:var(--color-primary); border-bottom:2px solid var(--color-primary); margin-bottom:-2px; white-space:nowrap;">
+            <i class="fas fa-brain" style="margin-right:5px;"></i> Comportamento
+        </button>
+        <button type="button" class="tab-btn" data-tab="ferramentas" onclick="mudarTab('ferramentas')"
+            style="padding:8px 16px; border:none; background:none; cursor:pointer; font-size:0.875rem; font-weight:500; color:var(--color-text-secondary); border-bottom:2px solid transparent; margin-bottom:-2px; white-space:nowrap;">
+            <i class="fas fa-tools" style="margin-right:5px;"></i> Ferramentas <span id="cnt-ferramentas" style="font-size:0.7rem; background:var(--color-bg-secondary); border-radius:8px; padding:1px 6px;">{{ total_selecionadas }}</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="skills" onclick="mudarTab('skills')"
+            style="padding:8px 16px; border:none; background:none; cursor:pointer; font-size:0.875rem; font-weight:500; color:var(--color-text-secondary); border-bottom:2px solid transparent; margin-bottom:-2px; white-space:nowrap;">
+            <i class="fas fa-star" style="margin-right:5px;"></i> Skills <span id="cnt-skills" style="font-size:0.7rem; background:var(--color-bg-secondary); border-radius:8px; padding:1px 6px;">{{ skills_agente|length }}</span>
+        </button>
+        <button type="button" class="tab-btn" data-tab="conhecimento" onclick="mudarTab('conhecimento')"
+            style="padding:8px 16px; border:none; background:none; cursor:pointer; font-size:0.875rem; font-weight:500; color:var(--color-text-secondary); border-bottom:2px solid transparent; margin-bottom:-2px; white-space:nowrap;">
+            <i class="fas fa-database" style="margin-right:5px;"></i> Conhecimento
+        </button>
+        <button type="button" class="tab-btn" data-tab="config" onclick="mudarTab('config')"
+            style="padding:8px 16px; border:none; background:none; cursor:pointer; font-size:0.875rem; font-weight:500; color:var(--color-text-secondary); border-bottom:2px solid transparent; margin-bottom:-2px; white-space:nowrap;">
+            <i class="fas fa-sliders-h" style="margin-right:5px;"></i> Configurações
+        </button>
+    </div>
+
+    <!-- FORM COMPARTILHADO: comportamento + config -->
+    <form id="form-agente">
+
+    <!-- TAB: Comportamento -->
+    <div id="tab-comportamento" class="tab-panel">
+
+        <!-- Callout informativo -->
+        <div style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-left:3px solid var(--color-primary); border-radius:var(--radius-md); padding:12px var(--space-lg); margin-bottom:var(--space-lg); display:flex; gap:12px; align-items:flex-start;">
+            <i class="fas fa-lightbulb" style="color:var(--color-primary); margin-top:2px; flex-shrink:0;"></i>
+            <div>
+                <p style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:3px;">Como funciona o System Prompt?</p>
+                <p style="font-size:0.75rem; color:var(--color-text-secondary); line-height:1.6; margin:0;">Os campos abaixo são montados numa instrução única enviada ao LLM antes de cada conversa. <strong>Papel</strong> define quem o agente é. <strong>Objetivo</strong> define o que deve alcançar. <strong>Tarefa</strong> é o fluxo de atendimento. <strong>Políticas</strong> controlam tom e limites.</p>
             </div>
         </div>
 
-        <!-- Info Card -->
-        <div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb;">
-            <h3 class="title is-6" style="margin-bottom: 1rem;">
-                <i class="fas fa-info-circle" style="color: #C75B9B;"></i> Informações
-            </h3>
-            
-            <div style="display: grid; gap: 0.75rem; font-size: 0.875rem;">
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: white; border-radius: 6px;">
-                    <span style="color: #6b7280;"><i class="fas fa-calendar-plus"></i> Criado em:</span>
-                    <span style="font-weight: 600; color: #1f2937;">{{ agente.criado_em.strftime('%d/%m/%Y') if agente.criado_em else 'N/A' }}</span>
+        <!-- Identificação -->
+        <div class="box" style="padding:var(--space-lg); margin-bottom:var(--space-md);">
+            <h2 style="font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm); margin-bottom:var(--space-lg);">
+                <i class="fas fa-id-card" style="margin-right:6px;"></i> Identificação
+            </h2>
+            <div class="grid grid-cols-2 gap-lg mb-md">
+                <div>
+                    <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:3px;">
+                        Código <span style="color:var(--color-error);">*</span>
+                        <span title="Identificador técnico único. Usado em logs e integrações." style="cursor:help; color:var(--color-text-muted); margin-left:4px;"><i class="fas fa-question-circle" style="font-size:0.7rem;"></i></span>
+                    </label>
+                    <input type="text" name="codigo" required value="{{ agente.codigo }}" class="input" style="width:100%;" placeholder="Ex: atendimento-01">
+                    <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;">Slug único. Letras, números e hífens.</p>
                 </div>
-                
-                {% if agente.atualizado_em %}
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: white; border-radius: 6px;">
-                    <span style="color: #6b7280;"><i class="fas fa-calendar-check"></i> Atualizado em:</span>
-                    <span style="font-weight: 600; color: #1f2937;">{{ agente.atualizado_em.strftime('%d/%m/%Y') }}</span>
-                </div>
-                {% endif %}
-                
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: white; border-radius: 6px;">
-                    <span style="color: #6b7280;"><i class="fas fa-layer-group"></i> Sessão:</span>
-                    <a href="/sessoes/{{ agente.sessao.id }}/detalhes" style="font-weight: 600; color: #C75B9B;">{{ agente.sessao.nome }}</a>
+                <div>
+                    <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:3px;">
+                        Nome de exibição <span style="color:var(--color-error);">*</span>
+                    </label>
+                    <input type="text" name="nome" required value="{{ agente.nome }}" class="input" style="width:100%;" placeholder="Ex: Assistente de Vendas">
+                    <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;">Aparece na lista de agentes e na conversa.</p>
                 </div>
             </div>
+            <div class="mb-md">
+                <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:3px;">
+                    Descrição interna
+                    <span title="Anotação para sua equipe. Não é enviada ao LLM." style="cursor:help; color:var(--color-text-muted); margin-left:4px;"><i class="fas fa-question-circle" style="font-size:0.7rem;"></i></span>
+                </label>
+                <input type="text" name="descricao" value="{{ agente.descricao or '' }}" class="input" style="width:100%;" placeholder="Ex: Foco em qualificação de leads para o plano Pro">
+                <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;">Anotação interna — não enviada ao modelo de IA.</p>
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.875rem; padding:var(--space-sm) var(--space-md); background:var(--color-bg-secondary); border-radius:var(--radius-md); border:1px solid var(--color-border);">
+                <input type="checkbox" name="ativo" value="true" {% if agente.ativo %}checked{% endif %}>
+                <span style="font-weight:500;">Agente ativo e disponível para uso</span>
+                <span style="margin-left:auto; font-size:0.7rem; color:var(--color-text-muted);">Desative para pausar sem deletar</span>
+            </label>
+        </div>
+
+        <!-- System Prompt: Identidade e Missão -->
+        <div class="box" style="padding:var(--space-lg); margin-bottom:var(--space-md);">
+            <h2 style="font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm); margin-bottom:var(--space-lg);">
+                <i class="fas fa-brain" style="margin-right:6px;"></i> Identidade e Missão
+            </h2>
+
+            <div class="mb-lg">
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:4px;">
+                    <span style="background:var(--color-primary); color:white; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-size:0.65rem; flex-shrink:0; font-weight:700;">1</span>
+                    Papel — Quem é este agente?
+                    <span title="Primeira instrução do system prompt. Define a persona, nome, empresa e personalidade." style="cursor:help; color:var(--color-text-muted);"><i class="fas fa-question-circle" style="font-size:0.7rem;"></i></span>
+                </label>
+                <textarea name="agente_papel" rows="3" class="textarea" style="resize:vertical; width:100%;" placeholder="Ex: Você é Sofia, especialista em vendas da TechCorp. Tem 10 anos de experiência em SaaS e fala de forma consultiva, nunca agressiva.">{{ agente.agente_papel }}</textarea>
+                <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;"><i class="fas fa-info-circle" style="margin-right:3px;"></i>Inclua nome, empresa, especialidade e tom de voz aqui.</p>
+            </div>
+
+            <div class="mb-lg">
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:4px;">
+                    <span style="background:var(--color-success); color:white; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-size:0.65rem; flex-shrink:0; font-weight:700;">2</span>
+                    Objetivo — O que deve alcançar?
+                    <span title="O resultado macro que define sucesso em cada conversa." style="cursor:help; color:var(--color-text-muted);"><i class="fas fa-question-circle" style="font-size:0.7rem;"></i></span>
+                </label>
+                <textarea name="agente_objetivo" rows="3" class="textarea" style="resize:vertical; width:100%;" placeholder="Ex: Qualificar leads inbound, entender suas necessidades e agendar uma demonstração com o time comercial.">{{ agente.agente_objetivo }}</textarea>
+                <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;"><i class="fas fa-info-circle" style="margin-right:3px;"></i>Use verbos de ação. O que o agente precisa fazer acontecer?</p>
+            </div>
+
+            <div class="mb-lg">
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:4px;">
+                    <span style="background:var(--color-warning); color:white; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-size:0.65rem; flex-shrink:0; font-weight:700;">3</span>
+                    Tarefa — Como conduzir a conversa?
+                    <span title="Fluxo passo a passo que o agente deve seguir em cada atendimento." style="cursor:help; color:var(--color-text-muted);"><i class="fas fa-question-circle" style="font-size:0.7rem;"></i></span>
+                </label>
+                <textarea name="agente_tarefa" rows="4" class="textarea" style="resize:vertical; width:100%;" placeholder="Ex: 1. Cumprimente pelo nome. 2. Pergunte qual problema precisa resolver. 3. Apresente 1-2 planos relevantes. 4. Se houver interesse, colete e-mail e agende demo.">{{ agente.agente_tarefa }}</textarea>
+                <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;"><i class="fas fa-info-circle" style="margin-right:3px;"></i>Passos numerados funcionam muito bem aqui.</p>
+            </div>
+
+            <div>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:4px;">
+                    <span style="background:var(--color-text-secondary); color:white; border-radius:50%; width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-size:0.65rem; flex-shrink:0; font-weight:700;">4</span>
+                    Entregável final — O que coletar/registrar?
+                    <span title="O que deve ser concretamente coletado ou registrado ao encerrar a conversa." style="cursor:help; color:var(--color-text-muted);"><i class="fas fa-question-circle" style="font-size:0.7rem;"></i></span>
+                </label>
+                <textarea name="agente_objetivo_explicito" rows="2" class="textarea" style="resize:vertical; width:100%;" placeholder="Ex: Confirme nome completo, e-mail e horário preferido. Registre no CRM via ferramenta salvar_lead.">{{ agente.agente_objetivo_explicito }}</textarea>
+                <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;"><i class="fas fa-info-circle" style="margin-right:3px;"></i>O que deve ser enviado, salvo ou confirmado ao final.</p>
+            </div>
+        </div>
+
+        <!-- Tom, Políticas e Limites -->
+        <div class="box" style="padding:var(--space-lg); margin-bottom:var(--space-md);">
+            <h2 style="font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm); margin-bottom:var(--space-lg);">
+                <i class="fas fa-shield-alt" style="margin-right:6px;"></i> Tom, Políticas e Limites
+            </h2>
+            <div class="grid grid-cols-2 gap-lg mb-md">
+                <div>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:4px;">
+                        <i class="fas fa-comments" style="color:var(--color-primary); font-size:0.75rem;"></i>
+                        Políticas e Tom de Voz
+                        <span title="Linguagem, emojis, formalidade, tamanho de mensagem." style="cursor:help; color:var(--color-text-muted);"><i class="fas fa-question-circle" style="font-size:0.7rem;"></i></span>
+                    </label>
+                    <textarea name="agente_politicas" rows="4" class="textarea" style="resize:vertical; width:100%;" placeholder="Ex: Use linguagem informal mas profissional. Máximo 1 emoji por mensagem. Respostas curtas, no máximo 3 parágrafos. Nunca use gírias.">{{ agente.agente_politicas }}</textarea>
+                    <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;">Tom, formato, emojis, tamanho das respostas.</p>
+                </div>
+                <div>
+                    <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:4px;">
+                        <i class="fas fa-ban" style="color:var(--color-error); font-size:0.75rem;"></i>
+                        Restrições — O que nunca fazer
+                        <span title="Lista do que o agente deve recusar ou redirecionar categoricamente." style="cursor:help; color:var(--color-text-muted);"><i class="fas fa-question-circle" style="font-size:0.7rem;"></i></span>
+                    </label>
+                    <textarea name="agente_restricoes" rows="4" class="textarea" style="resize:vertical; width:100%;" placeholder="Ex: Nunca cite concorrentes. Nunca prometa prazos. Não discuta política ou religião. Se perguntarem preço, redirecione para a demo.">{{ agente.agente_restricoes }}</textarea>
+                    <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;">Limites explícitos para recusar ou redirecionar perguntas.</p>
+                </div>
+            </div>
+            <div>
+                <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:4px;">
+                    <i class="fas fa-users" style="color:var(--color-success); font-size:0.75rem;"></i>
+                    Público-alvo
+                    <span title="Quem são os usuários que interagem. Calibra nível técnico e vocabulário." style="cursor:help; color:var(--color-text-muted);"><i class="fas fa-question-circle" style="font-size:0.7rem;"></i></span>
+                </label>
+                <input type="text" name="agente_publico" value="{{ agente.agente_publico }}" class="input" style="width:100%;" placeholder="Ex: Empreendedores de pequenas empresas, 25-45 anos, interessados em automação de atendimento">
+                <p style="font-size:0.7rem; color:var(--color-text-muted); margin-top:3px;">Ajuda o agente a calibrar vocabulário e nível técnico das respostas.</p>
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="button" onclick="salvarAgente()" class="button is-primary">
+                <i class="fas fa-save" style="margin-right:5px;"></i> Salvar Comportamento
+            </button>
         </div>
     </div>
-</div>
 
+    <!-- TAB: Configuracoes (mesmo form-agente) -->
+    <div id="tab-config" class="tab-panel" style="display:none;">
+
+        <!-- Callout informativo -->
+        <div style="background:var(--color-bg-secondary); border:1px solid var(--color-border); border-left:3px solid var(--color-primary); border-radius:var(--radius-md); padding:12px var(--space-lg); margin-bottom:var(--space-lg); display:flex; gap:12px; align-items:flex-start;">
+            <i class="fas fa-lightbulb" style="color:var(--color-primary); margin-top:2px; flex-shrink:0;"></i>
+            <div>
+                <p style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:3px;">Configuracao do Modelo de IA</p>
+                <p style="font-size:0.75rem; color:var(--color-text-secondary); line-height:1.6; margin:0;">Selecione o provedor, escolha o modelo e ajuste os parametros. Use <strong>"Padrao do Sistema"</strong> para herdar as configuracoes globais.</p>
+            </div>
+        </div>
+
+        <!-- Passo 1: Provedor LLM -->
+        <div class="box" style="padding:var(--space-lg); margin-bottom:var(--space-md);">
+            <h2 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm); margin-bottom:var(--space-lg);">
+                <span style="background:var(--color-primary); color:white; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:0.7rem; margin-right:6px; font-weight:700;">1</span>
+                Provedor LLM
+            </h2>
+            <input type="hidden" name="provedor_llm_id" id="provedor_llm_id_input" value="{{ agente.provedor_llm_id or '' }}">
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px;">
+                <!-- Opcao Padrao do Sistema -->
+                <label class="provedor-card" data-provedor="padrao"
+                    style="display:flex; align-items:center; gap:10px; padding:12px; border:2px solid {% if not agente.provedor_llm_id and not agente.modelo_llm %}var(--color-primary){% else %}var(--color-border){% endif %}; border-radius:var(--radius-lg); cursor:pointer; background:{% if not agente.provedor_llm_id and not agente.modelo_llm %}rgba(66,153,225,0.06){% else %}var(--color-surface){% endif %}; transition:all .15s;">
+                    <input type="radio" name="provedor_radio" value="padrao" {% if not agente.provedor_llm_id and not agente.modelo_llm %}checked{% endif %} style="display:none;">
+                    <i class="fas fa-globe" style="font-size:1.1rem; color:var(--color-text-secondary);"></i>
+                    <div>
+                        <span style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary);">Padrao do Sistema</span>
+                        <p style="font-size:0.65rem; color:var(--color-text-muted); margin:0;">Usa configuracao global</p>
+                    </div>
+                </label>
+
+                <!-- OpenRouter -->
+                {% if openrouter_disponivel %}
+                <label class="provedor-card" data-provedor="openrouter"
+                    style="display:flex; align-items:center; gap:10px; padding:12px; border:2px solid {% if agente.modelo_llm and '/' in agente.modelo_llm and not agente.provedor_llm_id %}var(--color-primary){% else %}var(--color-border){% endif %}; border-radius:var(--radius-lg); cursor:pointer; background:{% if agente.modelo_llm and '/' in agente.modelo_llm and not agente.provedor_llm_id %}rgba(66,153,225,0.06){% else %}var(--color-surface){% endif %}; transition:all .15s;">
+                    <input type="radio" name="provedor_radio" value="openrouter" {% if agente.modelo_llm and '/' in agente.modelo_llm and not agente.provedor_llm_id %}checked{% endif %} style="display:none;">
+                    <i class="fas fa-cloud" style="font-size:1.1rem; color:#6366f1;"></i>
+                    <div>
+                        <span style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary);">OpenRouter</span>
+                        <p style="font-size:0.65rem; color:var(--color-text-muted); margin:0;">Modelos em nuvem</p>
+                    </div>
+                </label>
+                {% endif %}
+
+                <!-- Provedores locais -->
+                {% for p in provedores_llm %}
+                <label class="provedor-card" data-provedor="local_{{ p.id }}"
+                    style="display:flex; align-items:center; gap:10px; padding:12px; border:2px solid {% if agente.provedor_llm_id == p.id %}var(--color-primary){% else %}var(--color-border){% endif %}; border-radius:var(--radius-lg); cursor:pointer; background:{% if agente.provedor_llm_id == p.id %}rgba(66,153,225,0.06){% else %}var(--color-surface){% endif %}; transition:all .15s;">
+                    <input type="radio" name="provedor_radio" value="local_{{ p.id }}" {% if agente.provedor_llm_id == p.id %}checked{% endif %} style="display:none;">
+                    <i class="fas fa-server" style="font-size:1.1rem; color:var(--color-success);"></i>
+                    <div>
+                        <span style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary);">{{ p.nome }}</span>
+                        <p style="font-size:0.65rem; color:var(--color-text-muted); margin:0;">Servidor local</p>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Passo 2: Modelo -->
+        <div class="box" id="box-modelo" style="padding:var(--space-lg); margin-bottom:var(--space-md); {% if not agente.modelo_llm and not agente.provedor_llm_id %}opacity:0.5; pointer-events:none;{% endif %}">
+            <h2 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm); margin-bottom:var(--space-lg);">
+                <span style="background:var(--color-success); color:white; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:0.7rem; margin-right:6px; font-weight:700;">2</span>
+                Modelo
+            </h2>
+            <select name="modelo_llm" id="select_modelo" class="input" style="width:100%;">
+                <option value="">Selecione um modelo...</option>
+            </select>
+            <div id="modelo-info" style="margin-top:8px; display:none;">
+                <div id="modelo-badges" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+            </div>
+            <!-- Input para modelo customizado -->
+            <div id="modelo-custom-wrap" style="margin-top:8px; display:none;">
+                <input type="text" id="modelo_custom_input" placeholder="Digite o ID do modelo (ex: openai/gpt-4o)" class="input" style="width:100%; font-size:0.8rem;">
+                <p style="font-size:0.65rem; color:var(--color-text-muted); margin-top:3px;">Modelo nao listado? Digite o identificador completo.</p>
+            </div>
+        </div>
+
+        <!-- Passo 3: Parametros -->
+        <div class="box" id="box-parametros" style="padding:var(--space-lg); margin-bottom:var(--space-md); {% if not agente.modelo_llm and not agente.provedor_llm_id %}opacity:0.5; pointer-events:none;{% endif %}">
+            <h2 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm); margin-bottom:var(--space-lg);">
+                <span style="background:var(--color-warning); color:white; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:0.7rem; margin-right:6px; font-weight:700;">3</span>
+                Parametros de Geracao
+            </h2>
+
+            <!-- Temperatura -->
+            <div style="margin-bottom:var(--space-lg);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary);">
+                        Temperatura
+                        <span style="font-size:0.65rem; color:var(--color-text-muted); font-weight:400; margin-left:4px;">Criatividade da resposta</span>
+                    </label>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="val-temperatura" style="font-size:0.8rem; font-weight:700; color:var(--color-primary); min-width:32px; text-align:right;">{{ agente.temperatura or config_llm_padrao.temperatura }}</span>
+                        <button type="button" onclick="resetSlider('temperatura')" title="Resetar" style="background:none; border:none; cursor:pointer; color:var(--color-text-muted); font-size:0.7rem; padding:2px;"><i class="fas fa-undo"></i></button>
+                    </div>
+                </div>
+                <div style="position:relative;">
+                    <input type="range" name="temperatura" id="slider-temperatura" min="0" max="2" step="0.1" value="{{ agente.temperatura or config_llm_padrao.temperatura }}"
+                        style="width:100%; height:6px; -webkit-appearance:none; appearance:none; background:linear-gradient(to right, var(--color-success), var(--color-warning), var(--color-error)); border-radius:3px; outline:none; cursor:pointer;">
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:2px;">
+                    <span style="font-size:0.6rem; color:var(--color-text-muted);">Preciso (0)</span>
+                    <span style="font-size:0.6rem; color:var(--color-text-muted);">Criativo (2)</span>
+                </div>
+            </div>
+
+            <!-- Max Tokens -->
+            <div style="margin-bottom:var(--space-lg);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary);">
+                        Max Tokens
+                        <span style="font-size:0.65rem; color:var(--color-text-muted); font-weight:400; margin-left:4px;">Tamanho maximo da resposta</span>
+                    </label>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="val-max_tokens" style="font-size:0.8rem; font-weight:700; color:var(--color-primary); min-width:40px; text-align:right;">{{ agente.max_tokens or config_llm_padrao.max_tokens }}</span>
+                        <button type="button" onclick="resetSlider('max_tokens')" title="Resetar" style="background:none; border:none; cursor:pointer; color:var(--color-text-muted); font-size:0.7rem; padding:2px;"><i class="fas fa-undo"></i></button>
+                    </div>
+                </div>
+                <input type="range" name="max_tokens" id="slider-max_tokens" min="100" max="8000" step="100" value="{{ agente.max_tokens or config_llm_padrao.max_tokens }}"
+                    style="width:100%; height:6px; -webkit-appearance:none; appearance:none; background:var(--color-border); border-radius:3px; outline:none; cursor:pointer;">
+                <div style="display:flex; justify-content:space-between; margin-top:2px;">
+                    <span style="font-size:0.6rem; color:var(--color-text-muted);">Curto (100)</span>
+                    <span style="font-size:0.6rem; color:var(--color-text-muted);">Longo (8000)</span>
+                </div>
+            </div>
+
+            <!-- Top P -->
+            <div style="margin-bottom:var(--space-lg);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary);">
+                        Top P
+                        <span style="font-size:0.65rem; color:var(--color-text-muted); font-weight:400; margin-left:4px;">Amostragem por probabilidade</span>
+                    </label>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="val-top_p" style="font-size:0.8rem; font-weight:700; color:var(--color-primary); min-width:32px; text-align:right;">{{ agente.top_p or config_llm_padrao.top_p }}</span>
+                        <button type="button" onclick="resetSlider('top_p')" title="Resetar" style="background:none; border:none; cursor:pointer; color:var(--color-text-muted); font-size:0.7rem; padding:2px;"><i class="fas fa-undo"></i></button>
+                    </div>
+                </div>
+                <input type="range" name="top_p" id="slider-top_p" min="0" max="1" step="0.05" value="{{ agente.top_p or config_llm_padrao.top_p }}"
+                    style="width:100%; height:6px; -webkit-appearance:none; appearance:none; background:var(--color-border); border-radius:3px; outline:none; cursor:pointer;">
+            </div>
+
+            <!-- Frequency Penalty -->
+            <div style="margin-bottom:var(--space-lg);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary);">
+                        Frequency Penalty
+                        <span style="font-size:0.65rem; color:var(--color-text-muted); font-weight:400; margin-left:4px;">Evita repeticao de palavras</span>
+                    </label>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="val-frequency_penalty" style="font-size:0.8rem; font-weight:700; color:var(--color-primary); min-width:32px; text-align:right;">{{ agente.frequency_penalty or config_llm_padrao.frequency_penalty }}</span>
+                        <button type="button" onclick="resetSlider('frequency_penalty')" title="Resetar" style="background:none; border:none; cursor:pointer; color:var(--color-text-muted); font-size:0.7rem; padding:2px;"><i class="fas fa-undo"></i></button>
+                    </div>
+                </div>
+                <input type="range" name="frequency_penalty" id="slider-frequency_penalty" min="-2" max="2" step="0.1" value="{{ agente.frequency_penalty or config_llm_padrao.frequency_penalty }}"
+                    style="width:100%; height:6px; -webkit-appearance:none; appearance:none; background:var(--color-border); border-radius:3px; outline:none; cursor:pointer;">
+            </div>
+
+            <!-- Presence Penalty -->
+            <div style="margin-bottom:var(--space-md);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--color-text-primary);">
+                        Presence Penalty
+                        <span style="font-size:0.65rem; color:var(--color-text-muted); font-weight:400; margin-left:4px;">Incentiva novos topicos</span>
+                    </label>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="val-presence_penalty" style="font-size:0.8rem; font-weight:700; color:var(--color-primary); min-width:32px; text-align:right;">{{ agente.presence_penalty or config_llm_padrao.presence_penalty }}</span>
+                        <button type="button" onclick="resetSlider('presence_penalty')" title="Resetar" style="background:none; border:none; cursor:pointer; color:var(--color-text-muted); font-size:0.7rem; padding:2px;"><i class="fas fa-undo"></i></button>
+                    </div>
+                </div>
+                <input type="range" name="presence_penalty" id="slider-presence_penalty" min="-2" max="2" step="0.1" value="{{ agente.presence_penalty or config_llm_padrao.presence_penalty }}"
+                    style="width:100%; height:6px; -webkit-appearance:none; appearance:none; background:var(--color-border); border-radius:3px; outline:none; cursor:pointer;">
+            </div>
+        </div>
+
+        <div class="box" style="padding:var(--space-lg); margin-bottom:var(--space-md); {% if agente.internal_sandbox_ativo %}border:1px solid var(--color-success);{% endif %}">
+            <div class="flex items-center justify-between mb-md">
+                <div>
+                    <h2 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:{% if agente.internal_sandbox_ativo %}var(--color-success){% else %}var(--color-text-secondary){% endif %};">
+                        <i class="fas fa-terminal" style="margin-right:5px;"></i> Sandbox (Code Execution)
+                    </h2>
+                    <p style="font-size:0.75rem; color:var(--color-text-secondary); margin-top:4px;">Permite que o agente execute scripts Python/Bash no servidor.</p>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" id="btn-on" onclick="toggleInternalSandbox(true)" class="button is-small"
+                        style="background:{% if agente.internal_sandbox_ativo %}var(--color-success){% else %}var(--color-surface){% endif %}; color:{% if agente.internal_sandbox_ativo %}white{% else %}var(--color-text-secondary){% endif %}; border:1px solid var(--color-success);">ON</button>
+                    <button type="button" id="btn-off" onclick="toggleInternalSandbox(false)" class="button is-small"
+                        style="background:{% if not agente.internal_sandbox_ativo %}var(--color-text-muted){% else %}var(--color-surface){% endif %}; color:{% if not agente.internal_sandbox_ativo %}white{% else %}var(--color-text-secondary){% endif %}; border:1px solid var(--color-text-muted);">OFF</button>
+                </div>
+            </div>
+            <a href="/internal-sandbox/" target="_blank" class="button is-small is-outline" style="border-color:var(--color-success); color:var(--color-success);">
+                <i class="fas fa-external-link-alt" style="margin-right:4px;"></i> Abrir Console Virtual
+            </a>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="button" onclick="salvarAgente()" class="button is-primary"><i class="fas fa-save" style="margin-right:5px;"></i> Salvar Configuracoes</button>
+        </div>
+    </div>
+
+    </form><!-- fim form-agente -->
+
+    <!-- TAB: Ferramentas -->
+    <form id="form-ferramentas" action="/agentes/{{ agente.id }}/ferramentas/atualizar" method="POST">
+    <div id="tab-ferramentas" class="tab-panel" style="display:none;">
+        <div class="box" style="padding:var(--space-lg); margin-bottom:var(--space-md);">
+            <div class="flex items-center justify-between mb-lg" style="border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm);">
+                <h2 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-secondary);">
+                    Ferramentas disponiveis <span id="cnt-sel">{{ total_selecionadas }}</span> / 20 selecionadas
+                </h2>
+                {% if todas_ferramentas %}
+                <label class="button is-small is-outline" style="cursor:pointer; margin:0;">
+                    <input type="checkbox" id="toggleTodas" style="display:none;"> <i class="fas fa-check-double" style="margin-right:4px;"></i> Toggle Todas
+                </label>
+                <label class="button is-small is-outline" style="cursor:pointer; margin:0;">
+                    <a href="/ferramentas"> <i class="fas fa-tools" style="margin-right:4px;"></i> Criar Ferramentas</a>
+                </label>
+                {% endif %}
+            </div>
+            {% if todas_ferramentas %}
+            <div class="grid grid-cols-2 gap-md">
+                {% for f in todas_ferramentas %}
+                <label class="ferramenta-box flex gap-sm" style="padding:var(--space-md); border:1px solid {% if f.id in ferramentas_agente_ids %}var(--color-primary){% else %}var(--color-border){% endif %}; background:{% if f.id in ferramentas_agente_ids %}var(--color-info-light, rgba(66,153,225,0.08)){% else %}var(--color-surface){% endif %}; border-radius:var(--radius-lg); cursor:pointer; transition:all .15s; align-items:flex-start;">
+                    <input type="checkbox" name="ferramenta_{{ f.id }}" class="ferramenta-cb"
+                        {% if f.id in ferramentas_agente_ids %}checked{% endif %}
+                        style="margin-top:4px; transform:scale(1.1); flex-shrink:0;">
+                    <div>
+                        <strong style="font-size:0.875rem; color:var(--color-text-primary);">{{ f.nome }}</strong>
+                        <p style="font-size:0.75rem; color:var(--color-text-secondary); margin:2px 0 0; line-height:1.4;">{{ f.descricao }}</p>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align:center; padding:var(--space-2xl); border:1px dashed var(--color-border); border-radius:var(--radius-lg);">
+                <p style="color:var(--color-text-muted);">Nenhuma ferramenta cadastrada. <a href="/ferramentas/wizard/step1">Criar ferramentas</a></p>
+            </div>
+            {% endif %}
+        </div>
+        <div class="flex justify-end">
+            <button type="button" onclick="salvarFerramentas()" class="button is-primary"><i class="fas fa-save" style="margin-right:5px;"></i> Salvar Ferramentas</button>
+        </div>
+    </div>
+    </form>
+
+    <!-- TAB: Skills -->
+    <form id="form-skills" action="/agentes/{{ agente.id }}/skills/atualizar" method="POST">
+    <input type="hidden" name="skill_ids" id="skill_ids_input" value="{{ skills_agente|map(attribute='id')|join(',') }}">
+    <div id="tab-skills" class="tab-panel" style="display:none;">
+        <div class="box" style="padding:var(--space-lg); margin-bottom:var(--space-md);">
+            <h2 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm); margin-bottom:var(--space-md);">Skills Ativas nesta Persona</h2>
+            <div id="lista-skills-ativas" style="min-height:60px; border:2px dashed var(--color-border); border-radius:var(--radius-md); padding:var(--space-md); margin-bottom:var(--space-md); background:var(--color-bg-secondary);">
+                {% for sk in skills_agente %}
+                <div class="skill-item-ativa flex items-center justify-between" data-id="{{ sk.id }}"
+                    style="background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:8px 12px; margin-bottom:6px;">
+                    <div class="flex items-center gap-sm">
+                        <span style="font-size:1rem;">{{ sk.icone or '' }}</span>
+                        <div>
+                            <span style="font-weight:600; font-size:0.875rem;">{{ sk.nome }}</span>
+                            <p style="font-size:0.7rem; color:var(--color-text-secondary); margin:0;">{{ sk.descricao[:80] }}</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="removerSkill({{ sk.id }})" style="background:none; border:none; color:var(--color-text-muted); cursor:pointer; font-size:1rem; padding:4px;">x</button>
+                </div>
+                {% else %}
+                <p id="msg-vazio" style="font-size:0.8rem; color:var(--color-text-muted); text-align:center; padding:var(--space-md);">Nenhuma skill ativa. Adicione abaixo.</p>
+                {% endfor %}
+            </div>
+            <button type="button" onclick="salvarSkills()" class="button is-primary" style="margin-bottom:var(--space-lg);"><i class="fas fa-save" style="margin-right:5px;"></i> Salvar Skills</button>
+
+            <h2 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm); margin-bottom:var(--space-md);">Todas as Skills Disponiveis</h2>
+            {% for sk in todas_skills %}
+            <div class="flex items-center justify-between" style="padding:8px 12px; border:1px solid var(--color-border); border-radius:var(--radius-md); margin-bottom:6px; background:var(--color-surface);">
+                <div class="flex items-center gap-sm">
+                    <span>{{ sk.icone or '' }}</span>
+                    <div>
+                        <span style="font-weight:600; font-size:0.875rem;">{{ sk.nome }}</span>
+                        <p style="font-size:0.7rem; color:var(--color-text-secondary); margin:0;">{{ sk.descricao[:100] }}</p>
+                    </div>
+                </div>
+                {% if sk.id in ids_agente %}
+                <span style="font-size:0.75rem; color:var(--color-success); font-weight:600;">Ativa</span>
+                {% else %}
+                <button type="button" onclick="adicionarSkill({{ sk.id }}, '{{ sk.icone or "" }}', '{{ sk.nome }}', '{{ sk.descricao[:60]|replace("'", "\\'") }}')"
+                    class="button is-small is-outline" style="border-color:var(--color-primary); color:var(--color-primary);">+ Adicionar</button>
+                {% endif %}
+            </div>
+            {% else %}
+            <p style="font-size:0.875rem; color:var(--color-text-muted);">Nenhuma skill cadastrada. <a href="/skills/novo">Criar skill</a></p>
+            {% endfor %}
+        </div>
+    </div>
+    </form>
+
+    <!-- TAB: Conhecimento -->
+    <div id="tab-conhecimento" class="tab-panel" style="display:none;">
+        <div class="box" style="padding:var(--space-lg); margin-bottom:var(--space-md);">
+            <h2 style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border); padding-bottom:var(--space-sm); margin-bottom:var(--space-md);">Base de Conhecimento RAG</h2>
+            <p style="font-size:0.8rem; color:var(--color-text-secondary); margin-bottom:var(--space-lg);">Forneça uma fonte de verdade privada que sera injetada automaticamente no system prompt.</p>
+            <div style="display:flex; gap:var(--space-sm); align-items:flex-end;">
+                <div style="flex:1;">
+                    <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--color-text-primary); margin-bottom:4px;">Base de Conhecimento</label>
+                    <select id="rag_select" class="input" style="width:100%;">
+                        <option value="">Desvinculado (Sem RAG)</option>
+                        {% for rag in rags_disponiveis %}
+                        <option value="{{ rag.id }}" {% if agente.rag_id == rag.id %}selected{% endif %}>
+                            {{ rag.nome }} {% if not rag.treinado %}(Processamento necessario){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button" onclick="vincularRAG()" class="button is-primary"><i class="fas fa-link" style="margin-right:5px;"></i> Vincular</button>
+            </div>
+            {% if agente.rag_id %}
+            <p style="font-size:0.75rem; color:var(--color-success); margin-top:var(--space-sm);">RAG vinculado atualmente.</p>
+            {% endif %}
+        </div>
+        <div style="text-align:right;">
+            <a href="/rags" class="button is-outline is-small">Gerenciar bases de conhecimento</a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const AGENTE_ID = {{ agente.id }};
+const SESSAO_ID = {{ sessao.id }};
+
+// Deletar agente
+async function deletarAgente() {
+    if (!confirm('Deseja realmente deletar o agente "{{ agente.nome }}"? Esta ação não pode ser desfeita.')) return;
+    try {
+        const resp = await fetch(`/api/agentes/${AGENTE_ID}`, { method: 'DELETE' });
+        if (resp.ok) {
+            window.location.href = `/agentes/sessao/${SESSAO_ID}`;
+        } else {
+            const data = await resp.json();
+            toast(data.detail || 'Erro ao deletar agente.', false);
+        }
+    } catch (e) {
+        toast('Erro de conexão ao deletar agente.', false);
+    }
+}
+
+// Dados do servidor para a tab config
+const CONFIG_PADRAO = {{ config_llm_padrao | tojson }};
+const MODELOS_POR_PROVEDOR = {{ modelos_por_provedor | tojson }};
+const OPENROUTER_MODELOS = {{ openrouter_modelos | tojson }};
+const AGENTE_MODELO_LLM = {{ agente.modelo_llm | tojson }};
+
+// Toast
+function toast(msg, ok = true) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.background = ok ? 'var(--color-success)' : 'var(--color-error)';
+    el.style.color = 'white';
+    el.style.display = 'block';
+    setTimeout(() => el.style.display = 'none', 3000);
+}
+
+// Tabs
+function mudarTab(nome) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        const ativo = b.dataset.tab === nome;
+        b.style.color = ativo ? 'var(--color-primary)' : 'var(--color-text-secondary)';
+        b.style.fontWeight = ativo ? '600' : '500';
+        b.style.borderBottomColor = ativo ? 'var(--color-primary)' : 'transparent';
+    });
+    document.getElementById('tab-' + nome).style.display = 'block';
+    history.replaceState(null, '', '?tab=' + nome);
+}
+
+// Abrir tab por query param
+(function() {
+    const tab = new URLSearchParams(location.search).get('tab') || 'comportamento';
+    mudarTab(tab);
+})();
+
+// Slider -> atualizar valor exibido
+['temperatura', 'max_tokens', 'top_p', 'frequency_penalty', 'presence_penalty'].forEach(name => {
+    const slider = document.getElementById('slider-' + name);
+    const display = document.getElementById('val-' + name);
+    if (slider && display) {
+        slider.addEventListener('input', () => {
+            display.textContent = slider.value;
+        });
+    }
+});
+
+// Resetar slider para padrao global
+function resetSlider(name) {
+    const slider = document.getElementById('slider-' + name);
+    const display = document.getElementById('val-' + name);
+    const padrao = CONFIG_PADRAO[name];
+    if (slider) slider.value = padrao;
+    if (display) display.textContent = padrao;
+}
+
+// ---- Provedor LLM ----
+document.addEventListener('DOMContentLoaded', () => {
+    // Cards de provedor: click para selecionar
+    document.querySelectorAll('.provedor-card').forEach(card => {
+        card.addEventListener('click', () => {
+            // Desmarcar todos
+            document.querySelectorAll('.provedor-card').forEach(c => {
+                c.style.borderColor = 'var(--color-border)';
+                c.style.background = 'var(--color-surface)';
+            });
+            // Marcar selecionado
+            card.style.borderColor = 'var(--color-primary)';
+            card.style.background = 'rgba(66,153,225,0.06)';
+            card.querySelector('input[type=radio]').checked = true;
+
+            const provedor = card.querySelector('input[type=radio]').value;
+            onProvedorChange(provedor);
+        });
+    });
+
+    // Inicializar estado com base no agente carregado
+    inicializarConfig();
+});
+
+function inicializarConfig() {
+    // Descobrir provedor ativo e popular modelos
+    const checked = document.querySelector('input[name="provedor_radio"]:checked');
+    if (checked) {
+        onProvedorChange(checked.value);
+    }
+}
+
+function onProvedorChange(provedor) {
+    const boxModelo = document.getElementById('box-modelo');
+    const boxParams = document.getElementById('box-parametros');
+    const hiddenId = document.getElementById('provedor_llm_id_input');
+    const selectModelo = document.getElementById('select_modelo');
+    const customWrap = document.getElementById('modelo-custom-wrap');
+
+    // Limpar select
+    selectModelo.innerHTML = '<option value="">Selecione um modelo...</option>';
+
+    if (provedor === 'padrao') {
+        hiddenId.value = '';
+        boxModelo.style.opacity = '0.5';
+        boxModelo.style.pointerEvents = 'none';
+        boxParams.style.opacity = '0.5';
+        boxParams.style.pointerEvents = 'none';
+        return;
+    }
+
+    // Habilitar boxes
+    boxModelo.style.opacity = '1';
+    boxModelo.style.pointerEvents = 'auto';
+    boxParams.style.opacity = '1';
+    boxParams.style.pointerEvents = 'auto';
+
+    if (provedor === 'openrouter') {
+        hiddenId.value = '';
+        // Popular com modelos OpenRouter
+        OPENROUTER_MODELOS.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            if (m === AGENTE_MODELO_LLM) opt.selected = true;
+            selectModelo.appendChild(opt);
+        });
+        // Opcao customizada
+        const optCustom = document.createElement('option');
+        optCustom.value = '__custom__';
+        optCustom.textContent = 'Outro (digitar manualmente)';
+        selectModelo.appendChild(optCustom);
+        customWrap.style.display = 'none';
+    } else if (provedor.startsWith('local_')) {
+        const provedorId = provedor.replace('local_', '');
+        hiddenId.value = provedorId;
+        const modelos = MODELOS_POR_PROVEDOR[provedorId] || [];
+        if (modelos.length === 0) {
+            // Buscar modelos via API
+            carregarModelosAPI(provedorId);
+        } else {
+            modelos.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id || m.nome;
+                opt.textContent = m.nome;
+                let label = m.nome;
+                if (m.suporta_imagens) label += ' (Imagens)';
+                if (m.suporta_ferramentas) label += ' (Tools)';
+                opt.textContent = label;
+                if (m.id === AGENTE_MODELO_LLM || m.nome === AGENTE_MODELO_LLM) opt.selected = true;
+                selectModelo.appendChild(opt);
+            });
+        }
+        customWrap.style.display = 'none';
+    }
+}
+
+async function carregarModelosAPI(provedorId) {
+    const selectModelo = document.getElementById('select_modelo');
+    try {
+        const r = await fetch('/api/provedores-llm/' + provedorId + '/modelos');
+        if (!r.ok) return;
+        const modelos = await r.json();
+        selectModelo.innerHTML = '<option value="">Selecione um modelo...</option>';
+        modelos.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            let label = m.nome || m.id;
+            if (m.suporta_imagens) label += ' (Imagens)';
+            if (m.suporta_ferramentas) label += ' (Tools)';
+            opt.textContent = label;
+            if (m.id === AGENTE_MODELO_LLM) opt.selected = true;
+            selectModelo.appendChild(opt);
+        });
+    } catch(e) {
+        console.error('Erro ao carregar modelos:', e);
+    }
+}
+
+// Detectar selecao de "Outro" no modelo
+document.getElementById('select_modelo').addEventListener('change', function() {
+    const customWrap = document.getElementById('modelo-custom-wrap');
+    const customInput = document.getElementById('modelo_custom_input');
+    if (this.value === '__custom__') {
+        customWrap.style.display = 'block';
+        this.name = ''; // Remover name do select para nao enviar
+        customInput.name = 'modelo_llm';
+    } else {
+        customWrap.style.display = 'none';
+        this.name = 'modelo_llm';
+        customInput.name = '';
+    }
+});
+
+// Estilo do slider (thumb)
+(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--color-primary);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+// AJAX: Salvar Comportamento / Config
+async function salvarAgente() {
+    const fd = new FormData(document.getElementById('form-agente'));
+
+    // Se custom model, usar valor do input custom
+    const customInput = document.getElementById('modelo_custom_input');
+    if (customInput && customInput.value && customInput.name === 'modelo_llm') {
+        fd.set('modelo_llm', customInput.value);
+    }
+
+    // Garantir provedor_llm_id
+    const hiddenId = document.getElementById('provedor_llm_id_input');
+    fd.set('provedor_llm_id', hiddenId.value);
+
+    try {
+        const r = await fetch('/agentes/' + AGENTE_ID + '/atualizar', {method:'POST', body: fd});
+        toast(r.ok ? 'Salvo com sucesso!' : 'Erro ao salvar.', r.ok);
+    } catch(e) { toast('Erro: ' + e.message, false); }
+}
+
+// AJAX: Salvar Ferramentas
+async function salvarFerramentas() {
+    const fd = new FormData(document.getElementById('form-ferramentas'));
+    const sel = document.querySelectorAll('.ferramenta-cb:checked').length;
+    if (sel > 20) { toast('Maximo 20 ferramentas.', false); return; }
+    try {
+        const r = await fetch('/agentes/' + AGENTE_ID + '/ferramentas/atualizar', {method:'POST', body: fd});
+        document.getElementById('cnt-sel').textContent = sel;
+        document.getElementById('cnt-ferramentas').textContent = sel;
+        toast(r.ok ? 'Ferramentas salvas!' : 'Erro ao salvar.', r.ok);
+    } catch(e) { toast('Erro: ' + e.message, false); }
+}
+
+// Estilo dinamico ferramentas
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.ferramenta-cb').forEach(cb => {
+        cb.addEventListener('change', () => {
+            const box = cb.closest('.ferramenta-box');
+            box.style.borderColor = cb.checked ? 'var(--color-primary)' : 'var(--color-border)';
+            box.style.background = cb.checked ? 'rgba(66,153,225,0.08)' : 'var(--color-surface)';
+        });
+    });
+    const tg = document.getElementById('toggleTodas');
+    if (tg) tg.addEventListener('change', e => {
+        let n = 0;
+        document.querySelectorAll('.ferramenta-cb').forEach(cb => {
+            cb.checked = e.target.checked && n < 20;
+            if (e.target.checked) n++;
+            cb.dispatchEvent(new Event('change'));
+        });
+    });
+});
+
+// AJAX: Salvar Skills
+const idsAtivos = new Set([{{ skills_agente|map(attribute='id')|join(',') }}]);
+
+function atualizarInputSkills() {
+    document.getElementById('skill_ids_input').value = Array.from(idsAtivos).join(',');
+    const msgV = document.getElementById('msg-vazio');
+    if (msgV) msgV.style.display = idsAtivos.size ? 'none' : 'block';
+    document.getElementById('cnt-skills').textContent = idsAtivos.size;
+}
+
+function removerSkill(id) {
+    idsAtivos.delete(id);
+    const el = document.querySelector('.skill-item-ativa[data-id="' + id + '"]');
+    if (el) el.remove();
+    atualizarInputSkills();
+}
+
+function adicionarSkill(id, icone, nome, desc) {
+    if (idsAtivos.has(id)) return;
+    idsAtivos.add(id);
+    const lista = document.getElementById('lista-skills-ativas');
+    const div = document.createElement('div');
+    div.className = 'skill-item-ativa flex items-center justify-between';
+    div.dataset.id = id;
+    div.style = 'background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:8px 12px;margin-bottom:6px;';
+    div.innerHTML = `<div class="flex items-center gap-sm"><span style="font-size:1rem;">${icone}</span><div><span style="font-weight:600;font-size:.875rem;">${nome}</span><p style="font-size:.7rem;color:var(--color-text-secondary);margin:0;">${desc}</p></div></div><button type="button" onclick="removerSkill(${id})" style="background:none;border:none;color:var(--color-text-muted);cursor:pointer;font-size:1rem;padding:4px;">x</button>`;
+    lista.appendChild(div);
+    atualizarInputSkills();
+}
+
+async function salvarSkills() {
+    atualizarInputSkills();
+    const fd = new FormData(document.getElementById('form-skills'));
+    try {
+        const r = await fetch('/agentes/' + AGENTE_ID + '/skills/atualizar', {method:'POST', body: fd});
+        toast(r.ok ? 'Skills salvas!' : 'Erro ao salvar.', r.ok);
+    } catch(e) { toast('Erro: ' + e.message, false); }
+}
+
+// AJAX: RAG
+async function vincularRAG() {
+    const ragId = document.getElementById('rag_select').value;
+    try {
+        const r = await fetch('/api/agentes/' + AGENTE_ID + '/vincular-treinamento', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({rag_id: ragId || null})
+        });
+        toast(r.ok ? 'Conhecimento vinculado!' : 'Erro ao vincular.', r.ok);
+    } catch(e) { toast('Erro: ' + e.message, false); }
+}
+
+// AJAX: Sandbox
+async function toggleInternalSandbox(ativo) {
+    try {
+        const r = await fetch('/api/agentes/' + AGENTE_ID + '/internal-sandbox', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({internal_sandbox_ativo: ativo})
+        });
+        if (r.ok) {
+            const bOn = document.getElementById('btn-on');
+            const bOff = document.getElementById('btn-off');
+            if (ativo) {
+                bOn.style.background = 'var(--color-success)'; bOn.style.color = 'white';
+                bOff.style.background = 'var(--color-surface)'; bOff.style.color = 'var(--color-text-secondary)';
+            } else {
+                bOff.style.background = 'var(--color-text-muted)'; bOff.style.color = 'white';
+                bOn.style.background = 'var(--color-surface)'; bOn.style.color = 'var(--color-text-secondary)';
+            }
+            toast(ativo ? 'Sandbox ativado.' : 'Sandbox desativado.');
+        } else { toast('Erro ao alterar sandbox.', false); }
+    } catch(e) { toast('Erro: ' + e.message, false); }
+}
+</script>
 {% endblock %}

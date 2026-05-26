@@ -1,0 +1,162 @@
+{% extends "auth/_base_auth.html" %}
+
+{% block card %}
+<div class="auth-header">
+    <div class="auth-logo"><i class="fas fa-user-plus"></i></div>
+    <h1 class="auth-title">
+        {% if is_bootstrap %}Configurar primeiro acesso{% else %}Criar sua conta{% endif %}
+    </h1>
+    <p class="auth-subtitle">
+        {% if is_bootstrap %}
+        Você será o administrador deste Fluxi. Defina suas credenciais para acessar o painel.
+        {% else %}
+        Em poucos segundos você terá acesso ao painel.
+        {% endif %}
+    </p>
+</div>
+
+<div class="auth-body">
+    {% if is_bootstrap %}
+    <div class="alert alert-info" role="status">
+        <i class="fas fa-crown" style="margin-top: 2px;"></i>
+        <span>Como você é o primeiro a se cadastrar, sua conta será criada como <strong>administrador</strong>.</span>
+    </div>
+    {% endif %}
+
+    {% if erro %}
+    <div class="alert alert-danger" role="alert">
+        <i class="fas fa-exclamation-circle" style="margin-top: 2px;"></i>
+        <span>{{ erro }}</span>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/signup" novalidate>
+        <div class="form-group">
+            <label class="form-label" for="nome">
+                Nome <span class="req">*</span>
+            </label>
+            <input type="text" id="nome" name="nome" class="form-input"
+                placeholder="Como devo te chamar?" autocomplete="name" required minlength="2"
+                maxlength="100" autofocus>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="email">
+                E-mail <span class="req">*</span>
+            </label>
+            <input type="email" id="email" name="email" class="form-input"
+                placeholder="voce@exemplo.com" autocomplete="email" required>
+            <div class="form-hint">Usado para entrar. Não enviamos e-mails — fique tranquilo.</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="senha">
+                Senha <span class="req">*</span>
+            </label>
+            <div class="password-wrapper">
+                <input type="password" id="senha" name="senha" class="form-input"
+                    autocomplete="new-password" required minlength="8" maxlength="128"
+                    oninput="atualizarForca(this.value)">
+                <button type="button" class="toggle-password" aria-label="Mostrar senha"
+                    onclick="togglePassword('senha', this)">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+            <div class="strength-meter" aria-hidden="true">
+                <div class="strength-bar" id="bar-1"></div>
+                <div class="strength-bar" id="bar-2"></div>
+                <div class="strength-bar" id="bar-3"></div>
+                <div class="strength-bar" id="bar-4"></div>
+            </div>
+            <div class="strength-label" id="strength-label">Mínimo de 8 caracteres.</div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="senha_confirmar">
+                Confirmar senha <span class="req">*</span>
+            </label>
+            <div class="password-wrapper">
+                <input type="password" id="senha_confirmar" name="senha_confirmar" class="form-input"
+                    autocomplete="new-password" required minlength="8" maxlength="128"
+                    oninput="conferirSenhas()">
+                <button type="button" class="toggle-password" aria-label="Mostrar senha"
+                    onclick="togglePassword('senha_confirmar', this)">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+            <div class="form-hint" id="match-label">Repita a senha pra evitar erros de digitação.</div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="btn-criar">
+            <i class="fas fa-user-check"></i>
+            {% if is_bootstrap %}Criar conta de administrador{% else %}Criar conta{% endif %}
+        </button>
+    </form>
+</div>
+
+<div class="auth-footer">
+    Já tem conta? <a href="/login">Entrar</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function togglePassword(id, btn) {
+        const input = document.getElementById(id);
+        const icon = btn.querySelector("i");
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.replace("fa-eye", "fa-eye-slash");
+            btn.setAttribute("aria-label", "Esconder senha");
+        } else {
+            input.type = "password";
+            icon.classList.replace("fa-eye-slash", "fa-eye");
+            btn.setAttribute("aria-label", "Mostrar senha");
+        }
+    }
+
+    function calcularForca(s) {
+        let pontos = 0;
+        if (s.length >= 8) pontos++;
+        if (s.length >= 12) pontos++;
+        if (/[a-z]/.test(s) && /[A-Z]/.test(s)) pontos++;
+        if (/[0-9]/.test(s)) pontos++;
+        if (/[^A-Za-z0-9]/.test(s)) pontos++;
+        return Math.min(4, pontos);
+    }
+
+    function atualizarForca(valor) {
+        const forca = valor ? calcularForca(valor) : 0;
+        const labels = ["", "Fraca", "Média", "Boa", "Forte"];
+        const classes = ["", "fraca-1", "media-2", "boa-3", "forte-4"];
+        for (let i = 1; i <= 4; i++) {
+            const bar = document.getElementById("bar-" + i);
+            bar.className = "strength-bar";
+            if (i <= forca) bar.classList.add(classes[forca]);
+        }
+        const label = document.getElementById("strength-label");
+        label.textContent = valor.length < 8
+            ? "Mínimo de 8 caracteres."
+            : `Força da senha: ${labels[forca]}`;
+        conferirSenhas();
+    }
+
+    function conferirSenhas() {
+        const a = document.getElementById("senha").value;
+        const b = document.getElementById("senha_confirmar").value;
+        const ml = document.getElementById("match-label");
+        if (!b) {
+            ml.textContent = "Repita a senha pra evitar erros de digitação.";
+            ml.style.color = "";
+            return;
+        }
+        if (a === b) {
+            ml.textContent = "✓ As senhas conferem.";
+            ml.style.color = "var(--c-success)";
+        } else {
+            ml.textContent = "As senhas não estão iguais.";
+            ml.style.color = "var(--c-danger)";
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base_modern.html" %}
+
+{% block title %}Skills - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-brain text-primary mb-xs"></i> Skills
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <span style="color: var(--color-text-secondary);">Habilidades especializadas que os agentes carregam sob demanda</span>
+            </p>
+        </div>
+        <div class="flex items-center gap-sm">
+            <a href="/skills/novo" class="button is-small is-primary">
+                <i class="fas fa-plus" style="margin-right: 4px;"></i> Nova Skill
+            </a>
+        </div>
+    </div>
+
+    {% if request.query_params.get('sucesso') %}
+    <div style="background: var(--color-success); color: white; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
+        ✅ {{ request.query_params.get('sucesso') }}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-3">
+        <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+            {% if skills %}
+            <div class="card" style="border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden;">
+                <div class="card-header flex items-center justify-between" style="padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+                    <h2 style="font-size: 1rem; font-weight: 600;">
+                        <i class="fas fa-list" style="margin-right: 6px; color: var(--color-text-secondary);"></i> {{ skills|length }} skill(s) cadastrada(s)
+                    </h2>
+                </div>
+                <div style="padding: 0; overflow-x: auto;">
+                    <table class="table" style="font-size: 0.875rem; width: 100%; text-align: left; border-collapse: collapse;">
+                        <thead style="background: var(--color-bg-secondary);">
+                            <tr>
+                                <th style="padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border);">Nome / Descrição</th>
+                                <th style="padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border);">Categoria</th>
+                                <th style="padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border);">Status</th>
+                                <th class="text-right" style="padding: var(--space-md) var(--space-lg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border); text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for skill in skills %}
+                            <tr style="border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                                    <div class="flex items-center gap-xs mb-xs">
+                                        <span style="font-size: 1rem;">{{ skill.icone or '🔧' }}</span>
+                                        <span style="font-weight: 600; color: var(--color-text-primary);">{{ skill.nome }}</span>
+                                        {% if '-' in skill.nome %}
+                                        <span style="font-size: 0.65rem; background: var(--color-primary); color: white; padding: 1px 5px; border-radius: 10px; opacity: 0.8;">sub-skill</span>
+                                        {% endif %}
+                                    </div>
+                                    <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.4; max-width: 340px;">{{ skill.descricao }}</p>
+                                </td>
+                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                    <span style="font-size: 0.75rem; background: var(--color-bg-secondary); padding: 3px 8px; border-radius: var(--radius-sm); color: var(--color-text-secondary);">{{ skill.categoria }}</span>
+                                </td>
+                                <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle;">
+                                    {% if skill.ativa %}
+                                    <span style="font-size: 0.75rem; background: var(--color-success); color: white; padding: 3px 8px; border-radius: var(--radius-sm); font-weight: 600;">Ativa</span>
+                                    {% else %}
+                                    <span style="font-size: 0.75rem; background: var(--color-text-muted); color: white; padding: 3px 8px; border-radius: var(--radius-sm);">Inativa</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: var(--space-md) var(--space-lg); text-align: right; white-space: nowrap;">
+                                    <a href="/skills/{{ skill.id }}" class="button is-small is-outline" style="margin-right: 4px;">Ver</a>
+                                    <a href="/skills/{{ skill.id }}/editar" class="button is-small is-outline">Editar</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="box" style="text-align: center; padding: var(--space-xl); border: 2px dashed var(--color-border); background: var(--color-surface); border-radius: var(--radius-lg);">
+                <p style="font-size: 2rem; margin-bottom: var(--space-sm);">🧠</p>
+                <p style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Nenhuma skill cadastrada</p>
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Skills são habilidades especializadas que os agentes carregam sob demanda para seguir fluxos específicos.</p>
+                <a href="/skills/novo" class="button is-primary">
+                    <i class="fas fa-plus" style="margin-right: 4px;"></i> Criar primeira skill
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="flex flex-col gap-md" style="padding-left: var(--space-lg);">
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">O que são Skills?</h3>
+                <p style="font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.5;">Skills são <strong>pacotes de instruções</strong> que o agente carrega sob demanda. Quando o LLM identifica que a situação corresponde a uma skill, ele a aciona com <code>invocar_skill</code> e recebe as instruções completas.</p>
+                <p style="font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.5; margin-top: var(--space-sm);">Skills com prefixo compartilhado (ex: <code>vendas-abertura</code>, <code>vendas-proposta</code>) são tratadas como sub-skills de uma família.</p>
+            </div>
+
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Resumo</h3>
+                <div class="flex flex-col gap-xs">
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Total:</span>
+                        <span style="font-weight: 600;">{{ skills|length }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Ativas:</span>
+                        <span style="font-weight: 600; color: var(--color-success);">{{ skills|selectattr('ativa')|list|length }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Categorias:</span>
+                        <span style="font-weight: 600;">{{ skills|map(attribute='categoria')|unique|list|length }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-sm);">Gatilho WhatsApp</h3>
+                <p style="font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: var(--space-sm);">Usuários podem ativar skills via WhatsApp:</p>
+                <code style="font-size: 0.8rem; background: var(--color-bg-secondary); padding: 4px 8px; border-radius: var(--radius-sm); display: block;">!skill &lt;nome&gt;</code>
+                <code style="font-size: 0.8rem; background: var(--color-bg-secondary); padding: 4px 8px; border-radius: var(--radius-sm); display: block; margin-top: 4px;">!skill</code>
+                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;">Sem nome: lista skills disponíveis</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

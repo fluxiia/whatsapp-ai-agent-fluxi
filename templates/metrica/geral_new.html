@@ -1,204 +1,160 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Métricas Gerais - Fluxi.IA{% endblock %}
+{% block title %}Comando Geral - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
-        <i class="fas fa-chart-line" style="color: #3b82f6;"></i> Métricas e Estatísticas
-    </h1>
-    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-        Acompanhe o desempenho e uso do sistema em tempo real
-    </p>
-</div>
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-satellite-dish text-primary mb-xs" style="color: #6366f1;"></i> Status Global da Rede
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <span style="color: var(--color-text-secondary);">Sistema</span> / 
+                <span style="color: var(--color-text-primary);">Métricas Agregadas</span>
+            </p>
+        </div>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/sessoes/criar" class="button is-small is-primary" style="background: #6366f1; border: none;">
+                <i class="fas fa-plus" style="margin-right: 6px;"></i> Homologar WhatsApp
+            </a>
+        </div>
+    </div>
 
-<!-- Métricas de Sessões -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fab fa-whatsapp" style="color: #25D366;"></i> Sessões WhatsApp
-    </h2>
-    
-    <div class="columns">
-        <div class="column">
-            <div class="metric-card" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; text-align: center; padding: 2rem; border-radius: 12px;">
-                <div class="metric-value" style="font-size: 3rem; font-weight: 800; background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 0.5rem;">
-                    {{ metricas.sessoes.total }}
-                </div>
-                <div class="metric-label" style="font-size: 0.875rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <i class="fas fa-layer-group"></i> Total de Sessões
-                </div>
-            </div>
+    <!-- Cluster Central de Dados -->
+    <div class="box mb-lg" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); background: #0f172a;">
+        <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid #334155; padding-bottom: var(--space-sm);">
+            <i class="fab fa-whatsapp" style="color: #22c55e;"></i>
+            <h2 style="font-size: 1rem; font-weight: 600; color: #f8fafc;">Cluster de Sessões</h2>
         </div>
         
-        <div class="column">
-            <div class="metric-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #10b981; text-align: center; padding: 2rem; border-radius: 12px;">
-                <div class="metric-value" style="font-size: 3rem; font-weight: 800; color: #10b981; margin-bottom: 0.5rem;">
-                    {{ metricas.sessoes.ativas }}
-                </div>
-                <div class="metric-label" style="font-size: 0.875rem; color: #166534; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <i class="fas fa-check-circle"></i> Sessões Ativas
-                </div>
+        <div class="grid grid-cols-3 gap-md">
+            <div class="box flex flex-col items-center justify-center text-center p-0" style="padding: var(--space-lg) 0; background: #1e293b; border: 1px solid #334155;">
+                <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Endpoints Registrados (Sessões)</span>
+                <span style="font-size: 2.5rem; font-weight: 700; color: #cbd5e1;">{{ metricas.sessoes.total }}</span>
+            </div>
+            
+            <div class="box flex flex-col items-center justify-center text-center p-0" style="padding: var(--space-lg) 0; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3);">
+                <span style="font-size: 0.75rem; color: #10b981; text-transform: uppercase;">Agentes Ativos Reativos</span>
+                <span style="font-size: 2.5rem; font-weight: 700; color: #34d399;">{{ metricas.sessoes.ativas }}</span>
+            </div>
+            
+            <div class="box flex flex-col items-center justify-center text-center p-0" style="padding: var(--space-lg) 0; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);">
+                <span style="font-size: 0.75rem; color: #38bdf8; text-transform: uppercase;">Sockets Atuais WhatsApp M2M</span>
+                <span style="font-size: 2.5rem; font-weight: 700; color: #7dd3fc;">{{ metricas.sessoes.conectadas }}</span>
             </div>
         </div>
+    </div>
+
+    <!-- Grid Inferior (Estatística e Volumes) -->
+    <div class="grid grid-cols-3 gap-lg mb-lg">
         
-        <div class="column">
-            <div class="metric-card" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border: 2px solid #3b82f6; text-align: center; padding: 2rem; border-radius: 12px;">
-                <div class="metric-value" style="font-size: 3rem; font-weight: 800; color: #3b82f6; margin-bottom: 0.5rem;">
-                    {{ metricas.sessoes.conectadas }}
+        <!-- Bloco de Volumes (2/3) -->
+        <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+            
+            <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-exchange-alt" style="color: var(--color-primary);"></i>
+                    <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Volume de I/O Global</h2>
                 </div>
-                <div class="metric-label" style="font-size: 0.875rem; color: #1e40af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <i class="fas fa-plug"></i> Conectadas Agora
+                
+                <div class="grid grid-cols-4 gap-sm">
+                    <div class="box flex flex-col justify-center text-center p-0" style="padding: var(--space-md) 0; background: var(--color-bg-secondary); border: none;">
+                        <span style="font-size: 0.65rem; color: var(--color-text-secondary); text-transform: uppercase;">Raw Total</span>
+                        <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">{{ metricas.mensagens.total }}</span>
+                    </div>
+                    <div class="box flex flex-col justify-center text-center p-0" style="padding: var(--space-md) 0; background: var(--color-bg-secondary); border: none;">
+                        <span style="font-size: 0.65rem; color: var(--color-info); text-transform: uppercase;">Ingress (IN)</span>
+                        <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-info);">{{ metricas.mensagens.recebidas }}</span>
+                    </div>
+                    <div class="box flex flex-col justify-center text-center p-0" style="padding: var(--space-md) 0; background: var(--color-bg-secondary); border: none;">
+                        <span style="font-size: 0.65rem; color: var(--color-success); text-transform: uppercase;">Egress (OUT)</span>
+                        <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-success);">{{ metricas.mensagens.enviadas }}</span>
+                    </div>
+                    <div class="box flex flex-col justify-center text-center p-0" style="padding: var(--space-md) 0; background: var(--color-bg-secondary); border: none;">
+                        <span style="font-size: 0.65rem; color: var(--color-warning); text-transform: uppercase;">Inbound Action</span>
+                        <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-warning);">{{ metricas.mensagens.processadas }}</span>
+                    </div>
                 </div>
             </div>
+
+            <!-- Tabela Rápida de Sessões -->
+            <div class="box" style="padding: 0; border: none; box-shadow: var(--shadow-sm); overflow: hidden;">
+                <div class="flex items-center gap-sm" style="padding: var(--space-md) var(--space-lg); background: var(--color-surface); border-bottom: 1px solid var(--color-border);">
+                    <i class="fas fa-list text-primary"></i>
+                    <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Links Estabelecidos (Sessões)</h2>
+                </div>
+                
+                {% if sessoes %}
+                <table class="table is-fullwidth" style="margin: 0; font-size: 0.8125rem;">
+                    <thead style="background: var(--color-bg-secondary);">
+                        <tr>
+                            <th style="padding: var(--space-sm) var(--space-lg);">Identificador</th>
+                            <th>Status Sync</th>
+                            <th>Host / Contato</th>
+                            <th style="text-align: right; padding-right: var(--space-lg);">Telemetria</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sessao in sessoes %}
+                        <tr>
+                            <td style="padding: var(--space-sm) var(--space-lg);">
+                                <strong style="color: var(--color-text-primary);">{{ sessao.nome }}</strong>
+                            </td>
+                            <td>
+                                {% if sessao.status == 'conectado' %}
+                                    <span class="tag" style="background: var(--color-success-light); color: var(--color-success); font-size: 0.65rem;">CONNECTED / ACT</span>
+                                {% elif sessao.status == 'conectando' %}
+                                    <span class="tag" style="background: var(--color-warning-light); color: var(--color-warning); font-size: 0.65rem;">HANDSHAKE</span>
+                                {% else %}
+                                    <span class="tag" style="background: var(--color-error-light); color: var(--color-error); font-size: 0.65rem;">ERR_DISCONNECT</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span style="color: var(--color-text-secondary); font-family: monospace;">{{ sessao.telefone or 'N/A' }}</span>
+                            </td>
+                            <td style="text-align: right; padding-right: var(--space-lg);">
+                                <a href="/metricas/sessao/{{ sessao.id }}" class="button is-small is-outline text-primary" style="padding: 2px 8px; border: none;">
+                                    <i class="fas fa-chart-bar"></i> Stats
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="flex flex-col items-center justify-center p-xl text-center" style="background: var(--color-surface); padding: 3rem 1rem;">
+                    <i class="fas fa-ghost" style="font-size: 2rem; color: var(--color-text-muted); margin-bottom: var(--space-sm);"></i>
+                    <p style="font-size: 0.8125rem; color: var(--color-text-secondary);">O sistema se encontra inativo sem instâncias acopladas.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- Coluna Sidebar de Health (1/3) -->
+        <div class="flex flex-col gap-lg" style="grid-column: span 1;">
+            
+            <div class="box flex flex-col justify-center text-center" style="padding: var(--space-2xl) var(--space-lg); border: none; box-shadow: var(--shadow-sm); height: 100%;">
+                <span style="font-size: 4rem; font-weight: 800; color: {% if metricas.performance.taxa_sucesso >= 90 %}var(--color-success){% elif metricas.performance.taxa_sucesso >= 70 %}var(--color-warning){% else %}var(--color-error){% endif %}; line-height: 1;">{{ metricas.performance.taxa_sucesso }}%</span>
+                <span style="font-size: 0.8125rem; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: var(--space-lg);">Disponibilidade de Ação</span>
+                
+                <div style="width: 100%; height: 8px; background: var(--color-bg-secondary); border-radius: 4px; overflow: hidden; margin: 0 auto;">
+                    <div style="height: 100%; width: {{ metricas.performance.taxa_sucesso }}%; background: {% if metricas.performance.taxa_sucesso >= 90 %}var(--color-success){% elif metricas.performance.taxa_sucesso >= 70 %}var(--color-warning){% else %}var(--color-error){% endif %}; transition: width 1s ease;"></div>
+                </div>
+            </div>
+
+            <div class="box flex flex-col justify-center text-center" style="padding: var(--space-xl) var(--space-lg); border: none; box-shadow: var(--shadow-sm);">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--color-info-light); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-sm);">
+                    <i class="fas fa-users" style="font-size: 1.25rem; color: var(--color-info);"></i>
+                </div>
+                <span style="font-size: 2.5rem; font-weight: 700; color: var(--color-text-primary);">{{ metricas.performance.clientes_unicos }}</span>
+                <span style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase;">Nós de Cliente Distintos Servidos</span>
+            </div>
+
         </div>
     </div>
 </div>
-
-<!-- Métricas de Mensagens -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-comments" style="color: #8b5cf6;"></i> Mensagens
-    </h2>
-    
-    <div class="columns is-multiline">
-        <div class="column is-3">
-            <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 12px; border: 2px solid #e5e7eb;">
-                <div style="width: 60px; height: 60px; margin: 0 auto 1rem; border-radius: 50%; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(199, 91, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-envelope" style="font-size: 1.5rem; color: #8b5cf6;"></i>
-                </div>
-                <div style="font-size: 2.5rem; font-weight: 800; color: #1f2937; margin-bottom: 0.5rem;">{{ metricas.mensagens.total }}</div>
-                <div style="font-size: 0.875rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Total</div>
-            </div>
-        </div>
-        
-        <div class="column is-3">
-            <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 12px; border: 2px solid #e5e7eb;">
-                <div style="width: 60px; height: 60px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(59, 130, 246, 0.1); display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-inbox" style="font-size: 1.5rem; color: #3b82f6;"></i>
-                </div>
-                <div style="font-size: 2.5rem; font-weight: 800; color: #3b82f6; margin-bottom: 0.5rem;">{{ metricas.mensagens.recebidas }}</div>
-                <div style="font-size: 0.875rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Recebidas</div>
-            </div>
-        </div>
-        
-        <div class="column is-3">
-            <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 12px; border: 2px solid #e5e7eb;">
-                <div style="width: 60px; height: 60px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-paper-plane" style="font-size: 1.5rem; color: #10b981;"></i>
-                </div>
-                <div style="font-size: 2.5rem; font-weight: 800; color: #10b981; margin-bottom: 0.5rem;">{{ metricas.mensagens.enviadas }}</div>
-                <div style="font-size: 0.875rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Enviadas</div>
-            </div>
-        </div>
-        
-        <div class="column is-3">
-            <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 12px; border: 2px solid #e5e7eb;">
-                <div style="width: 60px; height: 60px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-cog" style="font-size: 1.5rem; color: #f59e0b;"></i>
-                </div>
-                <div style="font-size: 2.5rem; font-weight: 800; color: #f59e0b; margin-bottom: 0.5rem;">{{ metricas.mensagens.processadas }}</div>
-                <div style="font-size: 0.875rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Processadas</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Performance -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-tachometer-alt" style="color: #10b981;"></i> Performance
-    </h2>
-    
-    <div class="columns">
-        <div class="column">
-            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 2rem; border-radius: 12px; text-align: center;">
-                <div style="font-size: 3.5rem; font-weight: 800; margin-bottom: 0.5rem;">{{ metricas.performance.taxa_sucesso }}%</div>
-                <div style="font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.95;">
-                    <i class="fas fa-check-double"></i> Taxa de Sucesso
-                </div>
-            </div>
-        </div>
-        
-        <div class="column">
-            <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 2rem; border-radius: 12px; text-align: center;">
-                <div style="font-size: 3.5rem; font-weight: 800; margin-bottom: 0.5rem;">{{ metricas.performance.clientes_unicos }}</div>
-                <div style="font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.95;">
-                    <i class="fas fa-users"></i> Clientes Únicos
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Sessões Detalhadas -->
-<div class="box" style="margin-bottom: 2rem;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <h2 class="title is-5" style="margin-bottom: 0;">
-            <i class="fas fa-list" style="color: #C75B9B;"></i> Métricas por Sessão
-        </h2>
-    </div>
-    
-    {% if sessoes %}
-    <div class="table-container">
-        <table class="table is-fullwidth is-hoverable" style="border-radius: 12px; overflow: hidden;">
-            <thead>
-                <tr>
-                    <th>Sessão</th>
-                    <th>Status</th>
-                    <th>Telefone</th>
-                    <th style="text-align: right;">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for sessao in sessoes %}
-                <tr>
-                    <td>
-                        <strong style="color: #1f2937;">
-                            <i class="fab fa-whatsapp" style="color: #25D366;"></i> {{ sessao.nome }}
-                        </strong>
-                    </td>
-                    <td>
-                        <span class="status-badge status-{{ sessao.status }}" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.875rem; border-radius: 50px; font-size: 0.8125rem; font-weight: 600;">
-                            {% if sessao.status == 'conectado' %}
-                                <i class="fas fa-check-circle"></i>
-                            {% elif sessao.status == 'conectando' %}
-                                <i class="fas fa-spinner fa-pulse"></i>
-                            {% else %}
-                                <i class="fas fa-times-circle"></i>
-                            {% endif %}
-                            {{ sessao.status|upper }}
-                        </span>
-                    </td>
-                    <td style="color: #6b7280;">{{ sessao.telefone or '-' }}</td>
-                    <td style="text-align: right;">
-                        <a href="/metricas/sessao/{{ sessao.id }}" class="button is-small" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); color: white; border: none; font-weight: 600;">
-                            <span class="icon"><i class="fas fa-chart-bar"></i></span>
-                            <span>Ver Métricas</span>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <div style="text-align: center; padding: 4rem 2rem; background: white; border: 2px dashed #e5e7eb; border-radius: 12px;">
-        <div style="margin-bottom: 1.5rem;">
-            <span style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: inline-flex; align-items: center; justify-content: center;">
-                <i class="fas fa-chart-line" style="font-size: 2.5rem; background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
-            </span>
-        </div>
-        <h3 class="title is-4" style="margin-bottom: 0.75rem;">Nenhuma sessão cadastrada</h3>
-        <p style="color: #6b7280; margin-bottom: 2rem;">
-            Crie sua primeira sessão para começar a acompanhar métricas.
-        </p>
-        <a href="/sessoes/criar" class="button is-primary is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600;">
-            <span class="icon"><i class="fas fa-plus-circle"></i></span>
-            <span>Criar Primeira Sessão</span>
-        </a>
-    </div>
-    {% endif %}
-</div>
-
 {% endblock %}

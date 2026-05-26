@@ -8,7 +8,6 @@ import logging
 from datetime import datetime
 
 from rag.rag_model import RAG
-from rag.rag_metrica_model import RAGMetrica  # Importar para registrar no ORM
 from rag.rag_schema import RAGCriar, RAGAtualizar
 from config.rag_config import RAGConfig
 
@@ -109,26 +108,36 @@ class RAGService:
         return True
 
     @staticmethod
-    def inicializar_rag_service(rag: RAG) -> Any:
+    def inicializar_rag_service(rag: RAG, db: Session = None) -> Any:
         """
         Inicializa instância do RAG customizado.
         """
         logger.info(f"Inicializando RAG customizado para '{rag.nome}' (Provider: {rag.provider})")
-        
+
         try:
             from rag.rag_custom_service import RAGCustomService
             logger.info("RAG customizado importado com sucesso")
-            
-            # Verificar API key
-            if not rag.api_key_embed:
+
+            # Resolver API key
+            api_key = rag.api_key_embed
+            if not api_key and rag.provider == "openrouter" and db:
+                # Fallback para a API key global do OpenRouter
+                from config.config_service import ConfiguracaoService
+                api_key = ConfiguracaoService.obter_valor(db, "openrouter_api_key")
+                logger.info("Usando API key global do OpenRouter para RAG '%s'", rag.nome)
+
+            if not api_key:
                 raise ValueError("API key é obrigatória para o RAG customizado")
-            
+
             # Criar instância do RAG customizado
             logger.info("Criando instância do RAG customizado...")
             rag_service = RAGCustomService(
                 rag_id=rag.id,
                 storage_path=rag.storage_path,
-                api_key=rag.api_key_embed
+                api_key=api_key,
+                modelo_embed=rag.modelo_embed,
+                score_threshold=rag.score_threshold,
+                provider=rag.provider
             )
             logger.info("RAG customizado criado com sucesso")
             return rag_service
@@ -158,7 +167,7 @@ class RAGService:
         
         try:
             # Inicializar RAG customizado
-            rag_service = RAGService.inicializar_rag_service(rag)
+            rag_service = RAGService.inicializar_rag_service(rag, db)
             
             # Usar configurações do RAG se não especificadas
             chunk_size = chunk_size or rag.chunk_size
@@ -167,6 +176,7 @@ class RAGService:
             # Adicionar texto
             result = rag_service.add_text(
                 text=texto,
+                titulo=titulo,
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap
             )
@@ -195,6 +205,54 @@ class RAGService:
             }
 
     @staticmethod
+    def adicionar_arquivo(
+        db: Session,
+        rag_id: int,
+        titulo: str,
+        file_path: str,
+        chunk_size: Optional[int] = None,
+        chunk_overlap: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """Converte um arquivo via MarkItDown e adiciona à base de conhecimento."""
+        logger.info(f"Adicionando arquivo '{file_path}' ao RAG {rag_id}")
+        
+        rag = RAGService.obter_por_id(db, rag_id)
+        if not rag:
+            raise ValueError(f"RAG com ID {rag_id} não encontrado")
+        
+        try:
+            rag_service = RAGService.inicializar_rag_service(rag, db)
+
+            chunk_size = chunk_size or rag.chunk_size
+            chunk_overlap = chunk_overlap or rag.chunk_overlap
+
+            result = rag_service.add_file(
+                file_path=file_path,
+                titulo=titulo,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap
+            )
+            
+            if result["success"]:
+                rag.treinado = True
+                rag.treinado_em = datetime.now()
+                rag.total_chunks = result["total_chunks"]
+                db.commit()
+                
+                logger.info(f"Arquivo adicionado com sucesso: {result['chunks_created']} chunks")
+                return {
+                    "sucesso": True,
+                    "chunks_criados": result["chunks_created"],
+                    "total_chunks": result["total_chunks"]
+                }
+            else:
+                raise ValueError(result.get("error", "Erro desconhecido"))
+            
+        except Exception as e:
+            logger.error(f"Erro ao adicionar arquivo: {str(e)}", exc_info=True)
+            return {"sucesso": False, "erro": str(e)}
+
+    @staticmethod
     def buscar(
         db: Session,
         rag_id: int,
@@ -214,7 +272,7 @@ class RAGService:
         
         try:
             # Inicializar RAG customizado
-            rag_service = RAGService.inicializar_rag_service(rag)
+            rag_service = RAGService.inicializar_rag_service(rag, db)
             
             # Usar top_k configurado ou padrão do RAG
             num_results = top_k if top_k else rag.top_k
@@ -238,21 +296,35 @@ class RAGService:
             raise ValueError(f"RAG {rag_id} não encontrado")
         
         try:
-            rag_service = RAGService.inicializar_rag_service(rag)
+            rag_service = RAGService.inicializar_rag_service(rag, db)
             return rag_service.get_chunks(limit=limit, offset=offset)
         except Exception as e:
             logger.error(f"Erro ao obter chunks: {str(e)}", exc_info=True)
             return []
 
     @staticmethod
+    def obter_chunk_por_id(db: Session, rag_id: int, chunk_id: str) -> Optional[Dict[str, Any]]:
+        """Obtém um chunk específico por ID (O(1))."""
+        rag = RAGService.obter_por_id(db, rag_id)
+        if not rag:
+            raise ValueError(f"RAG com ID {rag_id} não encontrado")
+        
+        try:
+            rag_service = RAGService.inicializar_rag_service(rag, db)
+            return rag_service.get_chunk_by_id(chunk_id)
+        except Exception as e:
+            logger.error(f"Erro ao obter chunk: {str(e)}", exc_info=True)
+            return None
+
+    @staticmethod
     def deletar_chunk(db: Session, rag_id: int, chunk_id: str) -> bool:
         """Deleta um chunk específico."""
         rag = RAGService.obter_por_id(db, rag_id)
         if not rag:
-            raise ValueError(f"RAG {rag_id} não encontrado")
+            raise ValueError(f"RAG com ID {rag_id} não encontrado")
         
         try:
-            rag_service = RAGService.inicializar_rag_service(rag)
+            rag_service = RAGService.inicializar_rag_service(rag, db)
             sucesso = rag_service.delete_chunk(chunk_id)
             
             if sucesso:
@@ -274,7 +346,7 @@ class RAGService:
         
         try:
             # Resetar ChromaDB
-            rag_service = RAGService.inicializar_rag_service(rag)
+            rag_service = RAGService.inicializar_rag_service(rag, db)
             rag_service.reset()
             
             # Atualizar RAG
@@ -297,7 +369,7 @@ class RAGService:
             return {}
         
         try:
-            rag_service = RAGService.inicializar_rag_service(rag)
+            rag_service = RAGService.inicializar_rag_service(rag, db)
             stats = rag_service.get_stats()
             
             return {

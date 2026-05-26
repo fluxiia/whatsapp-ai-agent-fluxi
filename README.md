@@ -2,7 +2,7 @@
 
 <img src="data/logo_fluxi.png" alt="Fluxi.IA" width="200">
 
-### Sua IA privada no WhatsApp...
+### Plataforma open-source para criar agentes de IA — self-hosted, multi-canal, com ferramentas, skills, RAG e MCP.
 
 ![Dashboard](data/screenshot01.png)
 
@@ -10,18 +10,62 @@
 
 ---
 
-## 🤔 Por que Fluxi?
+## 🤔 O que é o Fluxi?
 
-Você já quis ter um assistente de IA no WhatsApp, mas:
+Fluxi é uma **plataforma de agentes de IA** que você roda na sua própria máquina. Cada agente é configurável: papel, objetivo, modelo de LLM, ferramentas que ele pode chamar, bases de conhecimento que ele consulta, servidores MCP que estende as capacidades, skills empacotadas, e por qual canal ele conversa.
 
-- Não quer pagar mensalidade de plataformas SaaS
-- Não quer depender de servidores externos
-- Não quer expor suas conversas para terceiros
-- Quer controle total sobre o comportamento da IA
+Você usa pra **o que precisar**:
 
-**Fluxi resolve tudo isso.**
+- **Assistente pessoal** — agenda, finanças, segunda memória, pesquisa
+- **Automação interna** — DevOps, queries em banco, IoT, integração com APIs internas
+- **Atendimento** — suporte, qualificação de leads, vendas conversacionais
+- **Estudo, escrita, criação** — tutor personalizado, escritor assistente, curadoria
+- **Agentes de código** — o agente coding (`#code`) tem sandbox próprio e **se auto-melhora**: cria novas ferramentas, novas skills, edita o próprio projeto
 
-Com Docker, um modelo de linguagem local (LM Studio, Ollama) e seu número de WhatsApp, você tem uma IA 100% privada funcionando em minutos.
+E tudo isso sem mensalidade de SaaS, sem expor dados a terceiros e com controle total do comportamento.
+
+---
+
+## 🧩 Como o agente é montado
+
+Cada agente combina o que você liga nele:
+
+| Peça | O que é | Onde configurar |
+|------|---------|----------------|
+| **Persona** | Papel, objetivo, políticas, público, restrições | `/agentes/{id}` |
+| **Modelo** | LLM que pensa (local ou nuvem) | `/provedores-llm/` |
+| **Ferramentas** | Função-calling: chama APIs, executa Python, busca CEP, etc. | `/ferramentas` ou wizard |
+| **Skills** | Pacotes reutilizáveis de instrução + ferramentas | `/skills` |
+| **RAG** | Bases de conhecimento (PDFs, docs, sites) consultadas no contexto | `/rags` |
+| **MCP** | Servidores externos que adicionam capacidades novas em runtime | `/mcp` |
+| **Canal** | Como o agente conversa: WhatsApp, Telegram ou Web | `/sessoes` |
+
+Você combina como quiser. Um agente pode ter 0 ou N de cada coisa.
+
+---
+
+## 🤖 Agente Coding — auto-melhoramento
+
+Prefixo `#code` em qualquer canal aciona um **agente especializado** com sandbox próprio (workspace isolado, shell, edição de arquivos). Ele entende a base de código do próprio Fluxi e é capaz de:
+
+- Criar **novas ferramentas** (function-calling) para você
+- Empacotar comportamento em **novas skills**
+- Configurar **servidores MCP** e RAG
+- Editar próprio código do projeto sob supervisão
+
+Na prática você pede em linguagem natural — _"crie uma ferramenta que consulta meu Postgres na tabela `pedidos`"_ — e ele implementa, testa e disponibiliza. É o caminho mais rápido pra estender o sistema sem sair do chat.
+
+---
+
+## 🔌 Canais suportados
+
+| Canal | Como conecta | Quando usar |
+|-------|-------------|-------------|
+| **WhatsApp** | QR Code (via neonize / whatsmeow) | Conversa onde a maioria das pessoas já está |
+| **Telegram** | Bot Token do BotFather | Mais estável, sem risco de banimento, API oficial |
+| **Web Chat** | URL pública embutida (`/chat/<id>`) | Embed no seu site, sem instalar nada |
+
+Os três compartilham a **mesma engine** — agente, ferramentas, skills, RAG, MCP. Você configura uma vez e o canal vira só um detalhe de transporte.
 
 ---
 
@@ -163,6 +207,8 @@ Ideal para cálculos, validações ou transformações de dados.
 
 | Recurso | Descrição |
 |---------|-----------|
+| **Multi-canal** | WhatsApp, Telegram e Web Chat — mesma engine de agente |
+| **Autenticação** | Login obrigatório no painel; primeiro usuário vira admin |
 | **Múltiplos Agentes** | Crie agentes especializados e alterne entre eles |
 | **RAG (Documentos)** | Adicione bases de conhecimento e faça perguntas |
 | **Ferramentas Customizadas** | Conecte APIs com wizard visual, sem código |
@@ -170,7 +216,8 @@ Ideal para cálculos, validações ou transformações de dados.
 | **LLMs Locais** | Use Ollama, LM Studio ou llama.cpp - 100% offline |
 | **LLMs na Nuvem** | OpenRouter, OpenAI, Anthropic, Google - sua escolha |
 | **Comandos** | `#ativar`, `#desativar`, `#limpar`, `#status`, `#ajuda` |
-| **Transcrição** | Converta áudios em texto automaticamente |
+| **Transcrição** | Áudios virem texto (WhatsApp, Telegram voice, gravação web) |
+| **Coding Agent** | Prefixo `#code` aciona agente com sandbox dedicado |
 | **Métricas** | Acompanhe mensagens, tokens, tempo de resposta |
 | **Dark Mode** | Interface clara ou escura |
 
@@ -200,9 +247,9 @@ Ideal para cálculos, validações ou transformações de dados.
 
 ### Requisitos
 
-- Docker instalado
-- Um número de WhatsApp
-- Um provedor LLM (local ou nuvem)
+- **Docker** + Docker Compose
+- **Um canal** pra atender: WhatsApp (número), Telegram (bot do BotFather) ou só Web Chat público
+- **Um provedor LLM** (local com Ollama/LM Studio, ou nuvem)
 
 ### 1. Clone e configure
 
@@ -212,21 +259,50 @@ cd fluxi
 cp config.example.env .env
 ```
 
+Gere uma chave Fernet pro `.env` (cifra credenciais de canais):
+
+```bash
+python -c "from cryptography.fernet import Fernet; print('FLUXI_SECRET_KEY=' + Fernet.generate_key().decode())" >> .env
+```
+
 ### 2. Inicie com Docker
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
-### 3. Acesse e conecte
+Por padrão escuta em **http://localhost:10000** (o host port é `HOST_PORT`, default `10000`; container interno em 8000).
 
-1. Abra `http://localhost:8000`
-2. Crie uma sessão WhatsApp
-3. Escaneie o QR Code
-4. Configure um provedor LLM
-5. Crie seu primeiro agente
+### 3. Crie sua conta admin
 
-**Pronto.** Envie uma mensagem para o número conectado.
+1. Abra `http://localhost:10000`
+2. Você é redirecionado pra `/signup?bootstrap=1` — o primeiro usuário vira **admin**
+3. Cadastre nome, e-mail e senha (mín. 8 caracteres)
+
+### 4. Configure um provedor LLM
+
+Em `/provedores-llm/` cadastre OpenRouter, OpenAI, Ollama, LM Studio ou outro.
+
+### 5. Crie uma sessão (canal) e um agente
+
+- Em `/sessoes/nova` escolha o canal (WhatsApp, Telegram ou Web Chat)
+- Para WhatsApp: clique **"Ligar WhatsApp"** e escaneie o QR
+- Para Telegram: cole o bot_token do **@BotFather** e clique **"Ligar Bot Telegram"**
+- Para Web Chat: pronto — abre `/chat/<id>` no navegador
+- Em `/agentes/{id}` defina persona (papel, objetivo, políticas), modelo LLM e ligue as ferramentas/skills/RAGs/MCPs que quiser
+
+**Pronto.** Mande mensagem pelo canal que escolheu. Use `#code <pedido>` se quiser que o agente coding crie novas ferramentas/skills pra você.
+
+### Esqueci a senha do admin
+
+Edite o `.env`, descomente as 2 linhas:
+
+```env
+FLUXI_ADMIN_RESET_EMAIL=seu@email.com
+FLUXI_ADMIN_RESET_PASSWORD=NovaSenhaForte123
+```
+
+Reinicie o container (`docker compose restart`), faça login com a nova senha e **remova essas 2 linhas do `.env`** (senão a senha é sobrescrita a cada restart).
 
 ---
 
@@ -234,12 +310,16 @@ docker-compose up -d --build
 
 | Camada | Tecnologia |
 |--------|------------|
-| **Backend** | Python, FastAPI, SQLAlchemy, Pydantic |
-| **Frontend** | Jinja2, Bulma, HTMX |
-| **Banco de Dados** | SQLite (padrão), PostgreSQL (produção) |
+| **Backend** | Python 3.11+, FastAPI, SQLAlchemy, Pydantic v2 |
+| **Frontend** | Jinja2 SSR (zero JS framework), CSS variáveis, drag-drop nativo |
+| **Banco de Dados** | SQLite (padrão); PostgreSQL via `DATABASE_URL` |
 | **Vetorial** | ChromaDB |
-| **WhatsApp** | Neonize (whatsmeow) |
-| **LLM** | OpenRouter, OpenAI, Ollama, LM Studio |
+| **WhatsApp** | Neonize (binding Python pro whatsmeow / Go) |
+| **Telegram** | python-telegram-bot v21+ (long polling) |
+| **Web Chat** | Server-Sent Events (SSE) + MediaRecorder API |
+| **Auth** | Session cookie (itsdangerous) + bcrypt; middleware de proteção |
+| **Cripto credenciais** | Fernet (`cryptography`) — bot_tokens cifrados em repouso |
+| **LLM** | OpenRouter, OpenAI, Ollama, LM Studio, Anthropic, Google |
 
 ---
 
@@ -247,23 +327,47 @@ docker-compose up -d --build
 
 ```
 fluxi/
+├── auth/            # Login, signup, middleware de proteção (bcrypt)
+├── canal/           # Camada de abstração de canais
+│   ├── canal_base.py      # Interface CanalClient + EventoMensagem
+│   ├── canal_whatsapp.py  # Adapter neonize
+│   ├── canal_telegram.py  # Adapter python-telegram-bot
+│   ├── canal_webchat.py   # Adapter SSE
+│   └── canal_factory.py   # Cria adapter pela sessao.plataforma
+├── webchat/         # Página pública /chat/<id> + endpoints SSE
 ├── agente/          # Sistema de agentes inteligentes
+├── coding_agent/    # Agente coder com sandbox (prefixo #code)
 ├── config/          # Configurações do sistema
 ├── ferramenta/      # Ferramentas customizadas (function calling)
 ├── llm_providers/   # Provedores LLM (local e nuvem)
 ├── mcp_client/      # Model Context Protocol
-├── mensagem/        # Mensagens e histórico
+├── mensagem/        # Pipeline central; processar_evento_canal roteia por plataforma
 ├── metrica/         # Analytics e monitoramento
-├── rag/             # Bases de conhecimento
-├── sessao/          # Sessões WhatsApp
-└── templates/       # Interface web
+├── rag/             # Bases de conhecimento (ChromaDB)
+├── sessao/          # Sessões = canais conectados (multi-plataforma)
+└── templates/       # Interface web (Jinja2 SSR)
 ```
 
-Cada módulo tem sua própria documentação em `[modulo]/README.md`.
+Cada módulo tem `README.md` próprio. Para uma visão dirigida a agentes de IA contribuindo no código, ver [`AGENTS.md`](AGENTS.md).
 
 ---
 
 ## 📋 Changelog
+
+### v0.3.0 - Maio 2026
+
+**Novos Recursos**
+- 🔌 **Camada multi-canal** (`canal/`): WhatsApp, Telegram e Web Chat compartilham a mesma engine
+- 💬 **Telegram** via python-telegram-bot v21+ (long polling, bot_token cifrado com Fernet)
+- 🌐 **Web Chat público**: página `/chat/<sessao_id>` com texto, áudio (MediaRecorder) e imagem; entrega via SSE
+- 🔐 **Sistema de autenticação**: login/signup, primeiro usuário vira admin, middleware de proteção
+- 🆘 **Reset de senha via `.env`** (`FLUXI_ADMIN_RESET_EMAIL` + `FLUXI_ADMIN_RESET_PASSWORD`)
+- 🔑 **Credenciais cifradas em repouso** (`FLUXI_SECRET_KEY` controla a chave Fernet)
+
+**Migrations aditivas**
+- `Sessao.plataforma`, `identificador`, `credenciais`
+- `Mensagem.plataforma`, `chat_id`, `mensagem_id_externo`
+- Nova tabela `users`
 
 ### v0.2.0 - Novembro 2025
 

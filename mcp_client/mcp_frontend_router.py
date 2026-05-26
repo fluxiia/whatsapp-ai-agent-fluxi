@@ -256,6 +256,24 @@ def listar_tools_frontend(
     })
 
 
+@router.get("/galeria", response_class=HTMLResponse)
+def pagina_galeria_mcp(
+    request: Request,
+    agente_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """Galeria pública de servidores MCP via Smithery registry."""
+    from config.config_service import ConfiguracaoService
+    agente = AgenteService.obter_por_id(db, agente_id) if agente_id else None
+    smithery_api_key = ConfiguracaoService.obter_valor(db, "smithery_api_key", "")
+    return templates.TemplateResponse("mcp/galeria.html", {
+        "request": request,
+        "agente": agente,
+        "smithery_api_key": smithery_api_key,
+        "titulo": "Galeria de Servidores MCP",
+    })
+
+
 @router.get("/agente/{agente_id}/json-config", response_class=HTMLResponse)
 def form_json_config(
     request: Request,
@@ -281,17 +299,7 @@ def form_json_config(
     # Exemplos de configuração JSON
     exemplos_json = [
         {
-            "nome": "DeepWiki (SSE)",
-            "config": {
-                "mcpServers": {
-                    "deepwiki": {
-                        "serverUrl": "https://mcp.deepwiki.com/sse"
-                    }
-                }
-            }
-        },
-        {
-            "nome": "DeepWiki (HTTP)",
+            "nome": "DeepWiki",
             "config": {
                 "mcpServers": {
                     "deepwiki": {

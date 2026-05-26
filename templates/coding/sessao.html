@@ -1,0 +1,231 @@
+{% extends "base_modern.html" %}
+{% block title %}Coding — {{ cs.agente.nome if cs.agente else "Sessão" }} — Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-lg"
+         style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-robot" style="color: var(--color-primary, #3b82f6); margin-right: 0.5rem;"></i>
+                {{ cs.agente.nome if cs.agente else "Coding Session #" ~ cs.id }}
+            </h1>
+            <p style="margin-top: 2px; color: var(--color-text-secondary); font-size: 0.82rem;">
+                <code>{{ cs.workspace_path }}</code> &nbsp;·&nbsp;
+                prefixo <code>{{ cs.routing_prefix }}</code>
+            </p>
+        </div>
+        <a href="/coding/chat/{{ cs.id }}" class="button is-primary is-small">
+            <i class="fas fa-comments"></i>&nbsp; Abrir Chat
+        </a>
+    </div>
+
+    <div class="grid grid-cols-3 gap-md">
+
+        <!-- Tarefas (col 2) -->
+        <div style="grid-column: span 2;">
+            <div class="card" style="overflow: hidden;">
+                <div class="flex items-center justify-between"
+                     style="padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border);">
+                    <span style="font-weight: 600; font-size: 0.9rem;">
+                        <i class="fas fa-tasks" style="color: var(--color-primary, #3b82f6); margin-right: 0.4rem;"></i>Tarefas
+                    </span>
+                    <span style="font-size: 0.75rem; color: var(--color-text-tertiary);">{{ tarefas|length }} total</span>
+                </div>
+
+                {% if tarefas %}
+                <div style="max-height: 65vh; overflow-y: auto;">
+                    {% for t in tarefas %}
+                    <a href="/coding/tarefa/{{ t.id }}" style="text-decoration: none; color: inherit; display: block;">
+                        <div style="padding: 0.75rem var(--space-md); border-bottom: 1px solid var(--color-border);
+                                    display: flex; align-items: center; gap: 0.75rem; transition: background 0.15s;"
+                             onmouseover="this.style.background='var(--color-surface-hover, #f8fafc)'"
+                             onmouseout="this.style.background=''">
+
+                            <!-- Status icon -->
+                            {% if t.status == "running" %}
+                                <span style="color: #f59e0b; width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-circle-notch fa-spin"></i></span>
+                            {% elif t.status == "completed" %}
+                                <span style="color: #22c55e; width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-check-circle"></i></span>
+                            {% elif t.status == "failed" %}
+                                <span style="color: #ef4444; width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-times-circle"></i></span>
+                            {% elif t.status == "cancelled" %}
+                                <span style="color: var(--color-text-tertiary); width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-ban"></i></span>
+                            {% elif t.status == "waiting_input" %}
+                                <span style="color: #3b82f6; width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-hourglass-half"></i></span>
+                            {% else %}
+                                <span style="color: var(--color-text-tertiary); width: 1.1rem; text-align: center; flex-shrink: 0;"><i class="fas fa-clock"></i></span>
+                            {% endif %}
+
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ t.titulo }}</div>
+                                <div style="font-size: 0.75rem; color: var(--color-text-tertiary); margin-top: 2px;">
+                                    {{ t.status }}
+                                    {% if t.iteracoes %} · {{ t.iteracoes }} iter.{% endif %}
+                                    · {{ t.criado_em.strftime('%d/%m %H:%M') if t.criado_em else '' }}
+                                </div>
+                            </div>
+
+                            <i class="fas fa-chevron-right" style="color: var(--color-text-tertiary); font-size: 0.75rem;"></i>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="padding: 2.5rem; text-align: center; color: var(--color-text-tertiary);">
+                    <i class="fas fa-inbox" style="font-size: 1.75rem; display: block; margin-bottom: 0.75rem; opacity: 0.4;"></i>
+                    Nenhuma tarefa ainda.<br>
+                    <small>Envie <code>{{ cs.routing_prefix }} sua tarefa</code> no WhatsApp ou use o Chat.</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar: Memória + Config -->
+        <div class="flex flex-col gap-md">
+
+            <!-- Memória -->
+            <div class="card" style="overflow: hidden;">
+                <div style="padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-weight: 600; font-size: 0.875rem;">
+                        <i class="fas fa-brain" style="color: var(--color-primary, #3b82f6); margin-right: 0.4rem;"></i>Memória
+                    </span>
+                    <span style="font-size: 0.7rem; color: var(--color-text-tertiary);">CLAUDE.md equiv.</span>
+                </div>
+                <div style="padding: var(--space-md);">
+                    <textarea id="memoria-editor" rows="12"
+                        style="width: 100%; font-family: monospace; font-size: 0.78rem; resize: vertical;
+                               background: var(--color-surface-raised, #f8fafc); color: var(--color-text-primary);
+                               border: 1px solid var(--color-border); border-radius: var(--radius-md, 6px); padding: 0.6rem;"
+                        placeholder="## Stack&#10;Python 3.11, FastAPI&#10;&#10;## Comandos&#10;uvicorn main:app --reload&#10;&#10;## Convenções&#10;snake_case, 4 espaços">{{ memoria }}</textarea>
+                    <div class="flex items-center justify-between" style="margin-top: 0.6rem;">
+                        <span id="mem-status" style="font-size: 0.75rem; color: var(--color-text-tertiary);"></span>
+                        <button onclick="salvarMemoria()" class="button is-primary is-small">
+                            <i class="fas fa-save"></i>&nbsp; Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Config -->
+            <div class="card" style="padding: var(--space-md);">
+                <div style="font-weight: 600; font-size: 0.875rem; margin-bottom: var(--space-sm);">
+                    <i class="fas fa-sliders-h" style="color: var(--color-primary, #3b82f6); margin-right: 0.4rem;"></i>Configurações
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                    <tr><td style="padding: 0.3rem 0; color: var(--color-text-secondary);">Modo workspace</td><td style="text-align: right;"><code>{{ cs.workspace_mode }}</code></td></tr>
+                    <tr><td style="padding: 0.3rem 0; color: var(--color-text-secondary);">Max iterações</td><td style="text-align: right;">{{ cs.max_iteracoes }}</td></tr>
+                    <tr><td style="padding: 0.3rem 0; color: var(--color-text-secondary);">Timeout sync</td><td style="text-align: right;">{{ cs.timeout_shell_rapido }}s</td></tr>
+                    <tr><td style="padding: 0.3rem 0; color: var(--color-text-secondary);">Timeout bg</td><td style="text-align: right;">{{ cs.timeout_shell_background }}s</td></tr>
+                </table>
+
+                <div style="margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--color-border);">
+                    <label style="font-size: 0.78rem; color: var(--color-text-secondary); display: block; margin-bottom: 0.3rem;">
+                        <i class="fas fa-microchip" style="margin-right: 0.3rem;"></i>Modelo LLM
+                    </label>
+                    <select id="model-select" onchange="salvarModelo(this.value)"
+                        style="width: 100%; padding: 0.4rem 0.6rem; font-size: 0.8rem; border-radius: var(--radius-md, 6px);
+                               border: 1px solid var(--color-border); background: var(--color-surface-raised, #f8fafc);
+                               color: var(--color-text-primary);">
+                        <option value="">Carregando modelos...</option>
+                    </select>
+                </div>
+
+                <div style="margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid var(--color-border);">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem;">
+                        <input type="checkbox" id="thinking-toggle" onchange="salvarThinkingMode(this.checked)"
+                            {% if cs.thinking_mode %}checked{% endif %}
+                            style="width: 1rem; height: 1rem; accent-color: var(--color-primary, #3b82f6);">
+                        <span>
+                            <i class="fas fa-brain" style="color: rgba(139,92,246,0.7); margin-right: 0.2rem;"></i>Thinking Mode
+                        </span>
+                    </label>
+                    <p style="font-size: 0.72rem; color: var(--color-text-tertiary); margin: 0.3rem 0 0 1.5rem;">
+                        Ativa raciocínio estruturado antes de cada ação.
+                    </p>
+                </div>
+
+                <a href="/coding/chat/{{ cs.id }}" class="button is-outline is-small" style="margin-top: var(--space-md); width: 100%; justify-content: center; display: flex;">
+                    <i class="fas fa-code"></i>&nbsp; Abrir no Chat
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+const CS_ID = {{ cs.id }};
+
+async function salvarMemoria() {
+    const content = document.getElementById('memoria-editor').value;
+    const status = document.getElementById('mem-status');
+    status.textContent = 'Salvando...';
+    try {
+        const r = await fetch(`/api/coding/sessions/${CS_ID}/memory`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({content})
+        });
+        if (r.ok) {
+            status.textContent = 'Salvo!';
+            status.style.color = '#22c55e';
+        } else {
+            status.textContent = 'Erro ao salvar.';
+            status.style.color = '#ef4444';
+        }
+    } catch(e) {
+        status.textContent = 'Erro de rede.';
+        status.style.color = '#ef4444';
+    }
+    setTimeout(() => { status.textContent = ''; }, 3000);
+}
+
+let modeloAtual = '{{ cs.modelo_coding or "" }}';
+
+async function carregarModelos() {
+    try {
+        const r = await fetch('/api/coding/modelos');
+        const data = await r.json();
+        const sel = document.getElementById('model-select');
+        sel.innerHTML = '<option value="">-- modelo padrão do agente --</option>';
+        data.modelos.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.nome} (${m.provedor})`;
+            if (m.id === modeloAtual) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        if (modeloAtual) sel.value = modeloAtual;
+    } catch(e) {
+        console.error('Erro ao carregar modelos', e);
+    }
+}
+
+async function salvarModelo(valor) {
+    modeloAtual = valor;
+    try {
+        await fetch(`/api/coding/sessions/${CS_ID}`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({modelo_coding: valor || null})
+        });
+    } catch(e) { console.error('Erro ao salvar modelo', e); }
+}
+
+async function salvarThinkingMode(checked) {
+    try {
+        await fetch(`/api/coding/sessions/${CS_ID}`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({thinking_mode: checked})
+        });
+    } catch(e) { console.error('Erro ao salvar thinking_mode', e); }
+}
+
+carregarModelos();
+</script>
+{% endblock %}

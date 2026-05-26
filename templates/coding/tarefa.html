@@ -1,0 +1,335 @@
+{% extends "base_modern.html" %}
+
+{% block title %}{{ task.titulo }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header (Compact per system_designer.md) -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">{{ task.titulo }}</h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <span id="badge-status-text" style="font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em;">{{ task.status }}</span> 
+                &nbsp;·&nbsp; Tarefa #{{ task.id }} &nbsp;·&nbsp; {{ cs.agente.nome if cs and cs.agente else "Coding Agent" }}
+            </p>
+        </div>
+        <div class="flex items-center gap-sm">
+            <button id="btn-cancel" onclick="cancelarTarefa()" class="button is-outline is-small"
+                {% if task.status not in ('running', 'waiting_input', 'pending') %}disabled{% endif %}>
+                <i class="fas fa-stop mr-xs"></i> Parar
+            </button>
+            <a href="/coding/sessao/{{ task.coding_session_id }}" class="button is-outline is-small">
+                <i class="fas fa-arrow-left mr-xs"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Layout Grid 2/3 and 1/3 (Mission Control Pattern) -->
+    <div class="grid grid-cols-3 gap-lg">
+        
+        <!-- Main Chat Area (2 Columns) -->
+        <div style="grid-column: span 2;" class="flex flex-col">
+            
+            <!-- System Status Bar -->
+            <div id="status-bar" class="box mb-md" style="padding: var(--space-sm) var(--space-md); background: var(--color-bg-tertiary); border: none;">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-sm">
+                        <i id="status-icon" class="fas fa-circle-notch fa-spin text-secondary" style="font-size: 0.8rem;"></i>
+                        <span id="status-text" style="font-size: 0.8125rem; font-weight: 500;">Conectando ao agente...</span>
+                    </div>
+                    <span id="iter-badge" style="font-size: 0.7rem; text-transform: uppercase; color: var(--color-text-secondary); letter-spacing: 0.05em;"></span>
+                </div>
+            </div>
+
+            <!-- Chat Feed Container -->
+            <div id="msg-feed-container" class="box" style="height: 60vh; display: flex; flex-direction: column; padding: 0; overflow: hidden; background: var(--color-surface); border-radius: var(--radius-lg);">
+                <div id="msg-feed" style="flex: 1; overflow-y: auto; padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md);">
+                    {% for msg in task.get_messages() %}
+                        {% if msg.role == 'user' %}
+                            <div class="msg-bubble-user" style="align-self: flex-end; max-width: 80%; background: var(--color-primary); color: white; padding: var(--space-sm) var(--space-md); border-radius: 12px 12px 2px 12px; font-size: 0.875rem; box-shadow: var(--shadow-sm);">
+                                {% if msg.content is string %}{{ msg.content }}{% else %}{% for p in msg.content %}{% if p.type == 'text' %}{{ p.text }}{% endif %}{% endfor %}{% endif %}
+                            </div>
+                        {% elif msg.role == 'assistant' %}
+                            <div class="msg-bubble-assistant" style="align-self: flex-start; max-width: 85%; background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: var(--space-sm) var(--space-md); border-radius: 12px 12px 12px 2px; font-size: 0.875rem; color: var(--color-text-primary); box-shadow: var(--shadow-xs);">
+                                {% if msg.content is string %}{{ msg.content }}{% else %}{% for p in msg.content %}{% if p.type == 'text' %}{{ p.text }}{% endif %}{% endfor %}{% endif %}
+                            </div>
+                        {% elif msg.role == 'tool' %}
+                            <div class="tool-entry" style="align-self: flex-start; width: 100%;">
+                                <details style="font-size: 0.75rem; margin-bottom: var(--space-xs);">
+                                    <summary style="cursor: pointer; color: var(--color-text-secondary); padding: 4px 0; display: flex; align-items: center; gap: 8px;">
+                                        <span style="background: var(--color-bg-tertiary); padding: 2px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase; font-size: 0.6rem;">TOOL</span>
+                                        <code style="color: var(--color-primary);">{{ msg.tool_name if msg.tool_name else "exec" }}</code>
+                                    </summary>
+                                    <pre class="box" style="margin-top: 4px; padding: var(--space-sm); font-size: 0.7rem; background: var(--color-bg-secondary); border-color: var(--color-border); max-height: 250px; overflow: auto; font-family: var(--font-mono);">{% if msg.content is string %}{{ msg.content }}{% else %}{{ msg.content | tojson(indent=2) }}{% endif %}</pre>
+                                </details>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    <div id="feed-bottom"></div>
+                </div>
+
+                <!-- Sticky Input Area -->
+                <div id="input-area" class="card-footer" style="padding: var(--space-md); border-top: 1px solid var(--color-border); background: var(--color-surface); display: {% if task.status == 'waiting_input' %}block{% else %}none{% endif %};">
+                    <div class="flex gap-sm">
+                        <textarea id="reply-input" class="input" rows="1" style="min-height: 42px; resize: none; padding-top: 10px;" placeholder="Responda ao agente..."></textarea>
+                        <button onclick="enviarResposta()" class="button is-primary" style="height: 42px; width: 42px; padding: 0;">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar (1 Column) -->
+        <div class="flex flex-col gap-lg">
+            
+            <!-- Shell Sessions Section -->
+            <div class="card">
+                <div class="card-header flex items-center justify-between" style="padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+                    <h2 class="card-header-title" style="font-size: 0.875rem;">
+                        <i class="fas fa-terminal mr-xs" style="color: var(--color-text-secondary);"></i> Shell Sessions
+                    </h2>
+                </div>
+                <div class="card-content" id="shell-list" style="padding: var(--space-md); max-height: 300px; overflow-y: auto;">
+                    {% set shell_sessions = task.shell_sessions or {} %}
+                    {% if shell_sessions %}
+                        {% for sid, info in shell_sessions.items() %}
+                        <div class="box mb-xs clickable" onclick="abrirShellOutput('{{ sid }}')" style="padding: var(--space-xs) var(--space-sm); background: var(--color-bg-tertiary); border: 1px solid var(--color-border); cursor: pointer;">
+                            <div class="flex items-center justify-between">
+                                <code style="font-size: 0.7rem; color: var(--color-text-primary);">{{ sid }}</code>
+                                <span class="badge {% if info.status == 'running' %}is-warning{% elif info.status == 'done' %}is-success{% else %}is-error{% endif %}" style="font-size: 0.6rem; padding: 1px 4px;">{{ info.status }}</span>
+                            </div>
+                            <div style="font-size: 0.65rem; color: var(--color-text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ info.command }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center py-md" style="font-size: 0.75rem; color: var(--color-text-muted);">Sem sessões ativas</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Artifacts Section -->
+            <div class="card">
+                <div class="card-header flex items-center justify-between" style="padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+                    <h2 class="card-header-title" style="font-size: 0.875rem;">
+                        <i class="fas fa-file-code mr-xs" style="color: var(--color-text-secondary);"></i> Artefatos
+                    </h2>
+                    <span class="badge is-neutral" style="font-size: 0.65rem;" id="artifact-count">{{ (task.artifacts or []) | length }}</span>
+                </div>
+                <div class="card-content" id="artifacts-list" style="padding: var(--space-sm) var(--space-md); max-height: 300px; overflow-y: auto;">
+                    {% set artifacts = task.artifacts or [] %}
+                    {% if artifacts %}
+                        {% for art in artifacts %}
+                        <div class="flex items-center gap-sm py-xs" style="border-bottom: 1px solid var(--color-bg-secondary);">
+                            <i class="fas fa-file-alt" style="font-size: 0.75rem; color: var(--color-text-muted);"></i>
+                            <span style="font-size: 0.75rem; word-break: break-all;">{{ art }}</span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center py-md" style="font-size: 0.75rem; color: var(--color-text-muted);">Nenhum arquivo gerado</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Real-time Shell Output (Modal-like) -->
+            <div id="shell-output-panel" style="display: none;">
+                <div class="card" style="border-color: var(--color-primary);">
+                    <div class="card-header flex items-center justify-between" style="padding: var(--space-xs) var(--space-sm); background: var(--color-surface); border-bottom: 1px solid var(--color-border);">
+                        <span style="font-size: 0.75rem; font-weight: 600;"><i class="fas fa-terminal mr-xs"></i><span id="shell-output-title">Output</span></span>
+                        <button onclick="fecharShellOutput()" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted);"><i class="fas fa-times"></i></button>
+                    </div>
+                    <pre id="shell-output-content" style="background: #000; color: #0f0; padding: var(--space-sm); font-size: 0.7rem; max-height: 250px; overflow-y: auto; margin: 0; font-family: var(--font-mono); line-height: 1.4;"></pre>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+const TASK_ID = {{ task.id }};
+const SESSION_ID = {{ task.coding_session_id }};
+const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled']);
+let wsTask = null;
+let wsShell = null;
+let streamingAssistantEl = null;
+let currentStatus = '{{ task.status }}';
+
+// ── UI Updates ───────────────────────────────────────────
+
+function scrollBottom() {
+    const feed = document.getElementById('msg-feed');
+    feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+}
+
+function atualizarStatusBar(status, msg, iteracoes) {
+    const text = document.getElementById('status-text');
+    const iter = document.getElementById('iter-badge');
+    const icon = document.getElementById('status-icon');
+    const badgeText = document.getElementById('badge-status-text');
+
+    text.textContent = msg;
+    iter.textContent = iteracoes ? `Iteração ${iteracoes}` : '';
+    badgeText.textContent = status;
+
+    if (TERMINAL_STATUSES.has(status)) {
+        icon.className = status === 'completed' ? 'fas fa-check text-success' : 'fas fa-exclamation-triangle text-error';
+    } else {
+        icon.className = 'fas fa-circle-notch fa-spin text-secondary';
+    }
+}
+
+function adicionarMensagem(role, content, toolName = null) {
+    const feed = document.getElementById('msg-feed');
+    
+    if (role === 'tool') {
+        const div = document.createElement('div');
+        div.style.width = '100%';
+        const text = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+        div.innerHTML = `
+            <details style="font-size: 0.75rem; margin-bottom: var(--space-xs);">
+                <summary style="cursor: pointer; color: var(--color-text-secondary); padding: 4px 0; display: flex; align-items: center; gap: 8px;">
+                    <span style="background: var(--color-bg-tertiary); padding: 2px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase; font-size: 0.6rem;">TOOL</span>
+                    <code style="color: var(--color-primary);">${toolName || 'exec'}</code>
+                </summary>
+                <pre class="box" style="margin-top: 4px; padding: var(--space-sm); font-size: 0.7rem; background: var(--color-bg-secondary); border-color: var(--color-border); max-height: 250px; overflow: auto; font-family: var(--font-mono);">${text}</pre>
+            </details>
+        `;
+        feed.appendChild(div);
+        scrollBottom();
+        return div;
+    }
+
+    const div = document.createElement('div');
+    const isUser = role === 'user';
+    div.style.cssText = isUser 
+        ? 'align-self: flex-end; max-width: 80%; background: var(--color-primary); color: white; padding: var(--space-sm) var(--space-md); border-radius: 12px 12px 2px 12px; font-size: 0.875rem; box-shadow: var(--shadow-sm); margin-bottom: 4px;'
+        : 'align-self: flex-start; max-width: 85%; background: var(--color-bg-secondary); border: 1px solid var(--color-border); padding: var(--space-sm) var(--space-md); border-radius: 12px 12px 12px 2px; font-size: 0.875rem; color: var(--color-text-primary); box-shadow: var(--shadow-xs); margin-bottom: 4px;';
+    
+    div.textContent = typeof content === 'string' ? content : '';
+    feed.appendChild(div);
+    scrollBottom();
+    return div;
+}
+
+// ── WebSocket ────────────────────────────────────────────
+
+function conectarWsTask() {
+    if (TERMINAL_STATUSES.has(currentStatus)) return;
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    wsTask = new WebSocket(`${proto}://${location.host}/ws/coding/task/${TASK_ID}`);
+
+    wsTask.onmessage = (ev) => {
+        let data; try { data = JSON.parse(ev.data); } catch { return; }
+
+        if (data.type === 'llm_stream_start') {
+            streamingAssistantEl = null; return;
+        }
+        if (data.type === 'llm_delta' && data.text) {
+            if (!streamingAssistantEl) streamingAssistantEl = adicionarMensagem('assistant', '');
+            streamingAssistantEl.textContent += data.text;
+            scrollBottom();
+            return;
+        }
+        if (data.type === 'tool_start') {
+            streamingAssistantEl = null;
+            atualizarStatusBar('running', `Executando ${data.tool}...`, null);
+            return;
+        }
+        if (data.type === 'tool_result') {
+            adicionarMensagem('tool', data.result, data.tool);
+            return;
+        }
+
+        currentStatus = data.status;
+        const msgs = {
+            running: 'Processando...', waiting_input: 'Aguardando sua resposta...',
+            completed: 'Tarefa concluída!', failed: 'Tarefa falhou.',
+            cancelled: 'Tarefa cancelada.'
+        };
+        atualizarStatusBar(data.status, msgs[data.status] || data.status, data.iteracoes);
+
+        if (data.status === 'waiting_input') {
+            document.getElementById('input-area').style.display = 'block';
+            scrollBottom();
+        } else {
+            document.getElementById('input-area').style.display = 'none';
+        }
+
+        if (TERMINAL_STATUSES.has(data.status)) {
+            setTimeout(() => location.reload(), 2000);
+        }
+    };
+}
+
+// ── Actions ──────────────────────────────────────────────
+
+async function enviarResposta() {
+    const input = document.getElementById('reply-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    document.getElementById('input-area').style.display = 'none';
+
+    adicionarMensagem('user', msg);
+    atualizarStatusBar('running', 'Enviando resposta...', null);
+
+    try {
+        await fetch('/api/coding/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ coding_session_id: SESSION_ID, mensagem: msg, task_id: TASK_ID })
+        });
+    } catch(e) {
+        atualizarStatusBar('failed', 'Erro ao enviar.', null);
+    }
+}
+
+async function cancelarTarefa() {
+    if (!confirm('Deseja interromper esta tarefa?')) return;
+    await fetch(`/api/coding/tasks/${TASK_ID}`, { method: 'DELETE' });
+    location.reload();
+}
+
+function abrirShellOutput(sid) {
+    const panel = document.getElementById('shell-output-panel');
+    const content = document.getElementById('shell-output-content');
+    const title = document.getElementById('shell-output-title');
+    panel.style.display = 'block';
+    title.textContent = sid;
+    content.textContent = 'Conectando ao shell...';
+    if (wsShell) wsShell.close();
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    wsShell = new WebSocket(`${proto}://${location.host}/ws/coding/shell/${sid}`);
+    wsShell.onmessage = (ev) => {
+        content.textContent += ev.data;
+        content.scrollTop = content.scrollHeight;
+    };
+}
+
+function fecharShellOutput() {
+    document.getElementById('shell-output-panel').style.display = 'none';
+    if (wsShell) wsShell.close();
+}
+
+document.getElementById('reply-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarResposta(); }
+});
+
+// Init
+scrollBottom();
+if (!TERMINAL_STATUSES.has(currentStatus)) conectarWsTask();
+atualizarStatusBar(currentStatus, currentStatus === 'running' ? 'Processando...' : 'Aguardando...', {{ task.iteracoes }});
+
+</script>
+
+<style>
+#msg-feed::-webkit-scrollbar { width: 4px; }
+#msg-feed::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+.clickable:hover { border-color: var(--color-primary) !important; background: var(--color-surface) !important; }
+pre::-webkit-scrollbar { width: 4px; height: 4px; }
+pre::-webkit-scrollbar-thumb { background: var(--color-border); }
+</style>
+{% endblock %}

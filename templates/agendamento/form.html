@@ -1,0 +1,171 @@
+{% extends "base_modern.html" %}
+
+{% block title %}Novo Agendamento - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-clock text-primary mb-xs"></i> Novo Agendamento
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/agendamentos" style="color: var(--color-text-secondary);">Agendamentos</a>
+                <span style="color: var(--color-text-muted);"> / Novo</span>
+            </p>
+        </div>
+        <a href="/agendamentos" class="button is-small is-outline">Voltar</a>
+    </div>
+
+    {% if request.query_params.get('erro') %}
+    <div style="background: var(--color-danger); color: white; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
+        ❌ {{ request.query_params.get('erro') }}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-3">
+        <div style="grid-column: span 2;">
+            <form method="POST" action="/agendamentos/criar" class="box" style="padding: var(--space-lg);">
+                <div class="field mb-md">
+                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Título</label>
+                    <input class="input" type="text" name="titulo" required placeholder="Ex: Lembrete consulta João" />
+                </div>
+
+                <div class="field mb-md">
+                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Descrição</label>
+                    <textarea class="textarea" name="descricao" rows="2" placeholder="Opcional"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-md mb-md">
+                    <div class="field">
+                        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Sessão WhatsApp</label>
+                        <div class="select" style="width: 100%;">
+                            <select name="sessao_id" style="width: 100%;">
+                                <option value="">-- selecionar --</option>
+                                {% for s in sessoes %}
+                                <option value="{{ s.id }}">{{ s.nome }} ({{ s.status }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Telefone destino</label>
+                        <input class="input" type="text" name="telefone_destino" placeholder="551199999999" />
+                    </div>
+                </div>
+
+                <div class="field mb-md">
+                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Agente (opcional, usado em callback_agente)</label>
+                    <input class="input" type="number" name="agente_id" placeholder="ID do agente" />
+                </div>
+
+                <hr style="margin: var(--space-lg) 0; border-color: var(--color-border);" />
+
+                <div class="grid grid-cols-2 gap-md mb-md">
+                    <div class="field">
+                        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Tipo</label>
+                        <div class="select" style="width: 100%;">
+                            <select name="tipo" id="tipo-select" style="width: 100%;" onchange="atualizarHelpQuando()">
+                                <option value="once">once — uma vez em data/hora</option>
+                                <option value="interval">interval — repete a cada N segundos</option>
+                                <option value="cron">cron — expressão cron</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label" style="font-size: 0.85rem; font-weight: 600;">Quando</label>
+                        <input class="input" type="text" name="quando" id="quando-input" required placeholder="2026-05-27T09:00:00" />
+                        <p id="quando-help" style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px;">ISO timestamp para once</p>
+                    </div>
+                </div>
+
+                <div class="field mb-md">
+                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Máx. execuções (interval/cron)</label>
+                    <input class="input" type="number" name="max_execucoes" placeholder="Vazio = ilimitado" />
+                </div>
+
+                <hr style="margin: var(--space-lg) 0; border-color: var(--color-border);" />
+
+                <div class="field mb-md">
+                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Ação ao disparar</label>
+                    <div class="select" style="width: 100%;">
+                        <select name="acao" id="acao-select" style="width: 100%;" onchange="atualizarHelpPayload()">
+                            <option value="enviar_mensagem">enviar_mensagem — manda texto pronto</option>
+                            <option value="rodar_ferramenta">rodar_ferramenta — executa uma tool cadastrada</option>
+                            <option value="callback_agente">callback_agente — re-injeta prompt no agente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field mb-md">
+                    <label class="label" style="font-size: 0.85rem; font-weight: 600;">Payload (JSON)</label>
+                    <textarea class="textarea" name="payload_json" id="payload-input" rows="4" placeholder='{"texto": "Bom dia!"}'></textarea>
+                    <p id="payload-help" style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px;">
+                        enviar_mensagem: <code>{"texto": "..."}</code>
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-sm">
+                    <a href="/agendamentos" class="button is-outline">Cancelar</a>
+                    <button type="submit" class="button is-primary">Agendar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="flex flex-col gap-md" style="padding-left: var(--space-lg);">
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Exemplos de "Quando"</h3>
+                <ul style="font-size: 0.78rem; color: var(--color-text-secondary); line-height: 1.6; padding-left: 16px;">
+                    <li><strong>once</strong>: <code>2026-05-27T09:00:00</code></li>
+                    <li><strong>interval</strong>: <code>300</code> (5 min)</li>
+                    <li><strong>cron</strong>: <code>0 9 * * *</code> (todo dia 9h)</li>
+                </ul>
+            </div>
+
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Exemplos de Payload</h3>
+                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 4px;">enviar_mensagem:</p>
+                <pre style="font-size: 0.72rem; background: var(--color-bg-secondary); padding: 6px 8px; border-radius: 4px; overflow-x: auto;">{"texto": "Olá!"}</pre>
+                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 8px 0 4px;">rodar_ferramenta:</p>
+                <pre style="font-size: 0.72rem; background: var(--color-bg-secondary); padding: 6px 8px; border-radius: 4px; overflow-x: auto;">{"nome_ferramenta": "buscar_internet",
+ "argumentos": {"query": "tempo SP"}}</pre>
+                <p style="font-size: 0.75rem; color: var(--color-text-muted); margin: 8px 0 4px;">callback_agente:</p>
+                <pre style="font-size: 0.72rem; background: var(--color-bg-secondary); padding: 6px 8px; border-radius: 4px; overflow-x: auto;">{"prompt": "Verifique se o cliente retornou."}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function atualizarHelpQuando() {
+    const tipo = document.getElementById('tipo-select').value;
+    const help = document.getElementById('quando-help');
+    const input = document.getElementById('quando-input');
+    if (tipo === 'once') {
+        help.textContent = 'ISO timestamp (ex: 2026-05-27T09:00:00)';
+        input.placeholder = '2026-05-27T09:00:00';
+    } else if (tipo === 'interval') {
+        help.textContent = 'Segundos (mínimo 10). Ex: 300 = 5 min';
+        input.placeholder = '300';
+    } else {
+        help.textContent = 'Expressão cron (5 campos). Ex: 0 9 * * * = todo dia 9h';
+        input.placeholder = '0 9 * * *';
+    }
+}
+function atualizarHelpPayload() {
+    const acao = document.getElementById('acao-select').value;
+    const help = document.getElementById('payload-help');
+    const input = document.getElementById('payload-input');
+    if (acao === 'enviar_mensagem') {
+        help.innerHTML = 'enviar_mensagem: <code>{"texto": "..."}</code>';
+        input.placeholder = '{"texto": "Bom dia!"}';
+    } else if (acao === 'rodar_ferramenta') {
+        help.innerHTML = 'rodar_ferramenta: <code>{"nome_ferramenta": "...", "argumentos": {...}}</code>';
+        input.placeholder = '{"nome_ferramenta": "...", "argumentos": {}}';
+    } else {
+        help.innerHTML = 'callback_agente: <code>{"prompt": "..."}</code>';
+        input.placeholder = '{"prompt": "Verifique se o cliente retornou."}';
+    }
+}
+</script>
+{% endblock %}

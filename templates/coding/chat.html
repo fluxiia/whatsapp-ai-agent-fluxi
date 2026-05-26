@@ -1,0 +1,1722 @@
+{% extends "base_modern.html" %}
+{% block title %}Workspace — {{ cs.agente.nome if cs.agente else "Coding Agent" }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+<style>
+/* ══════════════════════════════════════════════════════════
+   OVERRIDE: main-content deve ser full-height sem padding
+══════════════════════════════════════════════════════════ */
+.main-wrapper { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.main-content { flex: 1; min-height: 0; padding: 0 !important; overflow: hidden; }
+
+/* ══════════════════════════════════════════════════════════
+   TOKENS DE TEMA
+══════════════════════════════════════════════════════════ */
+:root {
+  --ide-bg:        #0d1117;
+  --ide-panel:     #161b22;
+  --ide-panel2:    #1c2128;
+  --ide-border:    #30363d;
+  --ide-text:      #c9d1d9;
+  --ide-muted:     #8b949e;
+  --ide-accent:    #58a6ff;
+  --ide-accent-bg: rgba(88,166,255,0.12);
+  --ide-terminal:  #010409;
+  --ide-ok:        #3fb950;
+  --ide-warn:      #d29922;
+  --ide-err:       #f85149;
+  --ide-purple:    #a371f7;
+  --tab-h:         34px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   LAYOUT RAIZ
+══════════════════════════════════════════════════════════ */
+.ca-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ide-bg);
+  color: var(--ide-text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PAINEL ESQUERDO — TAREFAS
+══════════════════════════════════════════════════════════ */
+.left-panel {
+  width: 252px;
+  min-width: 252px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--ide-border);
+  background: var(--ide-panel);
+  transition: min-width .25s ease, width .25s ease;
+  overflow: hidden;
+}
+.left-panel.collapsed { width: 0; min-width: 0; border-right: none; }
+
+.left-header {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--ide-border);
+  background: rgba(0,0,0,.25);
+  flex-shrink: 0;
+}
+.agent-row { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+.agent-avatar {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--ide-accent), var(--ide-purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: .7rem; color: #fff; flex-shrink: 0;
+}
+.agent-name  { font-size: .82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-ws    { font-size: .62rem; color: var(--ide-muted); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.section-label {
+  padding: 10px 14px 5px;
+  font-size: .6rem;
+  font-weight: 700;
+  color: var(--ide-muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.task-list { flex: 1; overflow-y: auto; }
+
+.task-item {
+  padding: 9px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(48,54,61,.5);
+  border-left: 3px solid transparent;
+  transition: background .12s;
+}
+.task-item:hover  { background: rgba(255,255,255,.04); }
+.task-item.active { background: var(--ide-accent-bg); border-left-color: var(--ide-accent); }
+.task-title {
+  font-size: .79rem; font-weight: 500;
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.task-meta { font-size: .62rem; color: var(--ide-muted); margin-top: 2px; font-family: monospace; }
+
+.new-task-btn {
+  margin: 10px 14px 12px;
+  padding: 8px;
+  background: var(--ide-accent-bg);
+  border: 1px dashed rgba(88,166,255,.35);
+  border-radius: 7px;
+  color: var(--ide-accent);
+  font-size: .77rem;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.new-task-btn:hover { background: rgba(88,166,255,.2); border-style: solid; }
+
+/* ══════════════════════════════════════════════════════════
+   CENTRO — CHAT
+══════════════════════════════════════════════════════════ */
+.chat-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--ide-bg);
+}
+
+/* Action strip */
+.action-strip {
+  padding: 5px 16px;
+  background: var(--ide-panel2);
+  border-bottom: 1px solid var(--ide-border);
+  font-size: .7rem;
+  color: var(--ide-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 30px;
+}
+.action-strip.hidden { display: none; }
+.strip-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ide-warn);
+  animation: pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* Feed */
+.feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* Bolhas — flex-shrink:0 impede que o flexbox comprima mensagens quando há muitas */
+.msg-user {
+  align-self: flex-end;
+  max-width: 80%;
+  background: #1f6feb;
+  color: #fff;
+  padding: 9px 14px;
+  border-radius: 16px 16px 4px 16px;
+  font-size: .875rem;
+  line-height: 1.55;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex-shrink: 0;
+}
+.msg-assistant {
+  align-self: flex-start;
+  max-width: 92%;
+  background: var(--ide-panel2);
+  border: 1px solid var(--ide-border);
+  padding: 11px 14px;
+  border-radius: 4px 16px 16px 16px;
+  font-size: .875rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex-shrink: 0;
+}
+.msg-think {
+  align-self: flex-start;
+  max-width: 90%;
+  background: rgba(163,113,247,.06);
+  border: 1px dashed rgba(163,113,247,.25);
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: .76rem;
+  color: var(--ide-purple);
+  font-style: italic;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+/* Reasoning block (collapsible) */
+.msg-reasoning {
+  align-self: flex-start;
+  max-width: 92%;
+  background: rgba(163,113,247,.04);
+  border: 1px solid rgba(163,113,247,.15);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-size: .76rem;
+}
+.reasoning-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--ide-purple);
+  font-weight: 500;
+  user-select: none;
+  transition: background .12s;
+}
+.reasoning-header:hover { background: rgba(163,113,247,.08); }
+.reasoning-header .chevron {
+  transition: transform .2s;
+  font-size: .6rem;
+  opacity: .6;
+}
+.reasoning-header .chevron.open { transform: rotate(90deg); }
+.reasoning-body {
+  display: none;
+  padding: 0 12px 8px;
+  color: var(--ide-muted);
+  font-style: italic;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.reasoning-body.open { display: block; }
+
+/* Terminal card */
+.term-card {
+  align-self: flex-start;
+  width: 100%;
+  max-width: 97%;
+  background: var(--ide-terminal);
+  border: 1px solid var(--ide-border);
+  border-radius: 7px;
+  overflow: hidden;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  flex-shrink: 0;
+}
+.term-head {
+  background: #161b22;
+  padding: 6px 11px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-bottom: 1px solid var(--ide-border);
+  font-size: .68rem;
+  color: var(--ide-muted);
+}
+.term-icon {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  background: rgba(88,166,255,.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .58rem; color: var(--ide-accent);
+  flex-shrink: 0;
+}
+.term-tool  { color: var(--ide-accent); font-family: monospace; font-size: .7rem; }
+.term-cmd   { flex: 1; color: var(--ide-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .66rem; }
+.term-st    { margin-left: auto; flex-shrink: 0; }
+.term-body {
+  padding: 9px 12px;
+  font-size: .73rem;
+  color: #c9d1d9;
+  max-height: 360px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.52;
+}
+.term-body img { max-width: 100%; border-radius: 4px; display: block; margin-top: 4px; }
+
+/* Status bar */
+.statusbar {
+  padding: 4px 14px;
+  background: #010409;
+  border-top: 1px solid var(--ide-border);
+  font-size: .67rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ide-muted);
+  flex-shrink: 0;
+}
+.s-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #3d444d; flex-shrink: 0;
+  transition: background .3s, box-shadow .3s;
+}
+.s-dot.running { background: var(--ide-warn); box-shadow: 0 0 7px var(--ide-warn); animation: pulse 1.5s infinite; }
+.s-dot.success { background: var(--ide-ok); }
+.s-dot.error   { background: var(--ide-err); }
+
+/* Input */
+.input-area {
+  padding: 9px 14px 11px;
+  background: var(--ide-panel);
+  border-top: 1px solid var(--ide-border);
+  flex-shrink: 0;
+}
+.input-wrap {
+  background: var(--ide-bg);
+  border: 1px solid var(--ide-border);
+  border-radius: 10px;
+  padding: 5px 5px 5px 12px;
+  display: flex; gap: 8px; align-items: flex-end;
+  transition: border-color .2s;
+}
+.input-wrap:focus-within { border-color: var(--ide-accent); }
+.ca-textarea {
+  flex: 1;
+  background: transparent;
+  border: none; color: var(--ide-text);
+  font-size: .875rem; font-family: inherit;
+  resize: none; outline: none;
+  max-height: 180px; min-height: 22px;
+  padding: 4px 0; line-height: 1.5;
+}
+.ca-textarea::placeholder { color: var(--ide-muted); }
+.send-btn {
+  width: 34px; height: 34px;
+  background: var(--ide-accent); border: none; border-radius: 7px;
+  color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; flex-shrink: 0;
+  transition: opacity .15s, transform .1s;
+}
+.send-btn:hover:not(:disabled) { opacity: .85; transform: scale(1.05); }
+.send-btn:disabled { background: #30363d; cursor: not-allowed; }
+
+/* ══════════════════════════════════════════════════════════
+   PAINEL DIREITO — TABS
+══════════════════════════════════════════════════════════ */
+.right-panel {
+  width: 296px;
+  min-width: 296px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--ide-border);
+  background: var(--ide-panel);
+  transition: min-width .25s, width .25s;
+  overflow: hidden;
+}
+.right-panel.hidden { width: 0; min-width: 0; border-left: none; }
+
+.tabs-bar {
+  display: flex;
+  border-bottom: 1px solid var(--ide-border);
+  background: rgba(0,0,0,.2);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 0 13px;
+  height: var(--tab-h);
+  font-size: .68rem; font-weight: 500;
+  color: var(--ide-muted);
+  cursor: pointer;
+  border: none; border-bottom: 2px solid transparent;
+  background: none;
+  white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+  transition: color .15s, border-color .15s;
+  flex-shrink: 0;
+}
+.tab-btn:hover { color: var(--ide-text); }
+.tab-btn.active { color: var(--ide-accent); border-bottom-color: var(--ide-accent); }
+
+.tab-content { flex: 1; display: none; flex-direction: column; overflow: hidden; min-height: 0; }
+.tab-content.active { display: flex; }
+
+/* Explorer */
+.explorer-toolbar {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--ide-border);
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+  background: rgba(0,0,0,.15);
+}
+.explorer-path { flex: 1; font-size: .62rem; color: var(--ide-muted); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+.file-row {
+  padding: 4px 10px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  font-size: .73rem; font-family: monospace;
+  border-radius: 4px; margin: 1px 4px;
+  transition: background .1s; color: var(--ide-text);
+}
+.file-row:hover { background: rgba(255,255,255,.06); }
+
+/* Browser */
+.browser-urlbar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--ide-border);
+  background: rgba(0,0,0,.15);
+  flex-shrink: 0;
+}
+.browser-url { flex: 1; font-size: .65rem; font-family: monospace; color: var(--ide-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser-area {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  background: #000; overflow: auto; min-height: 0; padding: 0;
+}
+.browser-area img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.browser-empty { text-align: center; color: var(--ide-muted); font-size: .73rem; padding: 24px 16px; }
+.browser-ts { font-size: .6rem; color: var(--ide-muted); padding: 3px 8px; background: rgba(0,0,0,.3); border-top: 1px solid var(--ide-border); flex-shrink: 0; font-family: monospace; }
+
+/* Shell */
+.shell-list { max-height: 110px; overflow-y: auto; border-bottom: 1px solid var(--ide-border); flex-shrink: 0; }
+.shell-row {
+  padding: 6px 10px; border-bottom: 1px solid rgba(48,54,61,.4);
+  cursor: pointer; font-size: .7rem;
+  display: flex; align-items: center; gap: 7px;
+  transition: background .1s;
+}
+.shell-row:hover  { background: rgba(255,255,255,.04); }
+.shell-row.active { background: var(--ide-accent-bg); }
+.xterm-wrap { flex: 1; min-height: 0; background: var(--ide-terminal); }
+
+/* Logs */
+.log-list { flex: 1; overflow-y: auto; }
+.log-row {
+  padding: 4px 10px;
+  font-size: .67rem; font-family: monospace;
+  border-bottom: 1px solid rgba(48,54,61,.25);
+  color: var(--ide-muted);
+  display: flex; gap: 7px; align-items: baseline;
+}
+.log-ts    { color: rgba(139,148,158,.45); flex-shrink: 0; }
+.log-lv    { flex-shrink: 0; }
+.log-info .log-lv  { color: var(--ide-accent); }
+.log-warn .log-lv  { color: var(--ide-warn); }
+.log-error .log-lv { color: var(--ide-err); }
+.log-tool .log-lv  { color: var(--ide-purple); }
+.log-msg { flex: 1; word-break: break-word; }
+
+/* ══════════════════════════════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════════════════════════════ */
+.feed-empty {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--ide-muted); gap: 10px; padding: 40px 20px; text-align: center;
+}
+.feed-empty-icon { font-size: 2.2rem; opacity: .25; }
+.feed-empty-title { font-size: .88rem; font-weight: 500; opacity: .55; }
+.feed-empty-sub { font-size: .75rem; opacity: .4; max-width: 220px; line-height: 1.5; }
+
+/* ══════════════════════════════════════════════════════════
+   MODAL FILE VIEWER
+══════════════════════════════════════════════════════════ */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.78); z-index: 9000;
+  align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal-box {
+  width: 90%; max-width: 960px; height: 82vh;
+  background: var(--ide-bg); border: 1px solid var(--ide-border);
+  border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
+}
+.modal-hd {
+  padding: 9px 16px; border-bottom: 1px solid var(--ide-border);
+  background: var(--ide-panel); display: flex; align-items: center;
+  justify-content: space-between; font-size: .8rem; font-family: monospace; flex-shrink: 0;
+}
+.modal-x { background: none; border: none; color: var(--ide-muted); cursor: pointer; font-size: .95rem; padding: 3px 7px; border-radius: 4px; transition: all .1s; }
+.modal-x:hover { background: rgba(255,255,255,.1); color: var(--ide-text); }
+.modal-pre { flex: 1; margin: 0; padding: 14px 16px; overflow: auto; font-size: .77rem; font-family: 'Fira Code', monospace; color: #e6edf3; line-height: 1.6; white-space: pre; }
+
+/* ══════════════════════════════════════════════════════════
+   SCROLLBARS
+══════════════════════════════════════════════════════════ */
+::-webkit-scrollbar              { width: 5px; height: 5px; }
+::-webkit-scrollbar-track        { background: transparent; }
+::-webkit-scrollbar-thumb        { background: #30363d; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover  { background: #484f58; }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVO
+══════════════════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .right-panel {
+    position: fixed; right: 0; top: 0; bottom: 0; z-index: 200;
+    transform: translateX(100%); transition: transform .25s;
+    box-shadow: -4px 0 24px rgba(0,0,0,.5);
+  }
+  .right-panel.slide-open { transform: translateX(0); }
+}
+@media (max-width: 680px) {
+  .left-panel {
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 200;
+    transform: translateX(-100%); transition: transform .25s;
+    box-shadow: 4px 0 24px rgba(0,0,0,.5);
+  }
+  .left-panel.slide-open { transform: translateX(0); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ca-layout">
+
+  <!-- ══ ESQUERDA: Lista de tarefas ══ -->
+  <aside class="left-panel" id="left-panel">
+    <div class="left-header">
+      <div class="agent-row">
+        <div class="agent-avatar"><i class="fas fa-code"></i></div>
+        <div style="min-width:0;">
+          <div class="agent-name">{{ cs.agente.nome if cs.agente else "Coding Agent" }}</div>
+          <div class="agent-ws">{{ cs.workspace_path or '~/fluxi_sandbox' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">
+      Tarefas
+      <button onclick="novaTask()" style="background:none;border:none;color:var(--ide-accent);cursor:pointer;font-size:.78rem;" title="Nova tarefa">
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+
+    <div class="task-list" id="task-list">
+      {% for t in tarefas %}
+      <div class="task-item {% if loop.first %}active{% endif %}"
+           data-tid="{{ t.id }}" data-status="{{ t.status }}"
+           onclick="selecionarTask({{ t.id }}, '{{ t.titulo|replace("'","\\'")|replace('"','\\"') }}', '{{ t.status }}')">
+        <div class="task-title">
+          {% if t.status == 'running' %}
+            <i class="fas fa-circle-notch fa-spin" style="color:var(--ide-warn);font-size:.62rem;flex-shrink:0;"></i>
+          {% elif t.status == 'completed' %}
+            <i class="fas fa-check-circle" style="color:var(--ide-ok);font-size:.62rem;flex-shrink:0;"></i>
+          {% elif t.status == 'failed' %}
+            <i class="fas fa-times-circle" style="color:var(--ide-err);font-size:.62rem;flex-shrink:0;"></i>
+          {% else %}
+            <i class="fas fa-clock" style="color:var(--ide-muted);font-size:.62rem;flex-shrink:0;"></i>
+          {% endif %}
+          <span style="overflow:hidden;text-overflow:ellipsis;">{{ t.titulo }}</span>
+        </div>
+        <div class="task-meta">#{{ t.id }} · {{ t.criado_em.strftime('%d/%m %H:%M') }} · {{ t.iteracoes or 0 }}it</div>
+      </div>
+      {% else %}
+      <div id="task-empty-msg" style="padding:20px 14px;text-align:center;color:var(--ide-muted);font-size:.77rem;opacity:.55;">
+        <i class="fas fa-tasks" style="display:block;font-size:1.4rem;margin-bottom:8px;opacity:.35;"></i>
+        Nenhuma tarefa ainda.
+      </div>
+      {% endfor %}
+    </div>
+
+    <button class="new-task-btn" onclick="novaTask()">
+      <i class="fas fa-plus" style="margin-right:6px;"></i>Nova Tarefa
+    </button>
+  </aside>
+
+  <!-- ══ CENTRO: Feed ══ -->
+  <main class="chat-col">
+
+    <!-- Action strip -->
+    <div class="action-strip hidden" id="action-strip">
+      <span class="strip-dot"></span>
+      <span id="strip-text" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Aguardando...</span>
+      <span id="strip-iter" style="font-family:monospace;font-size:.62rem;opacity:.6;flex-shrink:0;"></span>
+    </div>
+
+    <!-- Feed de mensagens -->
+    <div class="feed" id="feed">
+      <div class="feed-empty" id="feed-empty">
+        <div class="feed-empty-icon"><i class="fas fa-terminal"></i></div>
+        <div class="feed-empty-title">Coding Agent Pronto</div>
+        <div class="feed-empty-sub">Selecione uma tarefa ou envie uma instrução abaixo para começar.</div>
+      </div>
+    </div>
+
+    <!-- Status bar -->
+    <div class="statusbar">
+      <div class="s-dot" id="s-dot"></div>
+      <span id="s-text">Aguardando</span>
+      <span id="s-task" style="font-family:monospace;opacity:.45;"></span>
+      <span id="s-iter" style="font-family:monospace;opacity:.7;"></span>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+        <span id="s-tokens" style="font-family:monospace;font-size:.62rem;opacity:.6;"></span>
+        <select id="model-sel" onchange="salvarModelo(this.value)"
+                style="background:var(--ide-panel);color:var(--ide-muted);border:1px solid var(--ide-border);
+                       font-size:.63rem;padding:2px 5px;border-radius:4px;max-width:130px;cursor:pointer;">
+          <option value="">Modelo padrão</option>
+        </select>
+        <button onclick="toggleRight()" title="Painel de ferramentas"
+                style="background:none;border:none;color:var(--ide-muted);cursor:pointer;font-size:.75rem;">
+          <i class="fas fa-columns"></i>
+        </button>
+        <button onclick="toggleLeft()" title="Lista de tarefas"
+                style="background:none;border:none;color:var(--ide-muted);cursor:pointer;font-size:.75rem;">
+          <i class="fas fa-list-ul"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="msg-input" class="ca-textarea" rows="1"
+                  placeholder="Descreva a tarefa… (Enter envia, Shift+Enter quebra linha)"></textarea>
+        <button id="send-btn" class="send-btn" onclick="enviarMensagem()" title="Enviar (Enter)">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ══ DIREITA: Tabs ══ -->
+  <aside class="right-panel" id="right-panel">
+    <div class="tabs-bar">
+      <button class="tab-btn active" data-tab="explorer" onclick="switchTab('explorer')">
+        <i class="fas fa-folder-open"></i> Explorer
+      </button>
+      <button class="tab-btn" data-tab="browser" onclick="switchTab('browser')">
+        <i class="fas fa-globe"></i> Browser
+      </button>
+      <button class="tab-btn" data-tab="shell" onclick="switchTab('shell')">
+        <i class="fas fa-terminal"></i> Shell
+      </button>
+      <button class="tab-btn" data-tab="logs" onclick="switchTab('logs')">
+        <i class="fas fa-stream"></i> Logs
+      </button>
+    </div>
+
+    <!-- ── Explorer ── -->
+    <div class="tab-content active" id="tab-explorer">
+      <div class="explorer-toolbar">
+        <span class="explorer-path" id="explorer-path">{{ cs.workspace_path or '~' }}</span>
+        <button onclick="carregarArquivos()" title="Atualizar"
+                style="background:none;border:none;color:var(--ide-muted);cursor:pointer;font-size:.68rem;">
+          <i class="fas fa-sync-alt" id="explorer-spin"></i>
+        </button>
+      </div>
+      <div class="file-list" id="file-list">
+        <div style="padding:16px;text-align:center;color:var(--ide-muted);font-size:.72rem;opacity:.55;">
+          Clique em <i class="fas fa-sync-alt"></i> para carregar
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Browser ── -->
+    <div class="tab-content" id="tab-browser">
+      <div class="browser-urlbar">
+        <i class="fas fa-circle" style="font-size:.38rem;color:var(--ide-muted);flex-shrink:0;"></i>
+        <span class="browser-url" id="browser-url">about:blank</span>
+        <button onclick="captureScreenshot()" title="Solicitar screenshot"
+                style="background:none;border:none;color:var(--ide-muted);cursor:pointer;font-size:.68rem;">
+          <i class="fas fa-camera"></i>
+        </button>
+      </div>
+      <div class="browser-area" id="browser-area">
+        <div class="browser-empty">
+          <i class="fas fa-globe" style="font-size:2rem;opacity:.2;display:block;margin-bottom:10px;"></i>
+          <div>Browser inativo</div>
+          <div style="margin-top:6px;font-size:.65rem;opacity:.55;">Screenshots do agente aparecem aqui.</div>
+        </div>
+      </div>
+      <div class="browser-ts" id="browser-ts" style="display:none;"></div>
+    </div>
+
+    <!-- ── Shell ── -->
+    <div class="tab-content" id="tab-shell">
+      <div class="shell-list" id="shell-list">
+        <!-- sessões injetadas via JS -->
+      </div>
+      <div class="xterm-wrap" id="xterm-wrap">
+        <!-- xterm montado aqui -->
+      </div>
+      <div id="shell-empty" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--ide-muted);font-size:.73rem;opacity:.5;padding:24px;text-align:center;">
+        <div>
+          <i class="fas fa-terminal" style="display:block;font-size:1.4rem;margin-bottom:8px;opacity:.35;"></i>
+          Nenhuma sessão shell ativa
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Logs ── -->
+    <div class="tab-content" id="tab-logs">
+      <div style="padding:5px 10px;border-bottom:1px solid var(--ide-border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(0,0,0,.15);">
+        <span style="font-size:.62rem;color:var(--ide-muted);">Eventos em tempo real</span>
+        <button onclick="clearLogs()" style="background:none;border:none;color:var(--ide-muted);cursor:pointer;font-size:.62rem;">Limpar</button>
+      </div>
+      <div class="log-list" id="log-list"></div>
+    </div>
+  </aside>
+</div>
+
+<!-- Modal: visualizador de arquivo -->
+<div class="modal-bg" id="file-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <span id="modal-title">—</span>
+      <button class="modal-x" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <pre class="modal-pre" id="modal-body">Carregando...</pre>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- xterm.js 5.x -->
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   CONSTANTES
+════════════════════════════════════════════════════════════ */
+const CS_ID        = {{ cs.id }};
+const CS_MODEL     = {{ cs.modelo_coding | tojson if cs.modelo_coding else 'null' }};
+const DONE_STATUS  = new Set(['completed','failed','cancelled']);
+const BROWSER_TOOLS = new Set([
+  'browser_navigate','browser_get_page','browser_screenshot','browser_get_page_state',
+  'sandbox_browser_navigate','sandbox_browser_screenshot','sandbox_browser_get_page_state',
+  'sandbox_browser_get_text','sandbox_browser_get_markdown',
+]);
+
+/* ════════════════════════════════════════════════════════════
+   ESTADO GLOBAL
+════════════════════════════════════════════════════════════ */
+let currentTaskId   = {% if tarefas %}{{ tarefas[0].id }}{% else %}null{% endif %};
+let currentStatus   = 'idle';
+let wsTask          = null;
+let streamingEl     = null;   // bolha de texto em andamento
+let currentToolCard = null;   // terminal-card sendo montado
+let lastToolArgs    = null;   // args da última tool_start (para mirror no painel)
+let shellWsMap      = {};     // sessionId → WebSocket
+let shellDone       = new Set(); // sessões já encerradas — não reconectar
+let activeShellId   = null;
+let xtermInst       = null;   // instância xterm única no painel
+let xtermFit        = null;
+
+/* ════════════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════════════ */
+const esc = s => {
+  if (typeof s !== 'string') s = String(s);
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+};
+
+// Converte códigos ANSI básicos (cor+negrito) para HTML
+function ansi2html(raw) {
+  const C = {
+    '30':'#656d76','31':'#f85149','32':'#3fb950','33':'#d29922','34':'#58a6ff',
+    '35':'#a371f7','36':'#39d353','37':'#c9d1d9','90':'#8b949e','91':'#ff7b72',
+    '92':'#56d364','93':'#e3b341','94':'#79c0ff','95':'#d2a8ff','96':'#56d364','97':'#f0f6fc',
+  };
+  let html = esc(raw)
+    // Carriage returns: colapsa linhas repetidas de progress-bar
+    .replace(/\r\n/g,'\n').replace(/\r([^\n])/g,'\n$1');
+  // Substitui sequências ANSI
+  html = html.replace(/\x1b\[([0-9;]*)m/g, (_, codes) => {
+    const parts = codes.split(';');
+    return parts.map(c => {
+      if (c === '' || c === '0') return '</span>';
+      if (c === '1') return '<span style="font-weight:700;">';
+      if (C[c])       return `<span style="color:${C[c]};">`;
+      return '';
+    }).join('');
+  });
+  // Remove outras sequências ANSI não coloridas
+  html = html.replace(/\x1b\[[0-9;]*[A-Za-z]/g, '');
+  return html;
+}
+
+function toolIcon(n) {
+  if (!n) return 'fa-cog';
+  if (n.startsWith('browser') || n.startsWith('sandbox_browser')) return 'fa-globe';
+  if (n.startsWith('shell')   || n.startsWith('sandbox_shell'))   return 'fa-terminal';
+  if (n.startsWith('file')    || n.startsWith('sandbox_file'))    return 'fa-file-code';
+  if (n.startsWith('web'))    return 'fa-search';
+  if (n === 'think')          return 'fa-brain';
+  if (n.startsWith('memory')) return 'fa-bookmark';
+  if (n.startsWith('task'))   return 'fa-tasks';
+  return 'fa-cog';
+}
+
+function toolLabel(n) {
+  const MAP = {
+    shell_exec:'Shell Exec', shell_start:'Shell BG', shell_status:'Shell Status',
+    shell_write:'Shell Input', shell_kill:'Kill',
+    file_read:'Ler', file_write:'Escrever', file_edit:'Editar',
+    file_list:'Listar', file_find:'Buscar', file_grep:'Grep', file_zip:'Zip',
+    browser_navigate:'Navegar', browser_get_page:'Ler Página', browser_screenshot:'Screenshot',
+    browser_get_page_state:'Estado Página',
+    web_fetch:'Web Fetch', web_search:'Pesquisar',
+    think:'Pensando', memory_read:'Memória', memory_write:'Salvar Memória',
+    workspace_info:'Workspace Info', task_list:'Listar Tarefas', task_create:'Nova Tarefa',
+    context_compact:'Compactar Contexto',
+    sandbox_shell_exec:'Shell', sandbox_browser_navigate:'Navegar',
+    sandbox_browser_screenshot:'Screenshot', sandbox_file_read:'Ler Arquivo',
+  };
+  return MAP[n] || n;
+}
+
+function argsPreview(args) {
+  if (!args) return '';
+  if (typeof args === 'string') { try { args = JSON.parse(args); } catch(e) {} }
+  const v = args.command || args.url || args.file || args.path || args.query || args.thought || '';
+  return v ? String(v).substring(0, 72) : '';
+}
+
+/* ════════════════════════════════════════════════════════════
+   LOG PANEL
+════════════════════════════════════════════════════════════ */
+function log(level, msg) {
+  const list = document.getElementById('log-list');
+  if (!list) return;
+  const ts = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const d = document.createElement('div');
+  d.className = `log-row log-${level}`;
+  d.innerHTML = `<span class="log-ts">${ts}</span><span class="log-lv">[${level.toUpperCase().substring(0,4)}]</span><span class="log-msg">${esc(String(msg))}</span>`;
+  list.appendChild(d);
+  list.scrollTop = list.scrollHeight;
+}
+function clearLogs() { const l = document.getElementById('log-list'); if(l) l.innerHTML=''; }
+
+/* ════════════════════════════════════════════════════════════
+   TABS DO PAINEL DIREITO
+════════════════════════════════════════════════════════════ */
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${name}`));
+  // Refit xterm ao abrir shell tab
+  if (name === 'shell' && xtermFit) { setTimeout(()=>{ try{xtermFit.fit();}catch(e){} }, 50); }
+}
+
+function toggleLeft() {
+  const p = document.getElementById('left-panel');
+  if (window.innerWidth <= 680) p.classList.toggle('slide-open');
+  else p.classList.toggle('collapsed');
+}
+
+function toggleRight() {
+  const p = document.getElementById('right-panel');
+  if (window.innerWidth <= 1100) p.classList.toggle('slide-open');
+  else p.classList.toggle('hidden');
+}
+
+/* ════════════════════════════════════════════════════════════
+   STATUS UI
+════════════════════════════════════════════════════════════ */
+function setStatus(status, text) {
+  currentStatus = status;
+  const dot = document.getElementById('s-dot');
+  const txt = document.getElementById('s-text');
+  dot.className = 's-dot' + (status==='running'?' running':status==='completed'?' success':status==='failed'?' error':'');
+  txt.textContent = text;
+}
+
+function setActionStrip(toolName, args, iter) {
+  const strip = document.getElementById('action-strip');
+  if (!toolName) { strip.classList.add('hidden'); return; }
+  strip.classList.remove('hidden');
+  const preview = argsPreview(args);
+  document.getElementById('strip-text').textContent = toolLabel(toolName) + (preview ? ` — ${preview}` : '');
+  document.getElementById('strip-iter').textContent = iter ? `iter ${iter}` : '';
+}
+
+/* ════════════════════════════════════════════════════════════
+   FEED: RENDERIZAÇÃO
+════════════════════════════════════════════════════════════ */
+function clearFeed() {
+  document.getElementById('feed').innerHTML = '';
+  streamingEl = null;
+  currentToolCard = null;
+}
+
+function showEmpty(msg) {
+  clearFeed();
+  document.getElementById('feed').innerHTML = `
+    <div class="feed-empty">
+      <div class="feed-empty-icon"><i class="fas fa-terminal"></i></div>
+      <div class="feed-empty-title">${msg||'Nova Tarefa'}</div>
+      <div class="feed-empty-sub">Envie uma instrução abaixo para o Coding Agent.</div>
+    </div>`;
+}
+
+function scrollFeed() {
+  const f = document.getElementById('feed'); if(f) f.scrollTop = f.scrollHeight;
+}
+
+function addUser(text) {
+  document.getElementById('feed').querySelector('.feed-empty')?.remove();
+  streamingEl = null; currentToolCard = null;
+  const el = document.createElement('div');
+  el.className = 'msg-user'; el.textContent = text;
+  document.getElementById('feed').appendChild(el);
+  scrollFeed();
+}
+
+function addAssistant(text, streaming=false) {
+  document.getElementById('feed').querySelector('.feed-empty')?.remove();
+  if (streaming && streamingEl) {
+    streamingEl.textContent += text;
+  } else {
+    const el = document.createElement('div');
+    el.className = 'msg-assistant'; el.textContent = text;
+    document.getElementById('feed').appendChild(el);
+    streamingEl = streaming ? el : null;
+  }
+  scrollFeed();
+}
+
+function newAssistantTurn() {
+  // Chamado em llm_stream_start: força nova bolha na próxima delta
+  streamingEl = null;
+  currentToolCard = null;
+}
+
+function addThink(text) {
+  document.getElementById('feed').querySelector('.feed-empty')?.remove();
+  streamingEl = null;
+  const el = document.createElement('div');
+  el.className = 'msg-think';
+  el.innerHTML = `<i class="fas fa-brain" style="margin-right:6px;opacity:.55;"></i>${esc(text.substring(0,600))}${text.length>600?'…':''}`;
+  document.getElementById('feed').appendChild(el);
+  scrollFeed();
+}
+
+function addReasoning(text) {
+  if (!text || !text.trim()) return;
+  document.getElementById('feed').querySelector('.feed-empty')?.remove();
+  streamingEl = null;
+  const el = document.createElement('div');
+  el.className = 'msg-reasoning';
+  const preview = text.substring(0, 80).replace(/\n/g, ' ') + (text.length > 80 ? '…' : '');
+  el.innerHTML = `
+    <div class="reasoning-header" onclick="this.querySelector('.chevron').classList.toggle('open');this.nextElementSibling.classList.toggle('open');">
+      <i class="fas fa-chevron-right chevron"></i>
+      <i class="fas fa-lightbulb" style="opacity:.6;"></i>
+      <span>Reasoning</span>
+      <span style="font-weight:400;opacity:.5;margin-left:4px;font-size:.66rem;">(${text.length} chars)</span>
+      <span style="font-weight:400;opacity:.4;margin-left:auto;font-size:.64rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(preview)}</span>
+    </div>
+    <div class="reasoning-body">${esc(text)}</div>`;
+  document.getElementById('feed').appendChild(el);
+  scrollFeed();
+}
+
+/* ── Terminal Card ── */
+function makeCard(toolName, args, done=false) {
+  const card = document.createElement('div');
+  card.className = 'term-card';
+  const preview = argsPreview(args);
+  const spinHtml = done
+    ? '<i class="fas fa-check-circle" style="color:var(--ide-ok);"></i>'
+    : '<i class="fas fa-circle-notch fa-spin" style="color:var(--ide-warn);"></i>';
+  card.innerHTML = `
+    <div class="term-head">
+      <div class="term-icon"><i class="fas ${toolIcon(toolName)}"></i></div>
+      <span class="term-tool">${esc(toolLabel(toolName))}</span>
+      <span class="term-cmd">${preview ? '— '+esc(preview) : ''}</span>
+      <span class="term-st" id="tc-st">${spinHtml}</span>
+    </div>
+    <div class="term-body" id="tc-body">${done?'':''}</div>`;
+  return card;
+}
+
+function fillCard(card, result, toolName) {
+  const stEl   = card.querySelector('#tc-st');
+  const bodyEl = card.querySelector('#tc-body');
+  if (stEl) stEl.innerHTML = '<i class="fas fa-check-circle" style="color:var(--ide-ok);"></i>';
+  if (!bodyEl) return;
+
+  let content = result;
+  if (typeof content === 'string') { try { content = JSON.parse(content); } catch(e) {} }
+
+  // Imagem (screenshot)
+  if (content && typeof content === 'object' && content.type === 'image') {
+    if (content.image_base64 && content.image_base64.length > 200) {
+      const mime = content.mime_type || 'image/png';
+      const src  = `data:${mime};base64,${content.image_base64}`;
+      bodyEl.innerHTML = `<img src="${src}" alt="screenshot" style="max-width:100%;border-radius:4px;" />`;
+      updateBrowser(src, content.url || '');
+    } else {
+      // Base64 truncado no stream — mostra aviso
+      bodyEl.innerHTML = `<span style="color:var(--ide-muted);">📸 Screenshot capturado${content.size_kb?` (${content.size_kb}KB)`:''}</span>`;
+      // Troca para aba browser
+      switchTab('browser');
+    }
+    return;
+  }
+
+  const text = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+  bodyEl.innerHTML = ansi2html(text);
+  bodyEl.scrollTop = bodyEl.scrollHeight;
+}
+
+function startCard(toolName, args) {
+  document.getElementById('feed').querySelector('.feed-empty')?.remove();
+  streamingEl = null;
+  lastToolArgs = args;
+  const card = makeCard(toolName, args, false);
+  document.getElementById('feed').appendChild(card);
+  currentToolCard = card;
+  scrollFeed();
+  setActionStrip(toolName, args);
+  if (BROWSER_TOOLS.has(toolName)) switchTab('browser');
+  return card;
+}
+
+function finishCard(toolName, result) {
+  if (currentToolCard) {
+    fillCard(currentToolCard, result, toolName);
+    currentToolCard = null;
+  } else {
+    document.getElementById('feed').querySelector('.feed-empty')?.remove();
+    const card = makeCard(toolName, null, true);
+    fillCard(card, result, toolName);
+    document.getElementById('feed').appendChild(card);
+  }
+  // Espelha resultado nos painéis laterais
+  mirrorToPanel(toolName, lastToolArgs, result);
+  lastToolArgs = null;
+  scrollFeed();
+  setActionStrip(null);
+}
+
+/* Espelha output de shell/browser nos painéis direitos */
+function mirrorToPanel(toolName, args, result) {
+  let content = result;
+  if (typeof content === 'string') { try { content = JSON.parse(content); } catch(e) {} }
+
+  const isBrowser = BROWSER_TOOLS.has(toolName) || String(toolName).includes('browser');
+  const isShell   = ['shell_exec','sandbox_shell_exec'].includes(toolName);
+  const isNavigate = String(toolName).includes('navigate');
+
+  // ── Painel Browser: atualiza URL mesmo sem screenshot ──
+  if (isBrowser && content && typeof content === 'object') {
+    if (content.type === 'image') {
+      // Já tratado em fillCard → updateBrowser()
+    } else {
+      // Resultado de navigate/get_page/etc: atualiza URL bar + placeholder
+      const url   = content.url   || content.current_url || '';
+      const title = content.title || '';
+      if (url) {
+        document.getElementById('browser-url').textContent = url;
+        const area = document.getElementById('browser-area');
+        // Só substitui se ainda não houver screenshot real
+        if (!area.querySelector('img')) {
+          const icon = isNavigate ? 'fa-check-circle' : 'fa-globe';
+          const color = isNavigate ? 'var(--ide-ok)' : 'var(--ide-muted)';
+          area.innerHTML = `
+            <div class="browser-empty">
+              <i class="fas ${icon}" style="font-size:2rem;opacity:.35;display:block;margin-bottom:10px;color:${color};"></i>
+              <div style="font-size:.8rem;font-weight:500;">${esc(title||'Página carregada')}</div>
+              <div style="font-size:.65rem;opacity:.55;margin-top:4px;word-break:break-all;">${esc(url)}</div>
+              <div style="font-size:.62rem;opacity:.4;margin-top:8px;">Peça um screenshot para visualizar a página</div>
+            </div>`;
+        }
+        const tsEl = document.getElementById('browser-ts');
+        if (tsEl) { tsEl.style.display='block'; tsEl.textContent = new Date().toLocaleTimeString('pt-BR'); }
+        switchTab('browser');
+      }
+    }
+  }
+
+  // ── Painel Shell: espelha output de shell_exec no xterm ──
+  if (isShell) {
+    const cmd    = args?.command || args?.cmd || '';
+    const output = typeof content === 'object'
+      ? (content.output || content.stdout || JSON.stringify(content, null, 2))
+      : String(content || '');
+
+    const term = garantirXterm();
+    if (term) {
+      term.writeln('');
+      if (cmd) term.writeln(`\x1b[90m$ \x1b[93m${cmd}\x1b[0m`);
+      if (output.trim()) term.write(output.endsWith('\n') ? output : output + '\n');
+      // exit code
+      if (typeof content === 'object' && content.exit_code !== undefined) {
+        const col = content.exit_code === 0 ? '32' : '31';
+        term.writeln(`\x1b[${col}m[exit ${content.exit_code}]\x1b[0m`);
+      }
+      if (xtermFit) { try { xtermFit.fit(); } catch(e) {} }
+    }
+    document.getElementById('shell-empty').style.display = 'none';
+    switchTab('shell');
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDERIZAÇÃO DE HISTÓRICO
+════════════════════════════════════════════════════════════ */
+function renderHistory(messages) {
+  clearFeed();
+  if (!messages || !messages.length) return;
+
+  // Coleta todos os role:tool em ordem para fallback posicional
+  const toolMsgs = messages.filter(m => m.role === 'tool');
+  const byId = {};
+  toolMsgs.forEach(m => { if (m.tool_call_id) byId[m.tool_call_id] = m; });
+
+  const usedIds = new Set();   // ids já consumidos por paridade
+  let posIdx = 0;              // cursor para fallback posicional
+
+  // Extrai nome/args de um tool_call, suportando formato OpenAI e formato plano
+  function parseToolCall(tc) {
+    // Formato OpenAI:  {id, type, function: {name, arguments}}
+    // Formato plano:   {id, name, arguments}  (alguns LLMs locais)
+    const fname = tc.function?.name || tc.name || '';
+    let args = {};
+    try {
+      const raw = tc.function?.arguments ?? tc.arguments ?? '{}';
+      args = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+    } catch(e) {}
+    return { fname, args };
+  }
+
+  // Encontra resultado de um tool_call: por id primeiro, depois por posição
+  function findResult(tcId) {
+    if (tcId && byId[tcId]) return byId[tcId];
+    // Fallback posicional: próximo tool msg ainda não consumido
+    while (posIdx < toolMsgs.length) {
+      const m = toolMsgs[posIdx++];
+      if (!usedIds.has(m.tool_call_id)) return m;
+    }
+    return null;
+  }
+
+  messages.forEach(m => {
+    // ── Mensagem do usuário ──────────────────────────────
+    if (m.role === 'user') {
+      const txt = typeof m.content === 'string' ? m.content
+                : Array.isArray(m.content) ? m.content.filter(p=>p.type!=='image_url').map(p=>p.text||'').join('') : '';
+      if (txt.trim()) addUser(txt);
+
+    // ── Mensagem do assistente ───────────────────────────
+    } else if (m.role === 'assistant') {
+      // Reasoning (se presente) — mesma lógica do backend:
+      // reasoning_details pode ter content vazio; reasoning string tem o texto real
+      let reasoningText = '';
+      if (m.reasoning_details && Array.isArray(m.reasoning_details)) {
+        reasoningText = m.reasoning_details
+          .map(d => (typeof d === 'object' && d.content) ? d.content : (typeof d === 'string' ? d : ''))
+          .join(' ').trim();
+      }
+      // fallback para campo reasoning string (sempre presente quando details está vazio)
+      if (!reasoningText && m.reasoning) {
+        reasoningText = m.reasoning;
+      }
+      if (reasoningText && reasoningText.trim()) addReasoning(reasoningText.trim());
+
+      // Texto livre
+      const txt = typeof m.content === 'string' ? m.content
+                : Array.isArray(m.content) ? m.content.filter(p=>p.type==='text').map(p=>p.text||'').join('') : '';
+      if (txt && txt.trim()) addAssistant(txt, false);
+
+      // Tool calls — renderiza cada um com seu resultado
+      const tcs = m.tool_calls || [];
+      tcs.forEach(tc => {
+        const { fname, args } = parseToolCall(tc);
+        if (!fname) return;
+
+        if (fname === 'think') {
+          addThink(args.thought || '');
+          if (tc.id) usedIds.add(tc.id);
+          posIdx++; // avança posição mesmo sem card
+          return;
+        }
+
+        const card = makeCard(fname, args, true);
+        const res  = findResult(tc.id);
+        if (res) {
+          fillCard(card, res.content, fname);
+          if (res.tool_call_id) usedIds.add(res.tool_call_id);
+        }
+        document.getElementById('feed').appendChild(card);
+      });
+
+    // ── Resultado de tool sem par (órfão) ────────────────
+    } else if (m.role === 'tool' && !usedIds.has(m.tool_call_id)) {
+      const tname = m.tool_name || m.name || 'tool';
+      const card  = makeCard(tname, null, true);
+      fillCard(card, m.content, tname);
+      document.getElementById('feed').appendChild(card);
+      if (m.tool_call_id) usedIds.add(m.tool_call_id);
+    }
+  });
+
+  scrollFeed();
+}
+
+/* ════════════════════════════════════════════════════════════
+   WEBSOCKET — TAREFA
+════════════════════════════════════════════════════════════ */
+function conectarWs(tid) {
+  if (wsTask) { wsTask.close(); wsTask = null; }
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  wsTask = new WebSocket(`${proto}://${location.host}/ws/coding/task/${tid}`);
+
+  wsTask.onopen = () => {
+    log('info', `WS conectado — tarefa #${tid}`);
+    setStatus('running', 'Executando...');
+    document.getElementById('send-btn').disabled = true;
+  };
+
+  wsTask.onmessage = ev => {
+    let d; try { d = JSON.parse(ev.data); } catch(e) { return; }
+    const t = d.type || '';
+
+    if      (t === 'llm_stream_start')        { newAssistantTurn(); }
+    else if (t === 'llm_delta' && d.text)     { addAssistant(d.text, true); }
+    else if (t === 'reasoning' && d.text)     { addReasoning(d.text); log('info', `🧠 Reasoning: ${d.text.length} chars`); }
+    else if (t === 'tool_start')               { startCard(d.tool_name, d.args); log('tool', `▶ ${d.tool_name}`); }
+    else if (t === 'tool_result')              { finishCard(d.tool_name, d.result); log('tool', `✓ ${d.tool_name}`); }
+    else if (t === 'shell_chunk' && d.text)   { onShellChunk(d.session_id, d.text); }
+    else if (t === 'status' && d.message)     { log('info', d.message); setStatus('running', d.message); }
+    else if (t === 'log')                      { log(d.level||'info', d.msg||''); }
+    else if (d.status)                         { onStatusUpdate(d); }
+  };
+
+  wsTask.onerror = () => { log('error','Erro no WebSocket'); setStatus('error','Conexão perdida'); };
+
+  wsTask.onclose = ev => {
+    log('info', `WS fechado (${ev.code})`);
+    if (currentStatus === 'running' && !DONE_STATUS.has(currentStatus)) {
+      setTimeout(() => {
+        if (currentStatus === 'running') { log('warn','Reconectando...'); conectarWs(tid); }
+      }, 3000);
+      return;
+    }
+    // Fallback 2: WS fechou normalmente mas o feed ainda não tem resposta
+    // (race condition: tarefa terminou antes do stream chegar ao frontend)
+    setTimeout(() => recuperarHistoricoSeVazio(tid), 400);
+  };
+}
+
+async function recuperarHistoricoSeVazio(tid) {
+  if (!tid) return;
+  const hasContent = document.querySelector('#feed .msg-assistant') ||
+                     document.querySelector('#feed .term-card');
+  if (hasContent) return; // feed já tem conteúdo, nada a fazer
+
+  log('warn', 'Resposta não recebida via stream — buscando histórico...');
+  try {
+    const r = await fetch(`/api/coding/tasks/${tid}`);
+    if (!r.ok) return;
+    const task = await r.json();
+    if (task.messages?.length) {
+      renderHistory(task.messages);
+      log('info', `Histórico recuperado (${task.messages.length} msgs)`);
+    }
+  } catch(e) {
+    log('error', 'Fallback: ' + e.message);
+  }
+}
+
+function onStatusUpdate(d) {
+  const prev = currentStatus;
+  currentStatus = d.status;
+
+  const LABELS = { running:'Executando', completed:'Concluído', failed:'Falhou', cancelled:'Cancelado', pending:'Pendente' };
+  setStatus(d.status, LABELS[d.status] || d.status);
+
+  if (d.task_id) document.getElementById('s-task').textContent = `#${d.task_id}`;
+  if (d.iteracoes) {
+    document.getElementById('s-iter').textContent = `iter ${d.iteracoes}`;
+    document.getElementById('strip-iter').textContent = `iter ${d.iteracoes}`;
+  }
+
+  // Conecta shells novas
+  (d.shell_sessions_ativas || []).forEach(sid => {
+    if (!shellWsMap[sid]) conectarShell(sid);
+  });
+
+  if (DONE_STATUS.has(d.status)) {
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('action-strip').classList.add('hidden');
+    streamingEl = null; currentToolCard = null;
+
+    // Fallback 1: stream perdido → mostra ultima_mensagem do polling
+    if (d.ultima_mensagem && d.ultima_mensagem.trim()) {
+      const hasAssistant = document.querySelector('#feed .msg-assistant');
+      if (!hasAssistant) {
+        addAssistant(d.ultima_mensagem, false);
+        log('warn', 'Stream perdido — resposta recuperada via polling');
+      }
+    }
+
+    // Atualiza ícone na sidebar
+    const item = document.querySelector(`[data-tid="${d.task_id}"]`);
+    if (item) {
+      item.dataset.status = d.status;
+      const ico = item.querySelector('.fas');
+      if (ico) {
+        ico.className = d.status === 'completed' ? 'fas fa-check-circle' : 'fas fa-times-circle';
+        ico.style.color = d.status === 'completed' ? 'var(--ide-ok)' : 'var(--ide-err)';
+      }
+    }
+
+    if (d.status === 'completed') { carregarArquivos(); log('info',`Concluído em ${d.iteracoes||'?'} iterações`); }
+    else log('error', `${d.status}: ${d.error||''}`);
+
+    if (wsTask) { wsTask.close(); wsTask = null; }
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   WEBSOCKET — SHELL (xterm)
+════════════════════════════════════════════════════════════ */
+function garantirXterm() {
+  if (xtermInst) return xtermInst;
+  const wrap = document.getElementById('xterm-wrap');
+  if (!wrap || typeof Terminal === 'undefined') return null;
+
+  xtermInst = new Terminal({
+    theme: { background:'#010409', foreground:'#c9d1d9', cursor:'#58a6ff', selectionBackground:'rgba(88,166,255,.3)' },
+    fontSize: 12,
+    fontFamily: "'Fira Code','Cascadia Code','Courier New',monospace",
+    scrollback: 3000,
+    convertEol: true,
+    allowTransparency: true,
+  });
+
+  if (typeof FitAddon !== 'undefined') {
+    xtermFit = new FitAddon.FitAddon();
+    xtermInst.loadAddon(xtermFit);
+    xtermInst.open(wrap);
+    xtermFit.fit();
+    window.addEventListener('resize', () => { try { xtermFit.fit(); } catch(e){} });
+  } else {
+    xtermInst.open(wrap);
+  }
+  return xtermInst;
+}
+
+/* Recebe chunk de shell background via stream principal da tarefa (sem WS separado) */
+function onShellChunk(sessionId, text) {
+  // Garante painel shell visível e xterm pronto
+  document.getElementById('shell-empty').style.display = 'none';
+  const term = garantirXterm();
+  if (!term) return;
+
+  // Escreve cabeçalho apenas na primeira vez para esta sessão
+  if (!shellDone.has('hdr_' + sessionId) && !shellWsMap[sessionId]) {
+    shellDone.add('hdr_' + sessionId);
+    term.writeln(`\x1b[90m── shell ${(sessionId||'').substring(0,8)} ──\x1b[0m`);
+    switchTab('shell');
+    activeShellId = sessionId;
+    atualizarListaShell();
+  }
+
+  term.write(text);
+}
+
+function conectarShell(sessionId) {
+  // Nunca reconectar sessão já encerrada (evita header repetido a cada poll)
+  if (shellDone.has(sessionId)) return;
+  if (shellWsMap[sessionId]) return;
+
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/ws/coding/shell/${sessionId}`);
+  shellWsMap[sessionId] = ws;   // registra imediatamente (guard)
+  activeShellId = sessionId;
+
+  document.getElementById('shell-empty').style.display = 'none';
+  const term = garantirXterm();
+  // Cabeçalho de sessão — escrito UMA única vez aqui
+  if (term) term.writeln(`\x1b[90m── shell ${sessionId.substring(0,8)} ──\x1b[0m`);
+
+  switchTab('shell');
+  atualizarListaShell();
+  log('info', `Shell conectado: ${sessionId.substring(0,8)}`);
+
+  ws.onmessage = ev => {
+    let parsed = null;
+    try { parsed = JSON.parse(ev.data); } catch(e) {}
+
+    if (parsed) {
+      if (parsed.done) {
+        const t = garantirXterm();
+        if (t) t.writeln(`\x1b[90m[exit ${parsed.exit_code ?? '?'}]\x1b[0m`);
+        shellDone.add(sessionId);   // marca como encerrado — não reconectar
+        ws.close();
+        delete shellWsMap[sessionId];
+        if (activeShellId === sessionId) activeShellId = Object.keys(shellWsMap)[0] || null;
+        atualizarListaShell();
+        if (!Object.keys(shellWsMap).length) document.getElementById('shell-empty').style.display = 'flex';
+      }
+      return; // keepalive ou outro JSON — ignora
+    }
+
+    // Chunk de texto bruto do processo → xterm
+    const t = garantirXterm();
+    if (t) t.write(ev.data);
+  };
+
+  ws.onclose = () => {
+    delete shellWsMap[sessionId];
+    atualizarListaShell();
+  };
+}
+
+function atualizarListaShell() {
+  const list = document.getElementById('shell-list');
+  const ids  = Object.keys(shellWsMap);
+  if (!ids.length) { list.innerHTML=''; return; }
+
+  list.innerHTML = ids.map(sid => `
+    <div class="shell-row ${sid===activeShellId?'active':''}" onclick="focarShell('${sid}')">
+      <i class="fas fa-circle" style="font-size:.38rem;color:var(--ide-ok);flex-shrink:0;"></i>
+      <span style="font-family:monospace;font-size:.72rem;">${sid.substring(0,10)}…</span>
+      <span style="margin-left:auto;font-size:.62rem;color:var(--ide-muted);">ativo</span>
+    </div>`).join('');
+}
+
+function focarShell(sid) {
+  activeShellId = sid;
+  atualizarListaShell();
+  switchTab('shell');
+}
+
+/* ════════════════════════════════════════════════════════════
+   BROWSER PANEL
+════════════════════════════════════════════════════════════ */
+function updateBrowser(src, url) {
+  const area = document.getElementById('browser-area');
+  const urlEl = document.getElementById('browser-url');
+  const tsEl  = document.getElementById('browser-ts');
+
+  area.innerHTML = `<img src="${src}" alt="browser screenshot" />`;
+  if (url && urlEl) urlEl.textContent = url;
+  if (tsEl) {
+    tsEl.style.display = 'block';
+    tsEl.textContent = new Date().toLocaleTimeString('pt-BR');
+  }
+
+  // Badge na tab
+  const tab = document.querySelector('[data-tab="browser"]');
+  if (tab && !tab.classList.contains('active')) {
+    if (!tab.querySelector('.nb')) {
+      const nb = document.createElement('span');
+      nb.className = 'nb';
+      nb.style.cssText = 'width:5px;height:5px;border-radius:50%;background:var(--ide-ok);display:inline-block;margin-left:2px;';
+      tab.appendChild(nb);
+    }
+  }
+}
+
+function captureScreenshot() {
+  log('warn','Para capturar, peça ao agente: "tire um screenshot do browser".');
+}
+
+/* ════════════════════════════════════════════════════════════
+   FILE EXPLORER
+════════════════════════════════════════════════════════════ */
+const FILE_ICONS = {
+  py:'fa-file-code',js:'fa-file-code',ts:'fa-file-code',jsx:'fa-file-code',tsx:'fa-file-code',
+  html:'fa-file-code',css:'fa-file-code',scss:'fa-file-code',
+  json:'fa-file-alt',md:'fa-file-alt',txt:'fa-file-alt',yaml:'fa-file-alt',yml:'fa-file-alt',
+  sh:'fa-terminal',bash:'fa-terminal',
+  zip:'fa-file-archive',tar:'fa-file-archive',gz:'fa-file-archive',
+  pdf:'fa-file-pdf',png:'fa-file-image',jpg:'fa-file-image',jpeg:'fa-file-image',
+  gif:'fa-file-image',svg:'fa-file-image',
+};
+
+function fileIcon(name) {
+  const ext = (name.split('.').pop()||'').toLowerCase();
+  return FILE_ICONS[ext] || 'fa-file';
+}
+
+async function carregarArquivos() {
+  const list = document.getElementById('file-list');
+  const spin = document.getElementById('explorer-spin');
+  list.innerHTML = '<div style="padding:14px;text-align:center;color:var(--ide-muted);font-size:.7rem;"><i class="fas fa-circle-notch fa-spin"></i> Carregando…</div>';
+  if (spin) spin.className = 'fas fa-circle-notch fa-spin';
+  try {
+    const r = await fetch(`/api/coding/sessions/${CS_ID}/files`);
+    const d = await r.json();
+    const files = d.files || [];
+    if (!files.length) {
+      list.innerHTML = '<div style="padding:14px;text-align:center;color:var(--ide-muted);font-size:.7rem;opacity:.55;">Workspace vazio</div>';
+    } else {
+      list.innerHTML = '';
+      files.forEach(f => {
+        const row = document.createElement('div');
+        row.className = 'file-row';
+        const ico = f.type === 'directory' ? 'fa-folder' : fileIcon(f.name);
+        const col = f.type === 'directory' ? 'var(--ide-warn)' : 'var(--ide-muted)';
+        row.innerHTML = `
+          <i class="fas ${ico}" style="color:${col};width:14px;font-size:.73rem;flex-shrink:0;"></i>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</span>
+          ${f.size_kb ? `<span style="font-size:.58rem;opacity:.45;">${f.size_kb}k</span>` : ''}`;
+        if (f.type !== 'directory') row.onclick = () => openFile(f.name);
+        list.appendChild(row);
+      });
+    }
+  } catch(e) {
+    list.innerHTML = '<div style="padding:10px;color:var(--ide-err);font-size:.7rem;">Erro ao carregar</div>';
+    log('error', 'Explorer: '+e.message);
+  } finally {
+    if (spin) spin.className = 'fas fa-sync-alt';
+  }
+}
+
+async function openFile(path) {
+  document.getElementById('modal-title').textContent = path;
+  document.getElementById('modal-body').textContent = 'Carregando…';
+  document.getElementById('file-modal').classList.add('open');
+  try {
+    const r = await fetch(`/api/coding/sessions/${CS_ID}/file?path=${encodeURIComponent(path)}`);
+    const d = await r.json();
+    document.getElementById('modal-body').textContent = d.content || '(vazio)';
+  } catch(e) {
+    document.getElementById('modal-body').textContent = 'Erro ao carregar arquivo.';
+  }
+}
+
+function closeModal() { document.getElementById('file-modal').classList.remove('open'); }
+
+/* ════════════════════════════════════════════════════════════
+   ENVIAR MENSAGEM
+════════════════════════════════════════════════════════════ */
+async function enviarMensagem() {
+  const input = document.getElementById('msg-input');
+  const msg   = input.value.trim();
+  if (!msg || currentStatus === 'running') return;
+
+  addUser(msg);
+  input.value = '';
+  autoResize(input);
+  document.getElementById('send-btn').disabled = true;
+  streamingEl = null; currentToolCard = null;
+  setStatus('running', 'Enviando…');
+  log('info', `↑ ${msg.substring(0,70)}`);
+
+  try {
+    const r = await fetch('/api/coding/chat-async', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ coding_session_id: CS_ID, mensagem: msg, task_id: currentTaskId }),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    currentTaskId = d.task_id;
+    document.getElementById('s-task').textContent = `#${d.task_id}`;
+
+    // Adiciona tarefa na sidebar se for nova
+    if (!document.querySelector(`[data-tid="${d.task_id}"]`)) {
+      addTaskToSidebar(d.task_id, msg.substring(0,45));
+    }
+
+    conectarWs(d.task_id);
+  } catch(e) {
+    setStatus('error','Erro ao enviar');
+    document.getElementById('send-btn').disabled = false;
+    log('error', e.message);
+  }
+}
+
+function addTaskToSidebar(tid, title) {
+  const list = document.getElementById('task-list');
+  document.getElementById('task-empty-msg')?.remove();
+  document.querySelectorAll('.task-item').forEach(i => i.classList.remove('active'));
+  const d = document.createElement('div');
+  d.className = 'task-item active';
+  d.dataset.tid = tid; d.dataset.status = 'running';
+  d.innerHTML = `
+    <div class="task-title">
+      <i class="fas fa-circle-notch fa-spin" style="color:var(--ide-warn);font-size:.62rem;flex-shrink:0;"></i>
+      <span style="overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
+    </div>
+    <div class="task-meta">#${tid} · agora · 0it</div>`;
+  d.onclick = () => selecionarTask(tid, title, 'running');
+  list.prepend(d);
+}
+
+/* ════════════════════════════════════════════════════════════
+   SELECIONAR TAREFA
+════════════════════════════════════════════════════════════ */
+async function selecionarTask(tid, title, status, force=false) {
+  if (currentTaskId === tid && !force) {
+    if (!wsTask || wsTask.readyState !== WebSocket.OPEN) {
+      if (!DONE_STATUS.has(status)) conectarWs(tid);
+    }
+    return;
+  }
+  if (wsTask) { wsTask.close(); wsTask=null; }
+  currentTaskId = tid; streamingEl=null; currentToolCard=null;
+
+  document.querySelectorAll('.task-item').forEach(i => i.classList.toggle('active', i.dataset.tid==tid));
+  document.getElementById('s-task').textContent = `#${tid}`;
+
+  const feed = document.getElementById('feed');
+  feed.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;flex:1;color:var(--ide-muted);gap:8px;padding:40px;"><i class="fas fa-circle-notch fa-spin"></i> Carregando histórico…</div>';
+
+  try {
+    const r = await fetch(`/api/coding/tasks/${tid}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const task = await r.json();
+
+    renderHistory(task.messages || []);
+    if (task.iteracoes) document.getElementById('s-iter').textContent = `iter ${task.iteracoes}`;
+
+    if (!DONE_STATUS.has(task.status)) {
+      setStatus('running','Executando…');
+      document.getElementById('send-btn').disabled = true;
+      conectarWs(tid);
+    } else {
+      setStatus(task.status, task.status==='completed'?'Concluído':task.status==='failed'?'Falhou':task.status);
+      document.getElementById('send-btn').disabled = false;
+    }
+    log('info', `Tarefa #${tid} — ${task.messages?.length||0} msgs, status: ${task.status}`);
+  } catch(e) {
+    feed.innerHTML = `<div style="padding:20px;color:var(--ide-err);">Erro ao carregar: ${esc(e.message)}</div>`;
+    log('error', `Carregar tarefa #${tid}: ${e.message}`);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   NOVA TAREFA
+════════════════════════════════════════════════════════════ */
+function novaTask() {
+  if (wsTask) { wsTask.close(); wsTask=null; }
+  currentTaskId=null; currentStatus='idle'; streamingEl=null; currentToolCard=null;
+  document.querySelectorAll('.task-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('s-task').textContent = '#nova';
+  document.getElementById('s-iter').textContent = '';
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('action-strip').classList.add('hidden');
+  setStatus('idle','Pronto');
+  showEmpty('Nova Tarefa');
+  document.getElementById('msg-input').focus();
+  log('info','Nova tarefa iniciada');
+  // Fecha painel mobile se aberto
+  if (window.innerWidth <= 680) document.getElementById('left-panel').classList.remove('slide-open');
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODEL SELECTOR
+════════════════════════════════════════════════════════════ */
+async function carregarModelos() {
+  try {
+    const r = await fetch('/api/coding/modelos');
+    if (!r.ok) return;
+    const d = await r.json();
+    const sel = document.getElementById('model-sel');
+    const modelos = d.modelos || [];
+    modelos.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id; opt.textContent = `${m.nome} (${m.provedor})`;
+      if (m.id === CS_MODEL) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    if (CS_MODEL) sel.value = CS_MODEL;
+  } catch(e) { log('warn','Modelos: '+e.message); }
+}
+
+async function salvarModelo(modelo) {
+  if (!modelo) return;
+  try {
+    await fetch(`/api/coding/sessions/${CS_ID}`, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ modelo_coding: modelo }),
+    });
+    log('info', `Modelo → ${modelo}`);
+  } catch(e) { log('error', 'Salvar modelo: '+e.message); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   TEXTAREA AUTO-RESIZE
+════════════════════════════════════════════════════════════ */
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+}
+
+/* ════════════════════════════════════════════════════════════
+   INICIALIZAÇÃO
+════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('msg-input');
+  input.addEventListener('input', () => autoResize(input));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagem(); }
+  });
+
+  carregarModelos();
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('new')) {
+    novaTask();
+  } else if (currentTaskId) {
+    selecionarTask(currentTaskId, '', '', true);
+  } else {
+    showEmpty();
+  }
+
+  log('info', `Sessão #${CS_ID} carregada`);
+});
+</script>
+{% endblock %}

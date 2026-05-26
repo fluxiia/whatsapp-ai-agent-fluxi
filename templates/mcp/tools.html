@@ -1,49 +1,102 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Tools - {{ mcp_client.nome }} - Fluxi.IA{% endblock %}
+{% block title %}Tools Exportadas - {{ mcp_client.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <h1 class="title is-3" style="margin-bottom: 0.5rem; color: #1f2937;">
-        <i class="fas fa-magic" style="color: #8b5cf6;"></i> Tools - {{ mcp_client.nome }}
-    </h1>
-    <nav style="font-size: 0.875rem; color: #9ca3af;">
-        <a href="/mcp/agente/{{ agente.id }}/clients" style="color: #6b7280;">← Voltar aos MCP Clients</a>
-    </nav>
-</div>
+<div class="container" style="max-width: 1200px;">
+    
+    <!-- Page Header Mission Control -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-microscope text-primary mb-xs" style="color: #6366f1;"></i> Core Tools: {{ mcp_client.nome }}
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/mcp/agente/{{ agente.id }}/clients" style="color: var(--color-text-secondary); text-decoration: none;">MCP Nodes Toplogy</a> / 
+                <span style="color: var(--color-text-primary);">Sub-rotinas Exportadas</span>
+            </p>
+        </div>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/mcp/agente/{{ agente.id }}/clients" class="button is-small is-primary" style="background: #334155; border: none;">
+                <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Voltar para Nodes
+            </a>
+            <button onclick="location.reload()" class="button is-small is-outline text-info">
+                <i class="fas fa-sync-alt" style="margin-right: 4px;"></i> Refresh Sync
+            </button>
+        </div>
+    </div>
 
-{% if tools %}
-<div class="box" style="padding: 0;">
-    <table class="table is-fullwidth">
-        <thead>
-            <tr>
-                <th>Tool</th>
-                <th>Descrição</th>
-                <th>Parâmetros</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for tool in tools %}
-            <tr>
-                <td>
-                    <strong>{{ tool.display_name or tool.name }}</strong><br>
-                    <code style="font-size: 0.75rem;">mcp_{{ mcp_client.id }}_{{ tool.name }}</code>
-                </td>
-                <td>{{ tool.description }}</td>
-                <td>
-                    {% set param_count = tool.input_schema.properties|length if tool.input_schema and tool.input_schema.properties else 0 %}
-                    {{ param_count }} parâmetro{{ 's' if param_count != 1 else '' }}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% else %}
-<div style="text-align: center; padding: 3rem;">
-    <p>Nenhuma tool encontrada</p>
-    <button onclick="location.reload()" class="button is-primary">Recarregar</button>
-</div>
-{% endif %}
+    <!-- Interface Estilo Tabela Alta Densidade -->
+    <div class="box" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-sm); min-height: 500px;">
+        <div class="flex items-center gap-sm" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-magic text-primary"></i>
+            <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Tabela de Assinaturas (Capabilities do Node)</h2>
+        </div>
+        
+        {% if tools %}
+            <table class="table is-fullwidth" style="margin: 0; font-size: 0.8125rem;">
+                <thead style="background: var(--color-surface);">
+                    <tr>
+                        <th style="padding: var(--space-sm) var(--space-lg); width: 350px;">Identificação da Skill (Function)</th>
+                        <th>Payload Schema / Descrição Semântica</th>
+                        <th style="text-align: right; padding-right: var(--space-lg); width: 150px;">Metadata</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tool in tools %}
+                    <tr style="border-bottom: 1px solid var(--color-border); transition: background 0.2s;" onmouseover="this.style.background='var(--color-surface)'" onmouseout="this.style.background='transparent'">
+                        
+                        <!-- Coluna 1: Nome da Função -->
+                        <td style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                            <div class="flex flex-col gap-xs">
+                                <span style="font-weight: 700; color: var(--color-text-primary); font-size: 0.9375rem;">
+                                    {{ tool.display_name or tool.name }}
+                                </span>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <span style="font-size: 0.65rem; color: #a5b4fc; background: #312e81; padding: 2px 6px; border-radius: 4px; font-family: monospace;">NAMESPACE KEY</span>
+                                    <span style="font-size: 0.75rem; color: #6366f1; font-family: monospace;">mcp_{{ mcp_client.id }}_{{ tool.name }}</span>
+                                </div>
+                            </div>
+                        </td>
 
+                        <!-- Coluna 2: Descrição -->
+                        <td style="vertical-align: top; padding-top: var(--space-md);">
+                            <p style="font-size: 0.8125rem; color: var(--color-text-secondary); line-height: 1.5; max-width: 600px;">
+                                {{ tool.description }}
+                            </p>
+                        </td>
+
+                        <!-- Coluna 3: Metadata (Parametros) -->
+                        <td style="vertical-align: top; text-align: right; padding-right: var(--space-lg); padding-top: var(--space-md);">
+                            {% set param_count = tool.input_schema.properties|length if tool.input_schema and tool.input_schema.properties else 0 %}
+                            
+                            <span class="tag" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); font-family: monospace; font-size: 0.7rem;">
+                                <i class="fas fa-brackets-curly" style="margin-right: 4px; color: var(--color-warning);"></i>
+                                {{ param_count }} arg{% if param_count != 1 %}s{% endif %} in schema
+                            </span>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="flex flex-col items-center justify-center text-center" style="padding: 6rem 2rem;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-surface); display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-md);">
+                    <i class="fas fa-hammer text-muted" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                </div>
+                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;">Zero Skills Mapeadas</h3>
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary); max-width: 400px; margin-bottom: var(--space-lg);">
+                    Nenhuma Capability/Tool foi extraída deste Node. O servidor pode não exportar métodos ou não estar sincronizado corretamente.
+                </p>
+                
+                <button onclick="location.reload()" class="button is-primary" style="background: #6366f1; border: none;">
+                    <i class="fas fa-sync-alt mr-sm"></i> Tentar Forçar Sincronia Local
+                </button>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
 {% endblock %}

@@ -1,252 +1,200 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Presets MCP - Fluxi.IA{% endblock %}
+{% block title %}Presets App Store (MCP) - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem; display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; justify-content: space-between;">
-    <div style="min-width: 260px;">
-        <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
-            <i class="fas fa-bolt" style="color: #34d399;"></i> Presets MCP Plug & Play
-        </h1>
-        <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0.5rem !important; line-height: 1.4;">
-            Configure servidores MCP em poucos cliques usando presets curados pela Fluxi.
-        </p>
-        <div style="font-size: 0.875rem; color: #9ca3af;">
-            <a href="/mcp" style="color: #6b7280; text-decoration: none;">MCP</a>
-            <span style="margin: 0 0.5rem;">/</span>
-            <span style="color: #1f2937; font-weight: 500;">Presets</span>
+<div class="container" style="max-width: 1200px;">
+    
+    <!-- Header Modificado para App Store Look -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-bolt text-warning mb-xs" style="color: #f59e0b;"></i> Presets MCP (Plug & Play)
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/mcp" style="color: var(--color-text-secondary); text-decoration: none;">MCP Mesh</a> / 
+                <span style="color: var(--color-text-primary);">App Store & Configurations</span>
+            </p>
         </div>
-    </div>
-    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; justify-content: flex-end;">
-        {% if agente %}
-        <div style="padding: 0.75rem 1rem; border-radius: 8px; background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); border: 2px solid #c7d2fe;">
-            <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #312e81;">Agente Selecionado</div>
-            <div style="font-size: 1rem; font-weight: 700; color: #1e3a8a;">{{ agente.nome }}</div>
-        </div>
-        <a href="/mcp/agente/{{ agente.id }}/clients" class="button is-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-            <span class="icon"><i class="fas fa-arrow-left"></i></span>
-            <span>Voltar para Servidores</span>
-        </a>
-        {% else %}
-        <div style="padding: 1rem 1.25rem; border-radius: 12px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #fbbf24; max-width: 340px;">
-            <strong style="color: #92400e;">Selecione um agente primeiro.</strong>
-            <p style="color: #b45309; font-size: 0.875rem; margin-top: 0.5rem;">Acesse a tela de MCP de um agente específico para aplicar presets.</p>
-        </div>
-        {% endif %}
-        <a href="/mcp/docs" class="button is-medium" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-            <span class="icon"><i class="fas fa-book"></i></span>
-            <span>Guia MCP</span>
-        </a>
-    </div>
-</div>
-
-<div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #34d399; border-radius: 12px; padding: 1.5rem; margin-bottom: 2.5rem;">
-    <div style="display: flex; gap: 1rem; align-items: start;">
-        <div style="width: 52px; height: 52px; border-radius: 12px; background: linear-gradient(135deg, #34d399 0%, #10b981 100%); display: flex; align-items: center; justify-content: center;">
-            <i class="fas fa-magic" style="color: white; font-size: 1.5rem;"></i>
-        </div>
-        <div style="color: #0f766e;">
-            <h2 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem;">Como funciona?</h2>
-            <p style="margin-bottom: 0.5rem;">Escolha um preset, informe as credenciais solicitadas e clique em <strong>Aplicar preset</strong>. Criamos e conectamos o servidor MCP automaticamente para o agente selecionado.</p>
-            <ul style="margin-left: 1rem; font-size: 0.9rem;">
-                <li style="margin-bottom: 0.25rem;">1. Revise os campos de entrada (API Keys, tokens, etc.)</li>
-                <li style="margin-bottom: 0.25rem;">2. Opcionalmente personalize o nome e descrição</li>
-                <li style="margin-bottom: 0.25rem;">3. Clique em <em>Aplicar preset</em> e aguarde a conexão</li>
-            </ul>
-        </div>
-    </div>
-</div>
-
-<div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #f59e0b; border-radius: 12px; padding: 1.5rem; margin-bottom: 2.5rem;">
-    <div style="display: flex; gap: 1rem; align-items: start;">
-        <div style="width: 52px; height: 52px; border-radius: 12px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); display: flex; align-items: center; justify-content: center;">
-            <i class="fas fa-magic-wand-sparkles" style="color: white; font-size: 1.5rem;"></i>
-        </div>
-        <div style="flex: 1;">
-            <h2 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem; color: #92400e;">MCP One Click Install</h2>
-            <p style="margin-bottom: 0.75rem; color: #78350f;">Cole o JSON de configuração MCP no formato padrão e instale instantaneamente. Suporta npx, docker, uvx e servidores HTTP.</p>
-
-            <form id="one-click-form" data-agente-id="{% if agente %}{{ agente.id }}{% else %}{% endif %}" style="display: flex; flex-direction: column; gap: 1rem;">
-                <div>
-                    <label class="label" style="font-size: 0.75rem; font-weight: 600; color: #92400e;">JSON de Configuração MCP</label>
-                    <textarea id="json-config" class="textarea" rows="8" placeholder='Exemplo:
-{
-  "mcpServers": {
-    "brave-search": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "BRAVE_API_KEY",
-        "mcp/brave-search"
-      ],
-      "env": {
-        "BRAVE_API_KEY": "YOUR_API_KEY_HERE"
-      }
-    }
-  }
-}' style="border-radius: 8px; font-family: 'Courier New', monospace; font-size: 0.875rem;" required></textarea>
-                </div>
-                <div class="columns" style="margin: -0.5rem;">
-                    <div class="column is-6">
-                        <label class="label" style="font-size: 0.75rem; font-weight: 600; color: #92400e;">Nome (opcional)</label>
-                        <input id="one-click-nome" class="input" type="text" placeholder="Nome personalizado do servidor" style="border-radius: 8px;">
-                    </div>
-                    <div class="column is-6">
-                        <label class="label" style="font-size: 0.75rem; font-weight: 600; color: #92400e;">Descrição (opcional)</label>
-                        <input id="one-click-descricao" class="input" type="text" placeholder="Descrição do servidor" style="border-radius: 8px;">
+        
+        <div class="flex flex-wrap items-center gap-sm">
+            {% if agente %}
+                <div class="flex items-center gap-sm" style="padding: 4px 12px; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2);">
+                    <i class="fas fa-robot text-primary flex-shrink-0" style="font-size: 0.8125rem;"></i>
+                    <div class="flex flex-col">
+                        <span style="font-size: 0.65rem; color: #6366f1; text-transform: uppercase; font-weight: 700;">Target Agent</span>
+                        <span style="font-size: 0.8125rem; font-weight: 700; color: var(--color-text-primary);">{{ agente.nome }}</span>
                     </div>
                 </div>
-                <button type="submit" id="one-click-submit" class="button is-medium" {% if not agente %}disabled{% endif %} style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; font-weight: 600; border-radius: 8px; align-self: flex-start;">
-                    <span class="icon"><i class="fas fa-wand-magic-sparkles"></i></span>
-                    <span>Instalar MCP</span>
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
-
-{% if presets %}
-<div class="columns is-multiline">
-    {% for preset in presets %}
-    <div class="column is-12-mobile is-6-tablet is-4-desktop">
-        <div class="card" style="height: 100%; border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
-            <header class="card-header" style="background: linear-gradient(135deg, #111827 0%, #1f2937 100%); color: white;">
-                <p class="card-header-title" style="color: white; font-weight: 700;">
-                    <span class="icon" style="margin-right: 0.5rem;"><i class="fas fa-plug"></i></span>
-                    {{ preset.name }}
-                </p>
-            </header>
-            <div class="card-content" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
-                <p style="color: #4b5563; line-height: 1.6;">{{ preset.description }}</p>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <span style="background: #eef2ff; color: #4338ca; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
-                        {{ preset.transport_type }}
-                    </span>
-                    {% for tag in preset.tags %}
-                    <span style="background: #f3f4f6; color: #4b5563; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">
-                        <i class="fas fa-hashtag"></i> {{ tag }}
-                    </span>
-                    {% endfor %}
-                </div>
-
-                {% if preset.note %}
-                <div style="background: #fff7ed; border-left: 3px solid #f97316; padding: 0.75rem; border-radius: 6px; font-size: 0.8125rem; color: #9a3412;">
-                    <strong>Dica:</strong> {{ preset.note }}
-                </div>
-                {% endif %}
-
-                {% if preset.command %}
-                <div>
-                    <p style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Comando</p>
-                    <pre style="background: #111827; color: #f9fafb; padding: 0.75rem; border-radius: 8px; font-size: 0.8rem; white-space: pre-wrap;">{{ preset.command }} {% if preset.args %}{{ preset.args | join(' ') }}{% endif %}</pre>
-                </div>
-                {% endif %}
-
-                {% if preset.url %}
-                <div>
-                    <p style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">URL</p>
-                    <code style="background: #f1f5f9; color: #0f172a; padding: 0.35rem 0.5rem; border-radius: 6px; font-size: 0.8rem;">{{ preset.url }}</code>
-                </div>
-                {% endif %}
-
-                {% if preset.env %}
-                <div>
-                    <p style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Variáveis de Ambiente</p>
-                    <ul style="font-size: 0.8rem; color: #1f2937; margin-left: 1rem;">
-                        {% for key, value in preset.env.items() %}
-                        <li><code>{{ key }}</code>: <span>{{ value }}</span></li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-
-                {% if preset.headers %}
-                <div>
-                    <p style="font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">Headers</p>
-                    <ul style="font-size: 0.8rem; color: #1f2937; margin-left: 1rem;">
-                        {% for key, value in preset.headers.items() %}
-                        <li><code>{{ key }}</code>: <span>{{ value }}</span></li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-
-                {% if preset.documentation_url %}
-                <a href="{{ preset.documentation_url }}" target="_blank" rel="noopener" style="font-size: 0.875rem; color: #2563eb; font-weight: 600;">
-                    <i class="fas fa-external-link-alt"></i> Documentação oficial
+                <a href="/mcp/agente/{{ agente.id }}/clients" class="button is-small is-primary" style="background: #334155; border: none;">
+                    <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Voltar
                 </a>
-                {% endif %}
+            {% else %}
+                <div class="flex flex-col text-right" style="margin-right: var(--space-sm);">
+                    <span style="font-size: 0.8125rem; font-weight: 700; color: var(--color-warning);">⚠️ Selecione o target primeiro.</span>
+                    <span style="font-size: 0.75rem; color: var(--color-text-secondary);">Acesse o menu de MCP do agente.</span>
+                </div>
+            {% endif %}
+            
+            <a href="/mcp/docs" target="_blank" class="button is-small is-outline">
+                <i class="fas fa-book" style="margin-right: 4px;"></i> Blueprint
+            </a>
+        </div>
+    </div>
 
-                <form class="preset-form" data-preset-key="{{ preset.key }}" data-agente-id="{% if agente %}{{ agente.id }}{% else %}{% endif %}" style="margin-top: auto; display: flex; flex-direction: column; gap: 0.75rem;">
-                    <div>
-                        <label class="label" style="font-size: 0.75rem; font-weight: 600; color: #6b7280;">Nome</label>
-                        <input class="input" type="text" name="nome" placeholder="Ex: {{ preset.name }}" style="border-radius: 8px;">
-                    </div>
-                    <div>
-                        <label class="label" style="font-size: 0.75rem; font-weight: 600; color: #6b7280;">Descrição</label>
-                        <textarea class="textarea" name="descricao" rows="2" placeholder="Resumo do que este servidor oferece" style="border-radius: 8px;"></textarea>
-                    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-lg mb-lg">
+        <!-- Tutorial Box -->
+        <div class="box" style="padding: var(--space-lg); border: none; box-shadow: var(--shadow-sm); background: #f0fdf4; border-left: 4px solid #10b981;">
+            <div class="flex items-start gap-md">
+                <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: #10b981; color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.25rem;">
+                    <i class="fas fa-magic"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 0.875rem; font-weight: 700; color: #065f46; margin-bottom: 4px;">Fluxo de Instalação 1-Click</h3>
+                    <p style="font-size: 0.8125rem; color: #064e3b; opacity: 0.9;">
+                        Fornecemos chaves em formato de formulário para os templates oficiais. Insira sua APi Key (se exigido), aperte instalar, e imediatamente o Node será anexado ao plano local do Agente.
+                    </p>
+                </div>
+            </div>
+        </div>
 
-                    {% if preset.inputs %}
-                    <div style="border: 2px dashed #c084fc; border-radius: 10px; padding: 1rem; background: linear-gradient(135deg, rgba(216, 180, 254, 0.15) 0%, rgba(196, 181, 253, 0.15) 100%);">
-                        <p style="font-size: 0.8125rem; font-weight: 700; color: #6b21a8; margin-bottom: 0.75rem;">
-                            <i class="fas fa-key"></i> Credenciais necessárias
-                        </p>
-                        <div class="columns is-multiline" style="margin: -0.5rem;">
-                            {% for input in preset.inputs %}
-                            <div class="column is-12">
-                                <label class="label" style="font-size: 0.75rem; font-weight: 600; color: #6b7280;">{{ input.label }}</label>
-                                <input class="input" type="{{ 'password' if input.secret else 'text' }}" data-input-id="{{ input.id }}" placeholder="{{ input.description }}" style="border-radius: 8px;" required>
-                            </div>
-                            {% endfor %}
+        <!-- Custom JSON Box -->
+        <div class="box" style="padding: var(--space-lg); border: none; box-shadow: var(--shadow-sm); background: #fef3c7; border-left: 4px solid #f59e0b;">
+            <div class="flex items-start gap-md">
+                <div style="width: 48px; height: 48px; border-radius: var(--radius-md); background: #f59e0b; color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.25rem;">
+                    <i class="fas fa-code"></i>
+                </div>
+                <div style="flex: 1;">
+                    <h3 style="font-size: 0.875rem; font-weight: 700; color: #92400e; margin-bottom: 4px;">Custom Inject (JSON Raw)</h3>
+                    <p style="font-size: 0.8125rem; color: #78350f; opacity: 0.9; margin-bottom: var(--space-sm);">
+                        Não achou o preset ou gerou a spec. pelo Claude Desktop? Cole o JSON do mcpServers.
+                    </p>
+                    
+                    <form id="one-click-form" data-agente-id="{% if agente %}{{ agente.id }}{% else %}{% endif %}">
+                        <textarea id="json-config" class="input" rows="4" placeholder='{"mcpServers": {"db": {"command": "npx", "args": ["-y", "@server"]}}}' required style="font-family: monospace; font-size: 0.75rem; width: 100%; height: 60px; resize: vertical; margin-bottom: 8px; border: 1px dashed #d97706; background: #fffbeb;"></textarea>
+                        <div class="flex items-center justify-between">
+                            <input id="one-click-nome" class="input" type="text" placeholder="Nome Exibição (Opcional)" style="width: 48%; font-size: 0.75rem; height: 32px; background: white;">
+                            <button type="submit" id="one-click-submit" class="button is-small" {% if not agente %}disabled{% endif %} style="background: #f59e0b; color: white; border: none; font-weight: 600;">
+                                Injetar Spec
+                            </button>
                         </div>
-                    </div>
-                    {% endif %}
+                    </form>
 
-                    <button type="submit" class="button is-medium" {% if not agente %}disabled{% endif %} style="background: linear-gradient(135deg, #34d399 0%, #059669 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                        <span class="icon"><i class="fas fa-rocket"></i></span>
-                        <span>Aplicar preset</span>
-                    </button>
-                </form>
+                </div>
             </div>
         </div>
     </div>
-    {% endfor %}
-</div>
-{% else %}
-<div style="text-align: center; padding: 4rem 2rem; background: white; border: 2px dashed #e5e7eb; border-radius: 12px;">
-    <div style="margin-bottom: 1.5rem;">
-        <span style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%); display: inline-flex; align-items: center; justify-content: center;">
-            <i class="fas fa-box-open" style="font-size: 2.5rem; background: linear-gradient(135deg, #34d399 0%, #059669 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
-        </span>
+
+    <!-- Lista de Presets Curados -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg mt-md">
+        {% if presets %}
+            {% for preset in presets %}
+                <div class="box flex flex-col" style="padding: 0; overflow: hidden; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); height: 100%;">
+                    
+                    <!-- App Header -->
+                    <div style="background: #0f172a; padding: var(--space-md) var(--space-lg); border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-plug" style="color: #8b5cf6;"></i>
+                        <span style="font-weight: 600; font-size: 0.9375rem; color: #f8fafc;">{{ preset.name }}</span>
+                    </div>
+
+                    <!-- App Content -->
+                    <div style="padding: var(--space-lg); flex: 1; display: flex; flex-direction: column;">
+                        <p style="font-size: 0.8125rem; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: var(--space-md); flex: 1;">{{ preset.description }}</p>
+                        
+                        <!-- Tags e Transporte -->
+                        <div class="flex flex-wrap gap-xs mb-md">
+                            <span class="tag" style="background: var(--color-bg-secondary); color: var(--color-primary); font-family: monospace; font-size: 0.65rem;">{{ preset.transport_type }}</span>
+                            {% for tag in preset.tags %}
+                                <span class="tag" style="background: var(--color-surface); font-size: 0.65rem;">#{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Snippets Code -->
+                        {% if preset.command %}
+                            <div style="margin-bottom: var(--space-sm);">
+                                <code style="display: block; background: #f1f5f9; font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--color-border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace;" title="{{ preset.command }} {% if preset.args %}{{ preset.args | join(' ') }}{% endif %}">
+                                    > {{ preset.command }} {% if preset.args %}{{ preset.args | join(' ') }}{% endif %}
+                                </code>
+                            </div>
+                        {% endif %}
+
+                        {% if preset.url %}
+                            <div style="margin-bottom: var(--space-sm);">
+                                <code style="display: block; background: #fef3c7; color: #92400e; font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: monospace;" title="{{ preset.url }}">
+                                    @ {{ preset.url }}
+                                </code>
+                            </div>
+                        {% endif %}
+
+                        {% if preset.note %}
+                            <div style="background: var(--color-warning-light); border-left: 2px solid var(--color-warning); padding: 6px 8px; font-size: 0.75rem; color: #9a3412; margin-bottom: var(--space-sm);">
+                                <strong>Tip:</strong> {{ preset.note }}
+                            </div>
+                        {% endif %}
+
+                        {% if preset.documentation_url %}
+                            <div style="margin-bottom: var(--space-md);">
+                                <a href="{{ preset.documentation_url }}" target="_blank" rel="noopener" style="font-size: 0.75rem; color: var(--color-info); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-external-link-alt"></i> Official Specs
+                                </a>
+                            </div>
+                        {% endif %}
+
+                        <!-- Formulário Instalador do Preset -->
+                        <form class="preset-form mt-auto" data-preset-key="{{ preset.key }}" data-agente-id="{% if agente %}{{ agente.id }}{% else %}{% endif %}" style="display: flex; flex-direction: column; gap: var(--space-sm); border-top: 1px dashed var(--color-border); padding-top: var(--space-md);">
+                            
+                            {% if preset.inputs %}
+                                <div style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); padding: 8px; border-radius: 6px;">
+                                    <p style="font-size: 0.65rem; font-weight: 700; color: #7c3aed; text-transform: uppercase; margin-bottom: 6px;">Credenciais Exigidas do Sistema Externo</p>
+                                    
+                                    <div class="flex flex-col gap-xs">
+                                        {% for input in preset.inputs %}
+                                            <div>
+                                                <input class="input" type="{{ 'password' if input.secret else 'text' }}" data-input-id="{{ input.id }}" placeholder="{{ input.label }}: {{ input.description }}" required style="font-size: 0.75rem; height: 28px; padding: 0 8px; background: white;">
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <button type="submit" class="button is-small" {% if not agente %}disabled{% endif %} style="background: #10b981; color: white; border: none; font-weight: 600; width: 100%;">
+                                <i class="fas fa-rocket text-white" style="margin-right: 6px;"></i> Deploy Node
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; border-radius: var(--radius-lg); background: var(--color-surface); border: 1px dashed var(--color-border); text-align: center;">
+                <i class="fas fa-box-open mb-sm" style="font-size: 2.5rem; color: var(--color-text-muted);"></i>
+                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;">Nenhum Template Encontrado</h3>
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary); max-width: 400px;">
+                    O marketplace de presets MCP está vazio ou não sincronizou para o master node. Configure o provider manualmente usando JSON raw ou URL.
+                </p>
+            </div>
+        {% endif %}
     </div>
-    <h3 class="title is-4" style="margin-bottom: 0.75rem;">Nenhum preset disponível</h3>
-    <p style="color: #6b7280; margin-bottom: 2rem; line-height: 1.7; max-width: 600px; margin-left: auto; margin-right: auto;">
-        Ainda não carregamos presets nesta instância. Entre em contato com o time Fluxi ou consulte a documentação MCP para configurar manualmente.
-    </p>
+
 </div>
-{% endif %}
 
 <script>
+// Logic to handle Preset Forms
 (document.querySelectorAll('.preset-form') || []).forEach(function(form) {
     form.addEventListener('submit', async function(event) {
         event.preventDefault();
+        
         const agenteId = form.dataset.agenteId;
         if (!agenteId) {
-            alert('Selecione um agente antes de aplicar o preset.');
+            alert('Host não identificado: Selecione um agente primeiro.');
             return;
         }
 
         const presetKey = form.dataset.presetKey;
-        const formData = new FormData(form);
         const payload = {
             preset_key: presetKey,
             agente_id: parseInt(agenteId, 10),
-            nome: formData.get('nome') || null,
-            descricao: formData.get('descricao') || null,
+            nome: null,
+            descricao: null,
             inputs: {}
         };
 
@@ -254,87 +202,79 @@
             payload.inputs[input.dataset.inputId] = input.value;
         });
 
+        const btn = form.querySelector('button');
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Loading...';
+
         try {
             const response = await fetch('/api/mcp/presets/aplicar', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                alert('✅ Preset aplicado com sucesso! O servidor MCP será sincronizado automaticamente.');
                 window.location.href = `/mcp/agente/${agenteId}/clients`;
             } else {
-                alert(`❌ Erro: ${data.detail || 'Falha ao aplicar preset.'}`);
+                alert(`❌ Erro no build da layer MCP: ${data.detail || 'Generic API Error'}`);
             }
         } catch (error) {
-            alert(`❌ Erro inesperado: ${error.message}`);
+            alert(`❌ Network falibility: ${error.message}`);
         } finally {
-            submitButton.disabled = false;
-            submitButton.innerHTML = originalText;
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
         }
     });
 });
 
-// One Click Install Form
+// JSON config injetor
 document.getElementById('one-click-form')?.addEventListener('submit', async function(event) {
     event.preventDefault();
     const agenteId = this.dataset.agenteId;
     if (!agenteId) {
-        alert('Selecione um agente antes de instalar o MCP.');
+        alert('Hostname desconhecido (No agent attached).');
         return;
     }
 
     const jsonConfig = document.getElementById('json-config').value.trim();
-    if (!jsonConfig) {
-        alert('Por favor, cole o JSON de configuração MCP.');
-        return;
-    }
+    if (!jsonConfig) return;
 
     const nome = document.getElementById('one-click-nome').value.trim() || null;
-    const descricao = document.getElementById('one-click-descricao').value.trim() || null;
-
     const payload = {
         agente_id: parseInt(agenteId, 10),
         json_config: jsonConfig,
         nome: nome,
-        descricao: descricao
+        descricao: null
     };
 
     const submitButton = document.getElementById('one-click-submit');
     const originalText = submitButton.innerHTML;
     submitButton.disabled = true;
-    submitButton.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Instalando...</span>';
+    submitButton.innerHTML = 'Injecting...';
 
     try {
         const response = await fetch('/api/mcp/one-click/install', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
         const data = await response.json();
 
         if (response.ok) {
-            alert('✅ MCP instalado com sucesso! O servidor será sincronizado automaticamente.');
             window.location.href = `/mcp/agente/${agenteId}/clients`;
         } else {
-            alert(`❌ Erro: ${data.detail || 'Falha ao instalar MCP.'}`);
+            alert(`❌ Parser Engine falhou: ${data.detail || 'Bad Request'}`);
         }
     } catch (error) {
-        alert(`❌ Erro inesperado: ${error.message}`);
+        alert(`❌ Network Fatal Error: ${error.message}`);
     } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
     }
 });
-
 </script>
-
 {% endblock %}

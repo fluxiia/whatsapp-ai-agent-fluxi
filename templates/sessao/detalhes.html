@@ -1,314 +1,698 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ sessao.nome }} - Detalhes - Fluxi.IA{% endblock %}
+{% block title %}Painel do Agente - {{ sessao.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
-    <div style="min-width: 0; flex: 1;">
-        <nav class="breadcrumb" aria-label="breadcrumbs" style="margin-bottom: 0.75rem !important;">
-            <ul style="margin-bottom: 0 !important;">
-                <li><a href="/sessoes" style="color: #6b7280;"><i class="fas fa-home"></i> Sessões</a></li>
-                <li class="is-active"><a style="color: #C75B9B;">{{ sessao.nome }}</a></li>
-            </ul>
-        </nav>
-        <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
-            <i class="fab fa-whatsapp" style="color: #25D366;"></i> {{ sessao.nome }}
-        </h1>
-        <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-            Detalhes completos da sessão WhatsApp
-        </p>
-    </div>
-    <div style="flex-shrink: 0;">
-        <span class="status-badge status-{{ sessao.status }}" style="font-size: 1rem; padding: 0.5rem 1.25rem;">
-            {% if sessao.status == 'conectado' %}
-                <i class="fas fa-check-circle"></i>
-            {% elif sessao.status == 'conectando' %}
-                <i class="fas fa-spinner fa-pulse"></i>
-            {% else %}
-                <i class="fas fa-times-circle"></i>
+<div class="container" style="max-width: 1200px;">
+    {% if erro %}
+    <div role="alert"
+        style="background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 12px 16px; border-radius: 8px; margin-bottom: var(--space-md); display: flex; align-items: center; gap: 10px; font-size: 0.875rem;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 1.1rem;"></i>
+        <div style="flex: 1;">
+            <strong>Não foi possível conectar:</strong> {{ erro }}
+            {% if 'credenciais' in erro or 'bot_token' in erro %}
+            <div style="margin-top: 4px; font-size: 0.8rem;">
+                As credenciais foram criptografadas com uma chave que mudou. Delete esta sessão e crie de novo com o
+                bot_token — depois de definir <code>FLUXI_SECRET_KEY</code> no <code>.env</code>, isso não vai mais
+                acontecer.
+            </div>
             {% endif %}
-            {{ sessao.status|upper }}
-        </span>
+        </div>
     </div>
-</div>
-
-<div class="columns">
-    <div class="column is-8">
-        <!-- Informações Principais -->
-        <div class="box" style="margin-bottom: 2rem;">
-            <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                <i class="fas fa-info-circle" style="color: #C75B9B;"></i> Informações da Sessão
-            </h2>
-            
-            <div style="display: grid; gap: 1.25rem;">
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="fas fa-tag" style="color: #C75B9B;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem;">Nome da Sessão</p>
-                        <p style="font-size: 1rem; font-weight: 600; color: #1f2937;">{{ sessao.nome }}</p>
-                    </div>
-                </div>
-
-                {% if sessao.telefone %}
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="fas fa-phone" style="color: #10b981;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem;">Telefone</p>
-                        <p style="font-size: 1rem; font-weight: 600; color: #1f2937;">{{ sessao.telefone }}</p>
-                    </div>
-                </div>
+    {% endif %}
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg"
+        style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                {% if sessao.plataforma == 'telegram' %}
+                <i class="fab fa-telegram text-primary mb-xs" style="color: #229ED9;"></i>
+                {% elif sessao.plataforma == 'webchat' %}
+                <i class="fas fa-globe text-primary mb-xs" style="color: #6366f1;"></i>
+                {% else %}
+                <i class="fab fa-whatsapp text-primary mb-xs" style="color: #25D366;"></i>
                 {% endif %}
-
-                <div style="display: flex; align-items: start; gap: 1rem;">
-                    <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="fas fa-robot" style="color: #3b82f6;"></i>
-                    </div>
-                    <div style="flex: 1;">
-                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem;">Auto-responder</p>
-                        <p style="font-size: 1rem; font-weight: 600;">
-                            {% if sessao.auto_responder %}
-                            <span style="color: #10b981;"><i class="fas fa-check-circle"></i> Ativo</span>
-                            {% else %}
-                            <span style="color: #6b7280;"><i class="fas fa-times-circle"></i> Inativo</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">
-                            <i class="fas fa-calendar-plus"></i> Criado em
-                        </p>
-                        <p style="font-weight: 600;">{{ sessao.criado_em.strftime('%d/%m/%Y às %H:%M') }}</p>
-                    </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">
-                            <i class="fas fa-clock"></i> Última conexão
-                        </p>
-                        <p style="font-weight: 600;">{{ sessao.ultima_conexao.strftime('%d/%m/%Y às %H:%M') if sessao.ultima_conexao else 'Nunca conectado' }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Agente Ativo -->
-        <div class="box" style="margin-bottom: 2rem;">
-            <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                <i class="fas fa-robot" style="color: #5B4E9B;"></i> Agente Ativo
-            </h2>
-            
-            {% if sessao.agente_ativo %}
-            <div style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: linear-gradient(135deg, rgba(199, 91, 155, 0.05) 0%, rgba(91, 78, 155, 0.05) 100%); border-radius: 12px; border: 2px solid rgba(199, 91, 155, 0.2);">
-                <div style="width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <i class="fas fa-robot" style="color: white; font-size: 1.5rem;"></i>
-                </div>
-                <div style="flex: 1;">
-                    <p style="font-weight: 700; font-size: 1.125rem; color: #1f2937; margin-bottom: 0.25rem;">
-                        {{ sessao.agente_ativo.nome }}
-                    </p>
-                    <p style="color: #6b7280; font-size: 0.875rem; line-height: 1.5;">
-                        <i class="fas fa-info-circle"></i> Este agente está respondendo as mensagens desta sessão
-                    </p>
-                </div>
-                <a href="/agentes/{{ sessao.agente_ativo.id }}/editar" class="button is-small" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); color: white; border: none; font-weight: 600;">
-                    <span class="icon"><i class="fas fa-edit"></i></span>
-                    <span>Editar</span>
-                </a>
-            </div>
-            {% else %}
-            <div style="text-align: center; padding: 2rem; background: #fef3c7; border-radius: 12px; border: 2px dashed #f59e0b;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b; margin-bottom: 1rem;"></i>
-                <p style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">Nenhum agente ativo</p>
-                <p style="font-size: 0.875rem; color: #78350f; margin-bottom: 1rem;">Esta sessão não tem um agente configurado para responder</p>
-                <a href="/agentes/sessao/{{ sessao.id }}" class="button is-warning is-small" style="font-weight: 600;">
-                    <span class="icon"><i class="fas fa-plus"></i></span>
-                    <span>Criar Agente</span>
-                </a>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Configurações da Sessão -->
-        <div class="box" style="margin-bottom: 2rem;">
-            <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                <i class="fas fa-cog" style="color: #6b7280;"></i> Configurações
-            </h2>
-            
-            <div style="display: grid; gap: 1rem;">
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 1.25rem; background: {% if sessao.auto_responder %}linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%){% else %}#f9fafb{% endif %}; border-radius: 12px; border: 2px solid {% if sessao.auto_responder %}#10b981{% else %}#e5e7eb{% endif %};">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <div style="width: 48px; height: 48px; border-radius: 10px; background: {% if sessao.auto_responder %}#10b981{% else %}#6b7280{% endif %}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                            <i class="fas fa-robot" style="color: white; font-size: 1.25rem;"></i>
-                        </div>
-                        <div>
-                            <p style="font-weight: 700; color: #1f2937; margin-bottom: 0.25rem; font-size: 1.0625rem;">Auto-responder com IA</p>
-                            <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.5;">Agente ativo responde automaticamente as mensagens</p>
-                        </div>
-                    </div>
-                    <span class="tag is-large" style="background: {% if sessao.auto_responder %}#10b981{% else %}#6b7280{% endif %}; color: white; font-weight: 700; border-radius: 8px; padding: 0.5rem 1.25rem;">
-                        {% if sessao.auto_responder %}<i class="fas fa-check"></i> Ativo{% else %}<i class="fas fa-times"></i> Inativo{% endif %}
-                    </span>
-                </div>
-
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <i class="fas fa-toggle-on" style="color: {% if sessao.ativa %}#10b981{% else %}#ef4444{% endif %}; font-size: 1.5rem;"></i>
-                        <div>
-                            <p style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Status da Sessão</p>
-                            <p style="font-size: 0.8125rem; color: #6b7280;">Sessão pode receber e processar mensagens</p>
-                        </div>
-                    </div>
-                    <span class="tag" style="background: {% if sessao.ativa %}#dcfce7{% else %}#fee2e2{% endif %}; color: {% if sessao.ativa %}#166534{% else %}#991b1b{% endif %}; font-weight: 600;">
-                        {% if sessao.ativa %}Ativa{% else %}Desativada{% endif %}
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Ações Rápidas -->
-    <div class="column is-4">
-        <!-- Conexão Status Card -->
-        <div class="box" style="margin-bottom: 1.5rem; background: {% if sessao.status == 'conectado' %}linear-gradient(135deg, #10b981 0%, #059669 100%){% else %}linear-gradient(135deg, #6b7280 0%, #4b5563 100%){% endif %}; border: none; color: white;">
-            <div style="text-align: center; padding: 1rem 0;">
-                <i class="fas fa-{% if sessao.status == 'conectado' %}check-circle{% else %}times-circle{% endif %}" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.9;"></i>
-                <h3 class="title is-5" style="color: white; margin-bottom: 0.5rem;">
-                    {% if sessao.status == 'conectado' %}Conectado{% elif sessao.status == 'conectando' %}Conectando...{% else %}Desconectado{% endif %}
-                </h3>
-                <p style="opacity: 0.9; font-size: 0.875rem;">
-                    {% if sessao.status == 'conectado' %}
-                        WhatsApp ativo e pronto
-                    {% else %}
-                        WhatsApp não conectado
-                    {% endif %}
-                </p>
-                
-                <!-- Botão de Conexão -->
-                <div style="margin-top: 1.5rem;">
-                    {% if sessao.status == 'conectado' %}
-                    <form method="POST" action="/sessoes/{{ sessao.id }}/desconectar">
-                        <button type="submit" class="button is-light is-fullwidth" style="font-weight: 600;">
-                            <span class="icon"><i class="fas fa-power-off"></i></span>
-                            <span>Desconectar</span>
-                        </button>
-                    </form>
-                    {% else %}
-                    <a href="/sessoes/{{ sessao.id }}/conectar" class="button is-light is-fullwidth" style="font-weight: 600;">
-                        <span class="icon"><i class="fas fa-plug"></i></span>
-                        <span>Conectar WhatsApp</span>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Ações Card -->
-        <div class="box" style="margin-bottom: 1.5rem;">
-            <h2 class="title is-6" style="margin-bottom: 1rem; color: #6b7280; font-weight: 700; text-transform: uppercase; font-size: 0.8125rem; letter-spacing: 0.5px;">
-                <i class="fas fa-bolt"></i> Ações Rápidas
-            </h2>
-            
-            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                <a href="/mensagens/sessao/{{ sessao.id }}" class="button is-fullwidth" style="justify-content: flex-start; background: linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%); border: 1px solid rgba(37, 211, 102, 0.3); color: #25D366; font-weight: 600;">
-                    <span class="icon"><i class="fas fa-comments"></i></span>
-                    <span>Histórico de Mensagens</span>
-                </a>
-                
-                <a href="/agentes/sessao/{{ sessao.id }}" class="button is-fullwidth" style="justify-content: flex-start; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); border: 1px solid rgba(199, 91, 155, 0.3); color: #C75B9B; font-weight: 600;">
-                    <span class="icon"><i class="fas fa-robot"></i></span>
-                    <span>Gerenciar Agentes</span>
-                </a>
-                
-                <a href="/sessoes/{{ sessao.id }}/editar" class="button is-fullwidth" style="justify-content: flex-start; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; font-weight: 600;">
-                    <span class="icon"><i class="fas fa-edit"></i></span>
-                    <span>Editar Sessão</span>
-                </a>
-                
-                <a href="/sessoes/{{ sessao.id }}/tipos-mensagem" class="button is-fullwidth" style="justify-content: flex-start; background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3); color: #ec4899; font-weight: 600;">
-                    <span class="icon"><i class="fas fa-comments"></i></span>
-                    <span>Tipos de Mensagem</span>
-                </a>
-                
-                <a href="/sessoes/{{ sessao.id }}/comandos" class="button is-fullwidth" style="justify-content: flex-start; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: #8b5cf6; font-weight: 600;">
-                    <span class="icon"><i class="fas fa-terminal"></i></span>
-                    <span>Comandos Personalizáveis</span>
-                </a>
-                
-                <a href="/agentes/{{ sessao.agente_ativo_id or 'novo' }}/ferramentas" class="button is-fullwidth" style="justify-content: flex-start; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; font-weight: 600;">
-                    <span class="icon"><i class="fas fa-tools"></i></span>
-                    <span>Configurar Ferramentas</span>
-                </a>
-            </div>
-        </div>
-
-        <!-- Zona de Perigo -->
-        <div class="box" style="border: 2px solid #fee2e2; background: #fef2f2;">
-            <h2 class="title is-6" style="margin-bottom: 1rem; color: #dc2626; font-weight: 700; text-transform: uppercase; font-size: 0.8125rem; letter-spacing: 0.5px;">
-                <i class="fas fa-exclamation-triangle"></i> Zona de Perigo
-            </h2>
-            
-            <p style="font-size: 0.875rem; color: #7f1d1d; margin-bottom: 1rem; line-height: 1.6;">
-                Esta ação é irreversível. Todos os dados, mensagens e configurações serão perdidos permanentemente.
+                {{ sessao.nome }}
+                <span style="font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; margin-left: 8px;
+                    background: {% if sessao.plataforma == 'telegram' %}#229ED9{% elif sessao.plataforma == 'webchat' %}#6366f1{% else %}#25D366{% endif %};
+                    color: white; vertical-align: middle;">
+                    {{ (sessao.plataforma or 'whatsapp')|upper }}
+                </span>
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/sessoes" style="color: var(--color-text-secondary); text-decoration: none;">Workspace</a> /
+                <span style="color: var(--color-text-primary);">Painel de Controle</span>
             </p>
-            
-            <form method="POST" action="/sessoes/{{ sessao.id }}/deletar" onsubmit="return confirm('⚠️ ATENÇÃO!\n\nDeseja realmente deletar esta sessão?\n\n❌ Esta ação NÃO pode ser desfeita!\n❌ Todos os dados serão perdidos!\n❌ Mensagens serão excluídas!\n\nDigite OK para confirmar.');">
-                <button type="submit" class="button is-danger is-fullwidth" style="font-weight: 600;">
-                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
-                    <span>Deletar Sessão</span>
+        </div>
+
+        <div class="flex items-center gap-sm">
+            {% if sessao.status == 'conectado' %}
+            <form method="POST" action="/sessoes/{{ sessao.id }}/desconectar" style="margin: 0;">
+                <button type="submit" class="button is-small is-outline"
+                    style="border-color: var(--color-error); color: var(--color-error);"
+                    title="Encerrar Vínculo">
+                    <i class="fas fa-power-off" style="margin-right: 4px;"></i> Desconectar
                 </button>
             </form>
+            <div class="status-badge"
+                style="background: var(--color-success-light); color: var(--color-success); font-weight: 600; padding: var(--space-xs) var(--space-md); border-radius: var(--radius-full); font-size: 0.75rem;">
+                <i class="fas fa-check-circle" style="margin-right: 4px;"></i> ONLINE
+            </div>
+            {% elif sessao.status == 'conectando' %}
+            <div class="status-badge"
+                style="background: var(--color-warning-light); color: var(--color-warning); font-weight: 600; padding: var(--space-xs) var(--space-md); border-radius: var(--radius-full); font-size: 0.75rem;">
+                <i class="fas fa-spinner fa-pulse" style="margin-right: 4px;"></i> PAREANDO...
+            </div>
+            {% else %}
+            {% if sessao.plataforma == 'telegram' %}
+            <a href="/sessoes/{{ sessao.id }}/conectar" class="button is-small is-primary"
+                style="background: #229ED9; border: none;" title="Iniciar polling do bot Telegram">
+                <i class="fab fa-telegram" style="margin-right: 4px;"></i> Ligar Bot Telegram
+            </a>
+            {% elif sessao.plataforma == 'webchat' %}
+            <a href="/chat/{{ sessao.id }}" target="_blank" class="button is-small is-primary"
+                style="background: #6366f1; border: none;" title="Abrir a página pública de chat numa nova aba">
+                <i class="fas fa-external-link-alt" style="margin-right: 4px;"></i> Abrir Chat Público
+            </a>
+            {% else %}
+            <a href="/sessoes/{{ sessao.id }}/conectar" class="button is-small is-primary"
+                style="background: #25D366; border: none;" title="Iniciar pareamento do aparelho">
+                <i class="fas fa-qrcode" style="margin-right: 4px;"></i> Ligar WhatsApp
+            </a>
+            {% endif %}
+            <div class="status-badge"
+                style="background: var(--color-bg-secondary); color: var(--color-text-muted); font-weight: 600; padding: var(--space-xs) var(--space-md); border-radius: var(--radius-full); font-size: 0.75rem;">
+                <i class="fas fa-times-circle" style="margin-right: 4px;"></i> OFFLINE
+            </div>
+            {% endif %}
         </div>
     </div>
-</div>
 
-<!-- Footer de Documentação -->
-<div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; margin-top: 3rem;">
-    <div style="display: flex; gap: 2rem; align-items: start;">
-        <div style="flex-shrink: 0;">
-            <div style="width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-info-circle" style="font-size: 1.75rem; color: #C75B9B;"></i>
-            </div>
+    <!-- TABS LAYOUT -->
+    <div class="grid grid-cols-4 gap-lg">
+
+        <!-- SIDEBAR MENU / VERTICAL TABS -->
+        <div class="flex flex-col gap-sm" id="sidebar-tabs">
+            <button onclick="switchTab('visao-geral')" id="btn-tab-visao-geral"
+                class="tab-btn active flex items-center gap-sm"
+                style="width: 100%; text-align: left; padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); border: none; background: var(--color-primary-light); color: var(--color-primary); font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                <i class="fas fa-tachometer-alt" style="width: 20px; text-align: center;"></i> Visão Geral
+            </button>
+
+            <button onclick="switchTab('propriedades')" id="btn-tab-propriedades"
+                class="tab-btn flex items-center gap-sm"
+                style="width: 100%; text-align: left; padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); border: none; background: transparent; color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                <i class="fas fa-sliders-h" style="width: 20px; text-align: center;"></i> Identidade
+            </button>
+
+            <button onclick="switchTab('midia')" id="btn-tab-midia" class="tab-btn flex items-center gap-sm"
+                style="width: 100%; text-align: left; padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); border: none; background: transparent; color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                <i class="fas fa-photo-video" style="width: 20px; text-align: center;"></i> Regras de Mídia
+            </button>
+
+            <button onclick="switchTab('comandos')" id="btn-tab-comandos" class="tab-btn flex items-center gap-sm"
+                style="width: 100%; text-align: left; padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); border: none; background: transparent; color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                <i class="fas fa-terminal" style="width: 20px; text-align: center;"></i> Comandos RAW
+            </button>
+
+            <div style="height: 1px; background: var(--color-border); margin: var(--space-sm) 0;"></div>
+
+            <button onclick="switchTab('perigo')" id="btn-tab-perigo" class="tab-btn flex items-center gap-sm"
+                style="width: 100%; text-align: left; padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); border: none; background: transparent; color: var(--color-error); opacity: 0.8; font-size: 0.875rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+                <i class="fas fa-exclamation-triangle" style="width: 20px; text-align: center;"></i> Zona de Risco
+            </button>
         </div>
-        <div style="flex: 1;">
-            <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 0.75rem;">
-                <i class="fas fa-book"></i> O que é uma Sessão?
-            </h3>
-            <div style="color: #4b5563; line-height: 1.7; font-size: 0.9375rem;">
-                <p style="margin-bottom: 0.75rem;">
-                    <strong style="color: #1f2937;">Sessão é o canal de comunicação WhatsApp.</strong> Cada sessão representa uma conexão única com uma conta do WhatsApp Web.
-                </p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                    <div style="display: flex; align-items: start; gap: 0.75rem;">
-                        <i class="fas fa-plug" style="color: #10b981; margin-top: 0.25rem;"></i>
-                        <div>
-                            <strong style="color: #1f2937; display: block; margin-bottom: 0.25rem;">Conexão</strong>
-                            <span>Gerencia a conexão via QR Code ou pair code com o WhatsApp</span>
+
+        <!-- CONTEÚDO DAS ABAS -->
+        <div style="grid-column: span 3;" class="tab-content-container relative">
+
+            <!-- TAB 1: VISÃO GERAL -->
+            <div id="tab-visao-geral" class="tab-pane active" style="display: block;">
+                <!-- QUICK ACTIONS GRID -->
+
+
+                <div class="flex flex-col gap-lg">
+
+
+                    <!-- Dados da Sessão -->
+                    <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                        <div class="flex items-center gap-sm mb-lg"
+                            style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                            <i class="fas fa-fingerprint" style="color: var(--color-text-secondary);"></i>
+                            <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Metadados
+                                da Conexão</h2>
                         </div>
-                    </div>
-                    <div style="display: flex; align-items: start; gap: 0.75rem;">
-                        <i class="fas fa-robot" style="color: #C75B9B; margin-top: 0.25rem;"></i>
-                        <div>
-                            <strong style="color: #1f2937; display: block; margin-bottom: 0.25rem;">Agentes</strong>
-                            <span>Uma sessão pode ter múltiplos agentes IA com personalidades diferentes</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: start; gap: 0.75rem;">
-                        <i class="fas fa-comments" style="color: #3b82f6; margin-top: 0.25rem;"></i>
-                        <div>
-                            <strong style="color: #1f2937; display: block; margin-bottom: 0.25rem;">Mensagens</strong>
-                            <span>Recebe e envia mensagens através do canal conectado</span>
-                        </div>
+
+                        <table class="table is-fullwidth" style="font-size: 0.875rem;">
+                            <tbody>
+                                <tr>
+                                    <td
+                                        style="font-weight: 600; color: var(--color-text-secondary); padding: var(--space-md) 0; border-bottom: 1px dashed var(--color-border); width: 40%;">
+                                        ID Registro</td>
+                                    <td
+                                        style="color: var(--color-text-primary); padding: var(--space-md) 0; border-bottom: 1px dashed var(--color-border);">
+                                        <code>{{ sessao.id }}</code>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        style="font-weight: 600; color: var(--color-text-secondary); padding: var(--space-md) 0; border-bottom: 1px dashed var(--color-border);">
+                                        Telefone Atrelado</td>
+                                    <td
+                                        style="color: var(--color-text-primary); padding: var(--space-md) 0; border-bottom: 1px dashed var(--color-border);">
+                                        {{ sessao.telefone or 'Aguardando vinculação...' }}</td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        style="font-weight: 600; color: var(--color-text-secondary); padding: var(--space-md) 0; border-bottom: 1px dashed var(--color-border);">
+                                        Instância Criada Em</td>
+                                    <td
+                                        style="color: var(--color-text-primary); padding: var(--space-md) 0; border-bottom: 1px dashed var(--color-border);">
+                                        {{ sessao.criado_em.strftime('%d/%m/%Y às %H:%M') }}</td>
+                                </tr>
+                                <tr>
+                                    <td
+                                        style="font-weight: 600; color: var(--color-text-secondary); padding: var(--space-md) 0; border-bottom: 1px dashed var(--color-border);">
+                                        Último Handshake API</td>
+                                    <td
+                                        style="color: var(--color-text-primary); padding: var(--space-md) 0; border-bottom: 1px dashed var(--color-border);">
+                                        {{ sessao.ultima_conexao.strftime('%d/%m/%Y às %H:%M') if sessao.ultima_conexao
+                                        else 'N/A' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
+                <div class="grid grid-cols-3 gap-md mb-xl">
+
+                    <a href="/mensagens/sessao/{{ sessao.id }}"
+                        class="box flex flex-col items-center justify-center p-0"
+                        style="border: none; box-shadow: var(--shadow-sm); cursor: pointer; transition: 0.2s; min-height: 100px; background: var(--color-surface);">
+                        <i class="fas fa-comments mb-xs" style="font-size: 1.5rem; color: var(--color-info);"></i>
+                        <span style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary);">Logs e
+                            Mensagens</span>
+                    </a>
+
+                </div>
             </div>
+
+            <!-- TAB 2: PROPRIEDADES / IDENTIDADE -->
+            <div id="tab-propriedades" class="tab-pane" style="display: none;">
+                <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-md);">
+                    <div class="flex items-center gap-sm mb-lg"
+                        style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <i class="fas fa-sliders-h" style="color: var(--color-text-secondary);"></i>
+                        <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Configurações
+                            Gerais e Identidade</h2>
+                    </div>
+
+                    <form method="POST" action="/sessoes/{{ sessao.id }}/atualizar" class="flex flex-col gap-lg">
+
+                        <div class="form-group mb-0">
+                            <label
+                                style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                                Nome de Identificação <span style="color: var(--color-error);">*</span>
+                            </label>
+                            <input type="text" class="input" name="nome" required value="{{ sessao.nome }}"
+                                placeholder="Ex: Suporte N1, Time de Vendas B2B..."
+                                style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                            <div class="form-hint"
+                                style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Apenas
+                                para controle interno na hora de parear via QR Code.</div>
+                        </div>
+
+                        <div class="flex flex-col gap-md p-lg"
+                            style="background: var(--color-bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
+                            <!-- Toggle Active Route -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-md">
+                                    <div
+                                        style="width: 40px; height: 40px; border-radius: 8px; background: {% if sessao.ativa %}var(--color-info-light){% else %}var(--color-bg-tertiary){% endif %}; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-satellite"
+                                            style="color: {% if sessao.ativa %}var(--color-info){% else %}var(--color-text-muted){% endif %}; font-size: 16px;"></i>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span
+                                            style="font-size: 0.9375rem; font-weight: 600; color: var(--color-text-primary);">Recepção
+                                            de Mensagens Webhook</span>
+                                        <span style="font-size: 0.75rem; color: var(--color-text-secondary);">Se
+                                            desativado, o sistema ignora todos os pings desta conexão WhatsApp.</span>
+                                    </div>
+                                </div>
+                                <label class="switch"
+                                    style="position: relative; display: inline-block; width: 44px; height: 24px;">
+                                    <input type="checkbox" name="ativa" value="true" {% if sessao.ativa %}checked{%
+                                        endif %} style="opacity: 0; width: 0; height: 0;">
+                                    <span
+                                        style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: {% if sessao.ativa %}var(--color-info){% else %}var(--color-border){% endif %}; transition: .3s; border-radius: 24px;"></span>
+                                </label>
+                            </div>
+
+                            <!-- Divider -->
+                            <div style="height: 1px; background: var(--color-border); margin: var(--space-xs) 0;"></div>
+
+                            <!-- Toggle Auto Responder -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-md">
+                                    <div
+                                        style="width: 40px; height: 40px; border-radius: 8px; background: {% if sessao.auto_responder %}var(--color-success-light){% else %}var(--color-bg-tertiary){% endif %}; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-magic"
+                                            style="color: {% if sessao.auto_responder %}var(--color-success){% else %}var(--color-text-muted){% endif %}; font-size: 16px;"></i>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span
+                                            style="font-size: 0.9375rem; font-weight: 600; color: var(--color-text-primary);">Auto-Responder
+                                            Inteligente</span>
+                                        <span style="font-size: 0.75rem; color: var(--color-text-secondary);">Habilita a
+                                            IA do agente para rotear, raciocinar e responder (Consome Tokens).</span>
+                                    </div>
+                                </div>
+                                <label class="switch"
+                                    style="position: relative; display: inline-block; width: 44px; height: 24px;">
+                                    <input type="checkbox" name="auto_responder" value="true" {% if
+                                        sessao.auto_responder %}checked{% endif %}
+                                        style="opacity: 0; width: 0; height: 0;">
+                                    <span
+                                        style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: {% if sessao.auto_responder %}var(--color-success){% else %}var(--color-border){% endif %}; transition: .3s; border-radius: 24px;"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end mt-md pt-md"
+                            style="border-top: 1px solid var(--color-border);">
+                            <button type="submit" class="button is-primary">
+                                <i class="fas fa-save" style="margin-right: 6px;"></i> Salvar Identidade
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 3: MÍDIA -->
+            <div id="tab-midia" class="tab-pane" style="display: none;">
+                <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-md);">
+                    <div class="flex items-center gap-sm mb-lg"
+                        style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <i class="fas fa-filter" style="color: var(--color-text-secondary);"></i>
+                        <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Roteadores de
+                            Multimídia</h2>
+                    </div>
+
+                    <p
+                        style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: var(--space-lg);">
+                        Configure o que a IA deve fazer com os diversos tipos de anexo do WhatsApp. Operações
+                        assíncronas custam processamento, logo priorize o Drop/Ignorar para mídias não suportadas.
+                    </p>
+
+                    <form method="POST" action="/sessoes/{{ sessao.id }}/tipos-mensagem/salvar"
+                        class="flex flex-col gap-lg">
+
+                        <!-- Áudio -->
+                        <div
+                            style="border: 1px solid var(--color-border); border-left: 4px solid #d946ef; padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md);">
+                            <strong
+                                style="display: block; font-size: 0.9375rem; color: var(--color-text-primary); margin-bottom: var(--space-sm);"><i
+                                    class="fas fa-microphone" style="margin-right: 4px; color: #d946ef;"></i> Áudios
+                                Gravados</strong>
+                            <div class="flex flex-col gap-sm pl-md" style="font-size: 0.8125rem;">
+                                <label class="radio flex items-center gap-sm"><input type="radio" name="tipo_audio"
+                                        value="enviar_ia" {% if tipos.audio.acao=='enviar_ia' %}checked{% endif %}>
+                                    <span>Transcrever e enviar contexto para IA</span></label>
+                                <label class="radio flex items-center gap-sm"><input type="radio" name="tipo_audio"
+                                        value="transcricao_apenas" {% if tipos.audio.acao=='transcricao_apenas'
+                                        %}checked{% endif %}> <span>Transcrever arquivo sem rotear para
+                                        IA</span></label>
+                                <label class="radio flex items-center gap-sm"><input type="radio" name="tipo_audio"
+                                        value="resposta_fixa" {% if tipos.audio.acao=='resposta_fixa' %}checked{% endif
+                                        %}> <span>Resistência Ativa (Resposta Fixa)</span></label>
+                                <div id="audio_resposta_container"
+                                    style="{% if tipos.audio.acao != 'resposta_fixa' %}display:none;{% endif %} padding-left: 28px; margin-top: 4px;">
+                                    <input type="text" class="input" name="tipo_audio_resposta" id="audio_resposta"
+                                        value="{{ tipos.audio.resposta_fixa or '' }}"
+                                        placeholder="Ex: Não consigo escutar áudios."
+                                        style="font-size: 0.8125rem; max-width: 400px; border-radius: var(--radius-sm);">
+                                </div>
+                                <label class="radio flex items-center gap-sm"><input type="radio" name="tipo_audio"
+                                        value="ignorar" {% if tipos.audio.acao=='ignorar' %}checked{% endif %}>
+                                    <span>Dropar/Ignorar (Recomendado)</span></label>
+                            </div>
+                        </div>
+
+                        <!-- Imagem -->
+                        <div
+                            style="border: 1px solid var(--color-border); border-left: 4px solid #f59e0b; padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md);">
+                            <strong
+                                style="display: block; font-size: 0.9375rem; color: var(--color-text-primary); margin-bottom: var(--space-sm);"><i
+                                    class="fas fa-image" style="margin-right: 4px; color: #f59e0b;"></i>
+                                Imagens</strong>
+                            <div class="flex flex-col gap-sm pl-md" style="font-size: 0.8125rem;">
+                                <label class="radio flex items-center gap-sm"><input type="radio" name="tipo_imagem"
+                                        value="enviar_ia" {% if tipos.imagem.acao=='enviar_ia' %}checked{% endif %}>
+                                    <span>Análise Semântica (LLM Vision)</span></label>
+                                <label class="radio flex items-center gap-sm"><input type="radio" name="tipo_imagem"
+                                        value="resposta_fixa" {% if tipos.imagem.acao=='resposta_fixa' %}checked{% endif
+                                        %}> <span>Rejeição com Aviso</span></label>
+                                <div id="imagem_resposta_container"
+                                    style="{% if tipos.imagem.acao != 'resposta_fixa' %}display:none;{% endif %} padding-left: 28px; margin-top: 4px;">
+                                    <input type="text" class="input" name="tipo_imagem_resposta" id="imagem_resposta"
+                                        value="{{ tipos.imagem.resposta_fixa or '' }}"
+                                        placeholder="Ex: Digite a resposta..."
+                                        style="font-size: 0.8125rem; max-width: 400px; border-radius: var(--radius-sm);">
+                                </div>
+                                <label class="radio flex items-center gap-sm"><input type="radio" name="tipo_imagem"
+                                        value="ignorar" {% if tipos.imagem.acao=='ignorar' %}checked{% endif %}>
+                                    <span>Dropar/Ignorar</span></label>
+                            </div>
+                        </div>
+
+                        <!-- Outros Arquivos em Grid -->
+                        <div class="grid grid-cols-2 gap-md">
+                            <!-- Videos -->
+                            <div
+                                style="border: 1px solid var(--color-border); border-left: 4px solid #0ea5e9; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md);">
+                                <strong
+                                    style="display: block; font-size: 0.875rem; color: var(--color-text-primary); margin-bottom: 6px;"><i
+                                        class="fas fa-video" style="margin-right: 4px;"></i> Vídeos</strong>
+                                <div class="flex flex-col gap-xs pl-sm" style="font-size: 0.75rem;">
+                                    <label class="radio flex items-center gap-sm"><input type="radio" name="tipo_video"
+                                            value="resposta_fixa" {% if tipos.video.acao=='resposta_fixa' %}checked{%
+                                            endif %}> <span>Resposta Fixa</span></label>
+                                    <div id="video_resposta_container"
+                                        style="{% if tipos.video.acao != 'resposta_fixa' %}display:none;{% endif %}">
+                                        <input type="text" class="input is-small" name="tipo_video_resposta"
+                                            id="video_resposta" value="{{ tipos.video.resposta_fixa or '' }}"
+                                            placeholder="Aviso..." style="width: 100%;">
+                                    </div>
+                                    <label class="radio flex items-center gap-sm"><input type="radio" name="tipo_video"
+                                            value="ignorar" {% if tipos.video.acao=='ignorar' %}checked{% endif %}>
+                                        <span>Dropar</span></label>
+                                </div>
+                            </div>
+
+                            <!-- Documentos -->
+                            <div
+                                style="border: 1px solid var(--color-border); border-left: 4px solid #8b5cf6; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md);">
+                                <strong
+                                    style="display: block; font-size: 0.875rem; color: var(--color-text-primary); margin-bottom: 6px;"><i
+                                        class="fas fa-file-pdf" style="margin-right: 4px;"></i> Documentos</strong>
+                                <div class="flex flex-col gap-xs pl-sm" style="font-size: 0.75rem;">
+                                    <label class="radio flex items-center gap-sm"><input type="radio"
+                                            name="tipo_documento" value="resposta_fixa" {% if
+                                            tipos.documento.acao=='resposta_fixa' %}checked{% endif %}> <span>Resposta
+                                            Fixa</span></label>
+                                    <div id="documento_resposta_container"
+                                        style="{% if tipos.documento.acao != 'resposta_fixa' %}display:none;{% endif %}">
+                                        <input type="text" class="input is-small" name="tipo_documento_resposta"
+                                            id="documento_resposta" value="{{ tipos.documento.resposta_fixa or '' }}"
+                                            placeholder="Aviso..." style="width: 100%;">
+                                    </div>
+                                    <label class="radio flex items-center gap-sm"><input type="radio"
+                                            name="tipo_documento" value="ignorar" {% if tipos.documento.acao=='ignorar'
+                                            %}checked{% endif %}> <span>Dropar</span></label>
+                                </div>
+                            </div>
+
+                            <!-- Sticker -->
+                            <div
+                                style="border: 1px solid var(--color-border); border-left: 4px solid #ef4444; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md);">
+                                <strong
+                                    style="display: block; font-size: 0.875rem; color: var(--color-text-primary); margin-bottom: 6px;"><i
+                                        class="fas fa-sticky-note" style="margin-right: 4px;"></i> Stickers</strong>
+                                <div class="flex flex-col gap-xs pl-sm" style="font-size: 0.75rem;">
+                                    <label class="radio flex items-center gap-sm"><input type="radio"
+                                            name="tipo_sticker" value="resposta_fixa" {% if
+                                            tipos.sticker.acao=='resposta_fixa' %}checked{% endif %}> <span>Resposta
+                                            Fixa</span></label>
+                                    <div id="sticker_resposta_container"
+                                        style="{% if tipos.sticker.acao != 'resposta_fixa' %}display:none;{% endif %}">
+                                        <input type="text" class="input is-small" name="tipo_sticker_resposta"
+                                            id="sticker_resposta" value="{{ tipos.sticker.resposta_fixa or '' }}"
+                                            placeholder="Aviso..." style="width: 100%;">
+                                    </div>
+                                    <label class="radio flex items-center gap-sm"><input type="radio"
+                                            name="tipo_sticker" value="ignorar" {% if tipos.sticker.acao=='ignorar'
+                                            %}checked{% endif %}> <span>Dropar</span></label>
+                                </div>
+                            </div>
+
+                            <!-- Localização -->
+                            <div
+                                style="border: 1px solid var(--color-border); border-left: 4px solid #22c55e; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md);">
+                                <strong
+                                    style="display: block; font-size: 0.875rem; color: var(--color-text-primary); margin-bottom: 6px;"><i
+                                        class="fas fa-map-marker-alt" style="margin-right: 4px;"></i>
+                                    Localização</strong>
+                                <div class="flex flex-col gap-xs pl-sm" style="font-size: 0.75rem;">
+                                    <label class="radio flex items-center gap-sm"><input type="radio"
+                                            name="tipo_localizacao" value="enviar_ia" {% if
+                                            tipos.localizacao.acao=='enviar_ia' %}checked{% endif %}> <span>Enviar Rota
+                                            p/ IA</span></label>
+                                    <label class="radio flex items-center gap-sm"><input type="radio"
+                                            name="tipo_localizacao" value="resposta_fixa" {% if
+                                            tipos.localizacao.acao=='resposta_fixa' %}checked{% endif %}> <span>Resposta
+                                            Fixa</span></label>
+                                    <div id="localizacao_resposta_container"
+                                        style="{% if tipos.localizacao.acao != 'resposta_fixa' %}display:none;{% endif %}">
+                                        <input type="text" class="input is-small" name="tipo_localizacao_resposta"
+                                            id="localizacao_resposta"
+                                            value="{{ tipos.localizacao.resposta_fixa or '' }}" placeholder="Aviso..."
+                                            style="width: 100%;">
+                                    </div>
+                                    <label class="radio flex items-center gap-sm"><input type="radio"
+                                            name="tipo_localizacao" value="ignorar" {% if
+                                            tipos.localizacao.acao=='ignorar' %}checked{% endif %}>
+                                        <span>Dropar</span></label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end mt-sm pt-md"
+                            style="border-top: 1px solid var(--color-border);">
+                            <button type="submit" class="button is-primary">
+                                <i class="fas fa-save" style="margin-right: 6px;"></i> Salvar Roteamento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 4: COMANDOS -->
+            <div id="tab-comandos" class="tab-pane" style="display: none;">
+                <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-md);">
+                    <div class="flex items-center justify-between mb-lg"
+                        style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <div class="flex items-center gap-sm">
+                            <i class="fas fa-terminal" style="color: var(--color-text-secondary);"></i>
+                            <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Comandos de
+                                Sistema</h2>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="/sessoes/{{ sessao.id }}/comandos/salvar" class="flex flex-col gap-md">
+                        {% for cmd_id, cmd in comandos.items() %}
+                        <div
+                            style="padding: var(--space-md); border: 1px solid var(--color-border); {% if cmd.ativo %}border-left: 4px solid var(--color-primary);{% else %}border-left: 4px solid var(--color-text-muted); opacity: 0.8;{% endif %} display: flex; flex-direction: column; gap: var(--space-md); border-radius: var(--radius-md);">
+
+                            <!-- Header do Comando -->
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-md">
+                                    <div
+                                        style="width: 32px; height: 32px; border-radius: 8px; background: {% if cmd.ativo %}var(--color-primary){% else %}var(--color-bg-tertiary){% endif %}; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-terminal"
+                                            style="color: {% if cmd.ativo %}white{% else %}var(--color-text-secondary){% endif %}; font-size: 0.8125rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h3
+                                            style="font-size: 0.9375rem; font-weight: 700; color: var(--color-text-primary); margin: 0;">
+                                            {{ cmd_id|replace('_', ' ')|title }}</h3>
+                                        <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin: 0;">{{
+                                            cmd.descricao }}</p>
+                                    </div>
+                                </div>
+                                <label class="switch"
+                                    style="position: relative; display: inline-block; width: 44px; height: 24px;">
+                                    <input type="checkbox" name="cmd_{{ cmd_id }}_ativo" value="true" {% if cmd.ativo
+                                        %}checked{% endif %} style="opacity: 0; width: 0; height: 0;">
+                                    <span
+                                        style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: {% if cmd.ativo %}var(--color-primary){% else %}var(--color-border){% endif %}; transition: .3s; border-radius: 24px;"></span>
+                                </label>
+                            </div>
+
+                            <!-- Campos Reativos -->
+                            <div class="grid grid-cols-2 gap-sm"
+                                style="background: var(--color-bg-tertiary); padding: var(--space-sm); border-radius: var(--radius-sm);">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label
+                                        style="display: block; font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 4px; text-transform: uppercase;">Gatilho
+                                        Executável</label>
+                                    <input type="text" class="input is-small" name="cmd_{{ cmd_id }}_gatilho"
+                                        value="{{ cmd.gatilho }}"
+                                        style="font-size: 0.8125rem; font-family: monospace; width: 100%;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label
+                                        style="display: block; font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 4px; text-transform: uppercase;">Descrição
+                                        Customizada</label>
+                                    <input type="text" class="input is-small" name="cmd_{{ cmd_id }}_descricao"
+                                        value="{{ cmd.descricao }}" style="font-size: 0.8125rem; width: 100%;">
+                                </div>
+
+                                {% if cmd_id in ['ativar', 'desativar', 'limpar', 'trocar_agente'] %}
+                                <div class="form-group"
+                                    style="grid-column: span 2; margin-bottom: 0; margin-top: var(--space-xs);">
+                                    <label
+                                        style="display: block; font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 4px; text-transform: uppercase;">Aviso
+                                        de Retorno (Resposta do Bot)</label>
+                                    <input type="text" class="input is-small" name="cmd_{{ cmd_id }}_resposta"
+                                        value="{{ cmd.resposta or '' }}" placeholder="Confirmado. Ação executada."
+                                        style="font-size: 0.8125rem; font-family: monospace; width: 100%;">
+                                </div>
+                                {% endif %}
+                            </div>
+
+                        </div>
+                        {% endfor %}
+
+                        <div class="flex items-center justify-end mt-sm pt-md"
+                            style="border-top: 1px solid var(--color-border);">
+                            <button type="submit" class="button is-primary">
+                                <i class="fas fa-save" style="margin-right: 6px;"></i> Persistir Comandos Customizados
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 5: ZONA DE PERIGO -->
+            <div id="tab-perigo" class="tab-pane" style="display: none;">
+                <div class="box"
+                    style="padding: var(--space-xl); border: 1px solid var(--color-error); background: #fff5f5; box-shadow: none;">
+                    <div class="flex items-center gap-sm mb-lg">
+                        <i class="fas fa-exclamation-triangle fa-2x" style="color: var(--color-error);"></i>
+                        <div>
+                            <h2
+                                style="font-size: 1.125rem; font-weight: 700; color: var(--color-error); text-transform: uppercase;">
+                                Ação Condenada (Irreversível)</h2>
+                            <p style="font-size: 0.8125rem; color: #7f1d1d; margin-top: 4px;">Destruir a sessão removerá
+                                de forma irreversível os logs de conversa, histórico e todo o roteamento configurado. O
+                                agente vinculado permanecerá salvo, mas órfão.</p>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="/sessoes/{{ sessao.id }}/deletar"
+                        onsubmit="return confirm('ATENÇÃO: Deseja purgar completamente a conexão com WhatsApp do banco de dados? Todo o histórico de mensagem sumirá.');">
+                        <button type="submit" class="button"
+                            style="background: var(--color-error); color: white; border: none; font-weight: 600; padding: var(--space-md) var(--space-xl);">
+                            <i class="fas fa-trash-alt" style="margin-right: 8px;"></i> Sim, Destruir Esta Conexão
+                            Definitivamente
+                        </button>
+                    </form>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
 
+<style>
+    /* Corrige o botão Switch Custom para Abas */
+    .switch input:checked+span {
+        background-color: var(--color-success) !important;
+    }
+
+    .switch input[name="cmd_desativar_ativo"]:checked+span,
+    .switch input[name="cmd_limpar_ativo"]:checked+span {
+        background-color: var(--color-primary) !important;
+    }
+
+    .switch input:checked+span:before {
+        transform: translateX(20px);
+    }
+
+    .switch span:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+    }
+</style>
+
+<!-- UIs Logic Tab System -->
+<script>
+    function switchTab(tabId) {
+        // Remover ativos
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+            btn.style.background = 'transparent';
+
+            // if perigo, keep it red but transparent
+            if (btn.id !== 'btn-tab-perigo') btn.style.color = 'var(--color-text-secondary)';
+        });
+
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.style.display = 'none';
+        });
+
+        // Ativar novo
+        const btn = document.getElementById('btn-tab-' + tabId);
+        const pane = document.getElementById('tab-' + tabId);
+
+        if (btn && pane) {
+            btn.classList.add('active');
+
+            if (tabId === 'perigo') {
+                btn.style.background = 'var(--color-error-light)';
+                btn.style.color = 'var(--color-error)';
+            } else {
+                btn.style.background = 'var(--color-primary-light)';
+                btn.style.color = 'var(--color-primary)';
+            }
+
+            pane.style.display = 'block';
+
+            // Alterar a URL para não perder o state do usuário em Reloads
+            window.history.replaceState(null, null, "?tab=" + tabId);
+        }
+    }
+
+    // Logic to open and close text fields dynamic for media rules
+    function toggleResposta(tipo, mostrar) {
+        const container = document.getElementById(tipo + '_resposta_container');
+        if (container) {
+            container.style.display = mostrar ? 'block' : 'none';
+            if (mostrar) {
+                const input = document.getElementById(tipo + '_resposta');
+                if (input) input.focus();
+            }
+        }
+    }
+
+    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            const tipo = this.name.replace('tipo_', '');
+            const isRespostaFixa = this.value === 'resposta_fixa';
+            toggleResposta(tipo, isRespostaFixa);
+        });
+    });
+
+    // Handle tab selection via URL on load
+    document.addEventListener("DOMContentLoaded", function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab) {
+            switchTab(tab);
+
+            // Auto scroll container
+            window.scrollTo({
+                top: document.querySelector('.page-title').offsetTop - 20,
+                behavior: 'smooth'
+            });
+        }
+    });
+</script>
 {% endblock %}

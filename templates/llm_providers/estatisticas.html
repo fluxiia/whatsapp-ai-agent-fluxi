@@ -1,183 +1,105 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+{% block title %}Estatísticas do Nó - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Header -->
-    <div class="level">
-        <div class="level-left">
-            <div class="level-item">
-                <h1 class="title is-3">
-                    <i class="fas fa-chart-line"></i>
-                    {{ titulo }}
-                </h1>
-            </div>
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-chart-line text-primary mb-xs" style="color: #6366f1;"></i> Telemetria do Servidor
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/provedores-llm/{{ provedor.id }}/detalhes" style="color: var(--color-text-secondary); text-decoration: none;">{{ provedor.nome }}</a> / 
+                <span style="color: var(--color-text-primary);">Análise de Tráfego M2M</span>
+            </p>
         </div>
-        <div class="level-right">
-            <div class="level-item">
-                <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                    <span>Voltar</span>
-                </a>
-            </div>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-small is-outline">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Voltar para Propriedades
+            </a>
         </div>
     </div>
 
-    <!-- Métricas Principais -->
-    <div class="columns">
-        <div class="column is-one-quarter">
-            <div class="metric-card">
-                <div class="metric-value">{{ estatisticas.total_requisicoes }}</div>
-                <div class="metric-label">Total de Requisições</div>
-            </div>
+    <!-- Dashboard B2B Grid -->
+    <div class="grid grid-cols-4 gap-md mb-lg">
+        <div class="box flex flex-col items-center text-center p-0" style="padding: var(--space-lg) 0; box-shadow: var(--shadow-sm); border: none;">
+            <span style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Acessos Cumulativos</span>
+            <span style="font-size: 2rem; font-weight: 700; color: var(--color-text-primary);">{{ estatisticas.total_requisicoes }}</span>
         </div>
-        <div class="column is-one-quarter">
-            <div class="metric-card">
-                <div class="metric-value">{{ estatisticas.requisicoes_sucesso }}</div>
-                <div class="metric-label">Sucessos</div>
-            </div>
+        <div class="box flex flex-col items-center text-center p-0" style="padding: var(--space-lg) 0; box-shadow: var(--shadow-sm); border: none;">
+            <span style="font-size: 0.75rem; color: var(--color-success); text-transform: uppercase;">HTTP 200 (Sucesso)</span>
+            <span style="font-size: 2rem; font-weight: 700; color: var(--color-success);">{{ estatisticas.requisicoes_sucesso }}</span>
         </div>
-        <div class="column is-one-quarter">
-            <div class="metric-card">
-                <div class="metric-value">{{ estatisticas.requisicoes_erro }}</div>
-                <div class="metric-label">Erros</div>
-            </div>
+        <div class="box flex flex-col items-center text-center p-0" style="padding: var(--space-lg) 0; box-shadow: var(--shadow-sm); border: none;">
+            <span style="font-size: 0.75rem; color: var(--color-error); text-transform: uppercase;">HTTP 5XX/4XX (Erro)</span>
+            <span style="font-size: 2rem; font-weight: 700; color: var(--color-error);">{{ estatisticas.requisicoes_erro }}</span>
         </div>
-        <div class="column is-one-quarter">
-            <div class="metric-card">
-                <div class="metric-value">{{ "%.1f"|format(estatisticas.tempo_medio_ms) }}ms</div>
-                <div class="metric-label">Tempo Médio</div>
-            </div>
+        <div class="box flex flex-col items-center text-center p-0" style="padding: var(--space-lg) 0; box-shadow: var(--shadow-sm); border: none;">
+            <span style="font-size: 0.75rem; color: var(--color-info); text-transform: uppercase;">Time To First Token (AVG)</span>
+            <span style="font-size: 2rem; font-weight: 700; color: var(--color-info);">{{ "%.1f"|format(estatisticas.tempo_medio_ms) }}<span style="font-size: 0.875rem; color: var(--color-text-muted);">ms</span></span>
         </div>
     </div>
 
-    <!-- Taxa de Sucesso -->
     {% if estatisticas.total_requisicoes > 0 %}
-    <div class="columns">
-        <div class="column is-full">
-            <div class="box">
-                <h3 class="title is-5">
-                    <i class="fas fa-percentage"></i>
-                    Taxa de Sucesso
-                </h3>
+    <div class="grid grid-cols-3 gap-lg">
+        
+        <!-- Bloco de Disponibilidade -->
+        <div style="grid-column: span 2;">
+            <div class="box flex flex-col justify-center text-center" style="padding: var(--space-2xl) var(--space-xl); border: none; box-shadow: var(--shadow-sm); height: 100%;">
+                {% set taxa_sucesso = (estatisticas.requisicoes_sucesso / estatisticas.total_requisicoes * 100) %}
+                <span style="font-size: 4rem; font-weight: 800; color: {% if taxa_sucesso >= 90 %}var(--color-success){% elif taxa_sucesso >= 70 %}var(--color-warning){% else %}var(--color-error){% endif %}; line-height: 1;">{{ "%.1f"|format(taxa_sucesso) }}%</span>
+                <span style="font-size: 0.875rem; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: var(--space-lg);">Disponibilidade Bruta (Uptime Relativo)</span>
                 
-                <div class="content">
-                    {% set taxa_sucesso = (estatisticas.requisicoes_sucesso / estatisticas.total_requisicoes * 100) %}
-                    <div class="level">
-                        <div class="level-left">
-                            <div class="level-item">
-                                <div class="progress-container">
-                                    <progress class="progress is-primary" 
-                                              value="{{ taxa_sucesso }}" 
-                                              max="100">{{ taxa_sucesso }}%</progress>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="level-right">
-                            <div class="level-item">
-                                <span class="tag is-primary is-large">{{ "%.1f"|format(taxa_sucesso) }}%</span>
-                            </div>
-                        </div>
-                    </div>
+                <div style="width: 100%; height: 12px; background: var(--color-bg-secondary); border-radius: 6px; overflow: hidden; margin: 0 auto; max-width: 600px;">
+                    <div style="height: 100%; width: {{ taxa_sucesso }}%; background: {% if taxa_sucesso >= 90 %}var(--color-success){% elif taxa_sucesso >= 70 %}var(--color-warning){% else %}var(--color-error){% endif %}; transition: width 1s ease;"></div>
                 </div>
             </div>
         </div>
+
+        <!-- Bloco de Time e Info -->
+        <div class="flex flex-col gap-lg">
+            
+            <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-md);">Cronologia</h3>
+                
+                <div class="flex flex-col gap-sm">
+                    {% if estatisticas.ultima_requisicao %}
+                    <div class="flex justify-between" style="font-size: 0.8125rem;">
+                        <span style="color: var(--color-text-secondary);">Last Ping</span>
+                        <span style="font-weight: 600; color: var(--color-text-primary);">{{ estatisticas.ultima_requisicao.strftime('%d/%m/%Y %H:%M:%S') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); flex: 1;">
+                <h3 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-md);">Modelos Demandados</h3>
+                
+                <div class="flex flex-wrap gap-xs">
+                    {% if estatisticas.modelos_carregados %}
+                        {% for modelo in estatisticas.modelos_carregados %}
+                            <span class="tag" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); color: var(--color-text-primary); font-size: 0.75rem;">{{ modelo }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span style="font-size: 0.8125rem; color: var(--color-text-muted);">Nenhum identificador cacheado pelo logger.</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    {% else %}
+    <div class="box flex flex-col items-center justify-center text-center" style="padding: 4rem 1rem; border: none; box-shadow: var(--shadow-sm); min-height: 300px;">
+        <i class="fas fa-satellite-dish" style="font-size: 2.5rem; color: var(--color-text-muted); margin-bottom: var(--space-md);"></i>
+        <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Tráfego Ausente</h3>
+        <p style="font-size: 0.875rem; color: var(--color-text-secondary); max-width: 400px;">
+            Ainda não processamos nenhuma inferência contra este endpoint. Tente emitir uma requisição de Teste.
+        </p>
     </div>
     {% endif %}
 
-    <!-- Informações Adicionais -->
-    <div class="columns">
-        <div class="column is-half">
-            <div class="box">
-                <h3 class="title is-5">
-                    <i class="fas fa-clock"></i>
-                    Informações Temporais
-                </h3>
-                
-                <div class="content">
-                    {% if estatisticas.ultima_requisicao %}
-                    <div class="field">
-                        <label class="label">Última Requisição</label>
-                        <p class="control">
-                            <span class="icon">
-                                <i class="fas fa-clock"></i>
-                            </span>
-                            {{ estatisticas.ultima_requisicao.strftime('%d/%m/%Y %H:%M:%S') }}
-                        </p>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="field">
-                        <label class="label">Tempo Médio de Resposta</label>
-                        <p class="control">
-                            <span class="icon">
-                                <i class="fas fa-tachometer-alt"></i>
-                            </span>
-                            {{ "%.1f"|format(estatisticas.tempo_medio_ms) }} ms
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="column is-half">
-            <div class="box">
-                <h3 class="title is-5">
-                    <i class="fas fa-cube"></i>
-                    Modelos Carregados
-                </h3>
-                
-                <div class="content">
-                    {% if estatisticas.modelos_carregados %}
-                    <div class="tags">
-                        {% for modelo in estatisticas.modelos_carregados %}
-                        <span class="tag is-info">{{ modelo }}</span>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p class="has-text-grey">Nenhum modelo carregado</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Resumo de Performance -->
-    <div class="columns">
-        <div class="column is-full">
-            <div class="box">
-                <h3 class="title is-5">
-                    <i class="fas fa-chart-bar"></i>
-                    Resumo de Performance
-                </h3>
-                
-                <div class="content">
-                    <div class="columns">
-                        <div class="column is-one-third">
-                            <div class="has-text-centered">
-                                <p class="title is-4 has-text-success">{{ estatisticas.requisicoes_sucesso }}</p>
-                                <p class="subtitle is-6">Requisições Bem-sucedidas</p>
-                            </div>
-                        </div>
-                        <div class="column is-one-third">
-                            <div class="has-text-centered">
-                                <p class="title is-4 has-text-danger">{{ estatisticas.requisicoes_erro }}</p>
-                                <p class="subtitle is-6">Requisições com Erro</p>
-                            </div>
-                        </div>
-                        <div class="column is-one-third">
-                            <div class="has-text-centered">
-                                <p class="title is-4 has-text-info">{{ "%.1f"|format(estatisticas.tempo_medio_ms) }}ms</p>
-                                <p class="subtitle is-6">Tempo Médio</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}

@@ -1,639 +1,434 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+{% block title %}Inspetor de Nó LLM - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Header -->
-    <div class="level">
-        <div class="level-left">
-            <div class="level-item">
-                <h1 class="title is-3">
-                    <i class="fas fa-server"></i>
-                    {{ provedor.nome }}
-                    {% if provedor.ativo %}
-                        <span class="tag is-success">Ativo</span>
-                    {% else %}
-                        <span class="tag is-danger">Inativo</span>
-                    {% endif %}
-                </h1>
-            </div>
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-microchip text-primary mb-xs" style="color: #6366f1;"></i> {{ provedor.nome }}
+                {% if provedor.ativo %}
+                    <span class="tag is-success" style="margin-left: 8px; font-size: 0.65rem; border-radius: var(--radius-sm);">ONLINE</span>
+                {% else %}
+                    <span class="tag is-danger" style="margin-left: 8px; font-size: 0.65rem; border-radius: var(--radius-sm);">INATIVO</span>
+                {% endif %}
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/provedores-llm" style="color: var(--color-text-secondary); text-decoration: none;">Provedores LLM</a> / 
+                <span style="color: var(--color-text-primary);">Inspetor de Endpoint</span>
+            </p>
         </div>
-        <div class="level-right">
-            <div class="level-item">
-                <div class="buttons">
-                    <form method="POST" action="/provedores-llm/{{ provedor.id }}/testar" style="display: inline;">
-                        <button type="submit" class="button is-info">
-                            <span class="icon">
-                                <i class="fas fa-sync"></i>
-                            </span>
-                            <span>Atualizar Modelos</span>
-                        </button>
-                    </form>
-                    <form method="POST" action="/provedores-llm/{{ provedor.id }}/deletar" 
-                          onsubmit="return confirm('Tem certeza que deseja deletar este provedor? Esta ação não pode ser desfeita.');">
-                        <button type="submit" class="button is-danger">
-                            <span class="icon">
-                                <i class="fas fa-trash"></i>
-                            </span>
-                            <span>Deletar</span>
-                        </button>
-                    </form>
-                    <a href="/provedores-llm" class="button is-light">
-                        <span class="icon">
-                            <i class="fas fa-arrow-left"></i>
-                        </span>
-                        <span>Voltar</span>
-                    </a>
-                </div>
-            </div>
+        
+        <div class="flex items-center gap-sm">
+            <form method="POST" action="/provedores-llm/{{ provedor.id }}/testar" style="margin: 0;">
+                <button type="submit" class="button is-small is-outline">
+                    <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Probe Conexão
+                </button>
+            </form>
+            <a href="/provedores-llm" class="button is-small is-outline" style="border-color: var(--color-border);">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Sair
+            </a>
         </div>
     </div>
 
-    <!-- Mensagens -->
+    <!-- Feedbacks Globais -->
     {% if erro %}
-    <div class="notification is-danger is-light">
-        <button class="delete"></button>
-        <strong>Erro:</strong> {{ erro }}
+    <div style="background: var(--color-error-light); border: 1px solid var(--color-error); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); display: flex; align-items: flex-start; gap: var(--space-sm);">
+        <i class="fas fa-exclamation-triangle" style="color: var(--color-error); margin-top: 2px;"></i>
+        <div style="font-size: 0.8125rem; color: #7f1d1d;"><strong>Erro de Sistema:</strong> {{ erro }}</div>
     </div>
     {% endif %}
-    
     {% if sucesso %}
-    <div class="notification is-success is-light">
-        <button class="delete"></button>
-        {{ sucesso }}
+    <div style="background: var(--color-success-light); border: 1px solid var(--color-success); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); display: flex; align-items: flex-start; gap: var(--space-sm);">
+        <i class="fas fa-check-circle" style="color: var(--color-success); margin-top: 2px;"></i>
+        <div style="font-size: 0.8125rem; color: #14532d;">{{ sucesso }}</div>
     </div>
     {% endif %}
 
-    <!-- Tabs -->
-    <div class="tabs is-boxed is-medium">
-        <ul>
-            <li class="is-active" data-tab="testar">
-                <a>
-                    <span class="icon is-small"><i class="fas fa-play"></i></span>
-                    <span>Testar</span>
-                </a>
+    <!-- Modern Tabs Container -->
+    <div class="tabs-container" style="border-bottom: 2px solid var(--color-border); margin-bottom: var(--space-lg);">
+        <ul class="flex gap-md" style="list-style: none; padding: 0; margin: 0; margin-bottom: -2px;">
+            <li class="tab-item is-active" data-tab="testar" style="padding: var(--space-sm) var(--space-md); cursor: pointer; border-bottom: 2px solid #6366f1; color: #6366f1; font-weight: 600; font-size: 0.875rem;">
+                <i class="fas fa-vial"></i> Área de Teste
             </li>
-            <li data-tab="modelos">
-                <a>
-                    <span class="icon is-small"><i class="fas fa-cube"></i></span>
-                    <span>Modelos ({{ modelos|length }})</span>
-                </a>
+            <li class="tab-item" data-tab="modelos" style="padding: var(--space-sm) var(--space-md); cursor: pointer; border-bottom: 2px solid transparent; color: var(--color-text-secondary); font-weight: 600; font-size: 0.875rem;">
+                <i class="fas fa-cubes"></i> Modelos Catalogados ({{ modelos|length }})
             </li>
-            <li data-tab="configurar">
-                <a>
-                    <span class="icon is-small"><i class="fas fa-cog"></i></span>
-                    <span>Configurar</span>
-                </a>
+            <li class="tab-item" data-tab="estatisticas" style="padding: var(--space-sm) var(--space-md); cursor: pointer; border-bottom: 2px solid transparent; color: var(--color-text-secondary); font-weight: 600; font-size: 0.875rem;">
+                <i class="fas fa-chart-line"></i> Telemetria
             </li>
-            <li data-tab="estatisticas">
-                <a>
-                    <span class="icon is-small"><i class="fas fa-chart-line"></i></span>
-                    <span>Estatísticas</span>
-                </a>
+            <li class="tab-item" data-tab="configurar" style="padding: var(--space-sm) var(--space-md); cursor: pointer; border-bottom: 2px solid transparent; color: var(--color-text-secondary); font-weight: 600; font-size: 0.875rem;">
+                <i class="fas fa-sliders-h"></i> Propriedades
             </li>
         </ul>
     </div>
 
-    <!-- Tab Content: Testar -->
+    <!-- PANE 1: TESTAR -->
     <div class="tab-content is-active" data-content="testar">
-        <div class="columns">
-            <!-- Formulário de Teste -->
-            <div class="column is-half">
-                <div class="box">
-                    <h3 class="title is-5">
-                        <i class="fas fa-paper-plane"></i>
-                        Enviar Mensagem de Teste
-                    </h3>
+        <div class="grid grid-cols-2 gap-lg">
+            
+            <div class="flex flex-col gap-md">
+                <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                    <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <i class="fas fa-paper-plane" style="color: var(--color-primary);"></i>
+                        <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Emitir Carga de Teste</h2>
+                    </div>
                     
                     <form id="form-teste" method="POST" action="/provedores-llm/{{ provedor.id }}/enviar-teste">
-                        <div class="field">
-                            <label class="label">Modelo</label>
-                            <div class="control">
-                                <div class="select is-fullwidth">
-                                    <select name="modelo" required>
-                                        <option value="">Selecione um modelo</option>
-                                        {% for modelo in modelos %}
-                                        <option value="{{ modelo.modelo_id }}">{{ modelo.nome }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
+                        
+                        <div class="form-group mb-md">
+                            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Seletor de Modelo</label>
+                            <select name="modelo" class="input" style="width: 100%; font-size: 0.875rem;" required>
+                                <option value="">Selecione o alvo do roteamento...</option>
+                                {% for modelo in modelos %}
+                                <option value="{{ modelo.modelo_id }}">{{ modelo.nome }}</option>
+                                {% endfor %}
+                            </select>
                             {% if not modelos %}
-                            <p class="help has-text-warning">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                Nenhum modelo disponível. Clique em "Atualizar Modelos" no topo da página.
-                            </p>
+                            <p style="font-size: 0.75rem; color: var(--color-warning); margin-top: 4px;">Nenhum index de modelo foi encontrado no endpoint.</p>
                             {% endif %}
                         </div>
 
-                        <div class="field">
-                            <label class="label">Mensagem</label>
-                            <div class="control">
-                                <textarea class="textarea" name="mensagem" 
-                                          placeholder="Digite sua mensagem..." 
-                                          rows="5" required>Olá! Como você está?</textarea>
+                        <div class="form-group mb-md">
+                            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Mensagem Raw (User Prompt)</label>
+                            <textarea class="textarea" name="mensagem" rows="4" style="width: 100%; font-size: 0.875rem;" required>Escreva um poema curto sobre o universo.</textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-sm mb-lg">
+                            <div class="form-group">
+                                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;">Temperatura</label>
+                                <input type="number" class="input" name="temperatura" value="0.7" min="0" max="2" step="0.1" style="width: 100%; font-size: 0.8125rem;">
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;">Max Tokens</label>
+                                <input type="number" class="input" name="max_tokens" value="2000" min="1" max="100000" style="width: 100%; font-size: 0.8125rem;">
                             </div>
                         </div>
 
-                        <div class="columns">
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">Temperatura</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="temperatura" 
-                                               value="0.7" min="0" max="2" step="0.1">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="field">
-                                    <label class="label">Max Tokens</label>
-                                    <div class="control">
-                                        <input class="input" type="number" name="max_tokens" 
-                                               value="2000" min="1" max="100000">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="field">
-                            <div class="control">
-                                <button type="submit" class="button is-primary is-fullwidth" 
-                                        {% if not modelos %}disabled{% endif %}>
-                                    <span class="icon">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </span>
-                                    <span>Enviar Teste</span>
-                                </button>
-                            </div>
-                        </div>
+                        <button type="submit" class="button is-primary" style="background: #6366f1; border: none; width: 100%; justify-content: center;" {% if not modelos %}disabled{% endif %}>
+                            <i class="fas fa-play" style="margin-right: 6px;"></i> Disparar Chamada API
+                        </button>
                     </form>
                 </div>
-                
-                <!-- Info do Provedor -->
-                <div class="box">
-                    <h3 class="title is-6">
-                        <i class="fas fa-info-circle"></i>
-                        Informações Rápidas
-                    </h3>
-                    <div class="content is-small">
-                        <p><strong>URL:</strong> <code>{{ provedor.base_url }}</code></p>
-                        {% if provedor.ultimo_teste %}
-                        <p><strong>Último teste:</strong> {{ provedor.ultimo_teste.strftime('%d/%m/%Y %H:%M') }}</p>
-                        {% endif %}
-                        <p><strong>Modelos:</strong> {{ modelos|length }}</p>
-                    </div>
-                </div>
             </div>
-            
-            <!-- Área de Resultado -->
-            <div class="column is-half">
-                <div class="box" style="min-height: 400px;">
-                    <h3 class="title is-5">
-                        <i class="fas fa-comment-dots"></i>
-                        Resposta do Modelo
-                    </h3>
-                    
-                    <div id="resultado-teste" class="content">
-                        <div class="has-text-centered" style="padding: 3rem;">
-                            <span class="icon is-large has-text-grey-light">
-                                <i class="fas fa-robot fa-3x"></i>
-                            </span>
-                            <p class="has-text-grey">Envie uma mensagem de teste para ver a resposta aqui</p>
-                        </div>
+
+            <!-- RESULTADO E METRICA GRID -->
+            <div class="flex flex-col gap-md">
+                <div class="box flex flex-col" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); min-height: 400px; background: #0f172a; color: #f8fafc;">
+                    <div class="flex items-center gap-sm mb-sm" style="border-bottom: 1px solid #334155; padding-bottom: var(--space-xs);">
+                        <i class="fas fa-terminal is-small"></i>
+                        <h2 style="font-size: 0.875rem; font-weight: 600; letter-spacing: 0.5px;">Standard Output</h2>
                     </div>
-                    
-                    <div id="metricas-teste" style="display: none;">
-                        <hr>
-                        <div class="columns is-mobile">
-                            <div class="column">
-                                <p class="heading">Tempo</p>
-                                <p class="title is-6" id="tempo-resposta">-</p>
+
+                    <div id="resultado-teste" style="flex: 1; font-family: monospace; font-size: 0.8125rem; white-space: pre-wrap; line-height: 1.5; color: #cbd5e1; padding: var(--space-sm) 0; overflow-y: auto;">
+                        <span style="color: #64748b;">// Aguardando payload do endpoint...</span>
+                    </div>
+
+                    <div id="metricas-teste" style="border-top: 1px solid #334155; padding-top: var(--space-sm); margin-top: var(--space-md); display: none;">
+                        <div class="grid grid-cols-3 gap-sm text-center">
+                            <div>
+                                <span style="display: block; font-size: 0.65rem; color: #64748b; text-transform: uppercase;">Latência</span>
+                                <span id="tempo-resposta" style="font-size: 0.875rem; font-weight: 700; color: #38bdf8;">-</span>
                             </div>
-                            <div class="column">
-                                <p class="heading">Tokens</p>
-                                <p class="title is-6" id="tokens-usados">-</p>
+                            <div>
+                                <span style="display: block; font-size: 0.65rem; color: #64748b; text-transform: uppercase;">Tokens</span>
+                                <span id="tokens-usados" style="font-size: 0.875rem; font-weight: 700; color: #10b981;">-</span>
                             </div>
-                            <div class="column">
-                                <p class="heading">Modelo</p>
-                                <p class="title is-6" id="modelo-usado">-</p>
+                            <div>
+                                <span style="display: block; font-size: 0.65rem; color: #64748b; text-transform: uppercase;">Node</span>
+                                <span id="modelo-usado" style="font-size: 0.75rem; font-weight: 600; color: #f472b6;">-</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
-    <!-- Tab Content: Modelos -->
+
+    <!-- PANE 2: MODELOS -->
     <div class="tab-content" data-content="modelos">
-        <div class="box">
-            <div class="level">
-                <div class="level-left">
-                    <div class="level-item">
-                        <h3 class="title is-5">
-                            <i class="fas fa-cube"></i>
-                            Modelos Disponíveis
-                        </h3>
-                    </div>
-                </div>
-                <div class="level-right">
-                    <div class="level-item">
-                        <form method="POST" action="/provedores-llm/{{ provedor.id }}/testar" style="display: inline;">
-                            <button type="submit" class="button is-info">
-                                <span class="icon">
-                                    <i class="fas fa-sync"></i>
-                                </span>
-                                <span>Atualizar Lista</span>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
+        <div class="box" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-sm);">
             
             {% if modelos %}
-            <div class="table-container">
-                <table class="table is-fullwidth is-striped is-hoverable">
-                    <thead>
-                        <tr>
-                            <th>Nome do Modelo</th>
-                            <th>Contexto</th>
-                            <th>Recursos</th>
-                            <th>Tamanho</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for modelo in modelos %}
-                        <tr>
-                            <td>
-                                <strong>{{ modelo.nome }}</strong>
-                                {% if modelo.quantizacao %}
-                                <br><small class="has-text-grey">{{ modelo.quantizacao }}</small>
+            <table class="table is-fullwidth" style="margin: 0; font-size: 0.875rem;">
+                <thead style="background: var(--color-bg-secondary);">
+                    <tr>
+                        <th style="padding: var(--space-md) var(--space-lg);">ID do Modelo Base</th>
+                        <th>Janela de Contexto</th>
+                        <th>Features Inerentes</th>
+                        <th>Tamanho Est.</th>
+                        <th style="text-align: right; padding-right: var(--space-lg);">Status de Inconsistência</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for modelo in modelos %}
+                    <tr>
+                        <td style="padding: var(--space-md) var(--space-lg);">
+                            <strong style="color: var(--color-text-primary);">{{ modelo.nome }}</strong>
+                            {% if modelo.quantizacao %}
+                            <div style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 2px;">VRAM: {{ modelo.quantizacao }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="font-family: monospace; color: var(--color-text-secondary);">
+                                {{ modelo.contexto }} tokens
+                            </span>
+                        </td>
+                        <td>
+                            <div class="flex gap-xs">
+                                {% if modelo.suporta_imagens %}
+                                    <span class="tag" style="background: var(--color-success-light); color: var(--color-success); font-size: 0.65rem;">Visão</span>
                                 {% endif %}
-                            </td>
-                            <td>
-                                {% if modelo.contexto %}
-                                    {{ modelo.contexto }} tokens
-                                {% else %}
-                                    <span class="has-text-grey">-</span>
+                                {% if modelo.suporta_ferramentas %}
+                                    <span class="tag" style="background: var(--color-info-light); color: var(--color-info); font-size: 0.65rem;">Tools/Functions</span>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <div class="tags">
-                                    {% if modelo.suporta_imagens %}
-                                        <span class="tag is-success is-small">
-                                            <i class="fas fa-image"></i> Imagens
-                                        </span>
-                                    {% endif %}
-                                    {% if modelo.suporta_ferramentas %}
-                                        <span class="tag is-info is-small">
-                                            <i class="fas fa-tools"></i> Ferramentas
-                                        </span>
-                                    {% endif %}
-                                    {% if not modelo.suporta_imagens and not modelo.suporta_ferramentas %}
-                                        <span class="has-text-grey">-</span>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td>
-                                {% if modelo.tamanho %}
-                                    {{ modelo.tamanho }}
-                                {% else %}
-                                    <span class="has-text-grey">-</span>
+                                {% if not modelo.suporta_imagens and not modelo.suporta_ferramentas %}
+                                    <span style="color: var(--color-text-muted);">-</span>
                                 {% endif %}
-                            </td>
-                            <td>
-                                {% if modelo.ativo %}
-                                    <span class="tag is-success">Ativo</span>
-                                {% else %}
-                                    <span class="tag is-light">Inativo</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span style="color: var(--color-text-secondary);">{{ modelo.tamanho or '-' }}</span>
+                        </td>
+                        <td style="text-align: right; padding-right: var(--space-lg);">
+                            {% if modelo.ativo %}
+                                <span class="tag" style="background: var(--color-success); color: white; font-size: 0.65rem;">Sincronizado</span>
+                            {% else %}
+                                <span class="tag" style="background: var(--color-text-muted); color: white; font-size: 0.65rem;">Legacy/Indisponível</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
             {% else %}
-            <div class="content has-text-centered" style="padding: 3rem;">
-                <span class="icon is-large has-text-grey">
-                    <i class="fas fa-cube fa-3x"></i>
-                </span>
-                <h3 class="title is-4 has-text-grey">Nenhum modelo encontrado</h3>
-                <p class="has-text-grey">Clique em "Atualizar Lista" para buscar os modelos disponíveis no provedor.</p>
-                <br>
-                <form method="POST" action="/provedores-llm/{{ provedor.id }}/testar" style="display: inline;">
-                    <button type="submit" class="button is-primary is-large">
-                        <span class="icon">
-                            <i class="fas fa-sync"></i>
-                        </span>
-                        <span>Buscar Modelos</span>
-                    </button>
-                </form>
+            <div class="flex flex-col items-center justify-center p-xl text-center" style="background: var(--color-surface); padding: 4rem 1rem;">
+                <div style="width: 64px; height: 64px; border-radius: 50%; background: #e0e7ff; display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-md);">
+                    <i class="fas fa-cubes" style="font-size: 2rem; color: #6366f1;"></i>
+                </div>
+                <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Nenhum Modelo Sincronizado</h3>
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary); max-width: 400px; margin-bottom: var(--space-lg);">
+                    Clique no topo em "Probe Conexão" para disparar uma varredura na API pedindo os specs dos modelos de inteligência virtual disponíveis.
+                </p>
             </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Tab Content: Configurar -->
+
+    <!-- PANE 3: ESTATISTICAS -->
+    <div class="tab-content" data-content="estatisticas">
+        {% if estatisticas and estatisticas.total_requisicoes > 0 %}
+        
+        <div class="grid grid-cols-4 gap-md mb-lg">
+            <div class="box flex flex-col items-center text-center p-0" style="padding: var(--space-lg) 0; box-shadow: var(--shadow-sm); border: none;">
+                <span style="font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase;">Calls Recebidas</span>
+                <span style="font-size: 1.75rem; font-weight: 700; color: var(--color-text-primary);">{{ estatisticas.total_requisicoes }}</span>
+            </div>
+            <div class="box flex flex-col items-center text-center p-0" style="padding: var(--space-lg) 0; box-shadow: var(--shadow-sm); border: none;">
+                <span style="font-size: 0.75rem; color: var(--color-success); text-transform: uppercase;">HTTP 200 (Success)</span>
+                <span style="font-size: 1.75rem; font-weight: 700; color: var(--color-success);">{{ estatisticas.requisicoes_sucesso }}</span>
+            </div>
+            <div class="box flex flex-col items-center text-center p-0" style="padding: var(--space-lg) 0; box-shadow: var(--shadow-sm); border: none;">
+                <span style="font-size: 0.75rem; color: var(--color-error); text-transform: uppercase;">HTTP 500 (Fail)</span>
+                <span style="font-size: 1.75rem; font-weight: 700; color: var(--color-error);">{{ estatisticas.requisicoes_erro }}</span>
+            </div>
+            <div class="box flex flex-col items-center text-center p-0" style="padding: var(--space-lg) 0; box-shadow: var(--shadow-sm); border: none;">
+                <span style="font-size: 0.75rem; color: var(--color-info); text-transform: uppercase;">Average Processing</span>
+                <span style="font-size: 1.75rem; font-weight: 700; color: var(--color-info);">{{ "%.0f"|format(estatisticas.tempo_medio_ms) }}ms</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-md">
+            <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-stopwatch" style="color: var(--color-primary);"></i>
+                    <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Latência da Nuvem</h2>
+                </div>
+                
+                <table class="table is-fullwidth" style="font-size: 0.875rem;">
+                    <tr>
+                        <td style="color: var(--color-text-secondary); width: 50%;">Último Tick de Request</td>
+                        <td style="font-weight: 600; text-align: right;">{{ estatisticas.ultima_requisicao.strftime('%d/%m/%Y às %H:%M:%S') if estatisticas.ultima_requisicao else 'Nunca' }}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--color-text-secondary);">Taxa RTT Média</td>
+                        <td style="font-weight: 600; text-align: right;">{{ "%.0f"|format(estatisticas.tempo_medio_ms) }}ms</td>
+                    </tr>
+                    <tr>
+                        <td style="color: var(--color-text-secondary);">Análise Diagnóstica</td>
+                        <td style="text-align: right;">
+                            {% if estatisticas.tempo_medio_ms < 1000 %}
+                                <span class="tag" style="background: var(--color-success-light); color: var(--color-success); font-weight: 600;">ALTA VELOCIDADE</span>
+                            {% elif estatisticas.tempo_medio_ms < 3000 %}
+                                <span class="tag" style="background: var(--color-warning-light); color: var(--color-warning); font-weight: 600;">ACEITÁVEL</span>
+                            {% else %}
+                                <span class="tag" style="background: var(--color-error-light); color: var(--color-error); font-weight: 600;">DEGRADAÇÃO / GARGALO</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="box flex flex-col justify-center text-center" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                {% set taxa_sucesso = (estatisticas.requisicoes_sucesso / estatisticas.total_requisicoes * 100) %}
+                <span style="font-size: 3rem; font-weight: 800; color: {% if taxa_sucesso >= 90 %}var(--color-success){% elif taxa_sucesso >= 70 %}var(--color-warning){% else %}var(--color-error){% endif %};">{{ "%.1f"|format(taxa_sucesso) }}%</span>
+                <span style="font-size: 0.875rem; color: var(--color-text-secondary); text-transform: uppercase;">Disponibilidade Geral (Uptime Relativo)</span>
+                
+                <div style="width: 100%; height: 8px; background: var(--color-bg-secondary); border-radius: 4px; margin-top: var(--space-md); overflow: hidden;">
+                    <div style="height: 100%; width: {{ taxa_sucesso }}%; background: {% if taxa_sucesso >= 90 %}var(--color-success){% elif taxa_sucesso >= 70 %}var(--color-warning){% else %}var(--color-error){% endif %};"></div>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="flex flex-col items-center justify-center p-xl text-center" style="background: var(--color-surface); padding: 4rem 1rem;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: #fefce8; display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-md);">
+                <i class="fas fa-chart-line" style="font-size: 2rem; color: #ca8a04;"></i>
+            </div>
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Dataset Inexistente</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-secondary); max-width: 400px; margin-bottom: var(--space-lg);">
+                A engine não fez requisições úteis contra este servidor ainda, portanto a telemetria não pode ser gerada.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+
+    <!-- PANE 4: CONFIGURAR -->
     <div class="tab-content" data-content="configurar">
-        <div class="columns">
-            <div class="column is-two-thirds">
-                <div class="box">
-                    <h3 class="title is-5">
-                        <i class="fas fa-cog"></i>
-                        Configurações do Provedor
-                    </h3>
-                    
+        <div class="grid grid-cols-3 gap-lg">
+            
+            <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+                <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                    <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <i class="fas fa-edit" style="color: var(--color-text-secondary);"></i>
+                        <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Ajuste Fino de Propriedades</h2>
+                    </div>
+
                     <form method="POST" action="/provedores-llm/salvar">
                         <input type="hidden" name="acao" value="editar">
                         <input type="hidden" name="provedor_id" value="{{ provedor.id }}">
                         
-                        <div class="field">
-                            <label class="label">Nome do Provedor</label>
-                            <div class="control">
-                                <input class="input" type="text" name="nome" 
-                                       value="{{ provedor.nome }}" required>
-                            </div>
+                        <div class="form-group mb-md">
+                            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Naming (Identificador)</label>
+                            <input class="input" type="text" name="nome" value="{{ provedor.nome }}" style="width: 100%;" required>
                         </div>
 
-                        <div class="field">
-                            <label class="label">URL Base</label>
-                            <div class="control">
-                                <input class="input" type="url" name="base_url" 
-                                       value="{{ provedor.base_url }}" required>
-                            </div>
-                            <p class="help">
-                                Exemplos: http://localhost:1234 (LM Studio) | http://localhost:8080 (llama.cpp) | http://localhost:11434 (Ollama)
-                            </p>
+                        <div class="form-group mb-md">
+                            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">URL Base</label>
+                            <input class="input" type="url" name="base_url" value="{{ provedor.base_url }}" style="width: 100%; font-family: monospace;" required>
                         </div>
 
-                        <div class="field">
-                            <label class="label">API Key (Opcional)</label>
-                            <div class="control">
-                                <input class="input" type="text" name="api_key" 
-                                       value="{{ provedor.api_key or '' }}" 
-                                       placeholder="Deixe em branco se não necessário">
-                            </div>
+                        <div class="form-group mb-md">
+                            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Bearer Key (Opcional)</label>
+                            <input class="input" type="text" name="api_key" value="{{ provedor.api_key or '' }}" style="width: 100%; font-family: monospace;">
                         </div>
 
-                        <div class="field">
-                            <label class="label">Descrição</label>
-                            <div class="control">
-                                <textarea class="textarea" name="descricao" 
-                                          placeholder="Descrição opcional">{{ provedor.descricao or '' }}</textarea>
-                            </div>
+                        <div class="form-group mb-md">
+                            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Notas</label>
+                            <textarea class="textarea" name="descricao" rows="2">{{ provedor.descricao or '' }}</textarea>
                         </div>
 
-                        <div class="field">
-                            <div class="control">
-                                <label class="checkbox">
-                                    <input type="checkbox" name="ativo" value="true" 
-                                           {% if provedor.ativo %}checked{% endif %}>
-                                    Provedor ativo
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="field is-grouped">
-                            <div class="control">
-                                <button type="submit" class="button is-primary">
-                                    <span class="icon">
-                                        <i class="fas fa-save"></i>
+                        <div class="form-group mb-lg">
+                            <label class="toggle-row" style="display: flex; align-items: flex-start; gap: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); cursor: pointer;">
+                                <input type="checkbox" name="ativo" value="true" {% if provedor.ativo %}checked{% endif %} style="margin-top: 4px; transform: scale(1.1);">
+                                <div class="flex flex-col">
+                                    <span style="font-size: 0.9375rem; font-weight: 600; color: var(--color-text-primary);">Acesso Permitido na Pool</span>
+                                    <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px;">
+                                        Desmarque isso para desativar todo o fluxo deste provedor sem precisar deletá-lo.
                                     </span>
-                                    <span>Salvar Alterações</span>
-                                </button>
-                            </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="flex justify-start">
+                            <button type="submit" class="button is-primary" style="background: #6366f1; border: none;">
+                                <i class="fas fa-save" style="margin-right: 6px;"></i> Aplicar Patch de Configuração
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
-            
-            <div class="column is-one-third">
-                <div class="box">
-                    <h3 class="title is-6">
-                        <i class="fas fa-info-circle"></i>
-                        Informações do Sistema
-                    </h3>
-                    <div class="content is-small">
-                        <p><strong>Criado em:</strong><br>
-                        {{ provedor.criado_em.strftime('%d/%m/%Y %H:%M') if provedor.criado_em else '-' }}</p>
-                        
+
+            <div class="flex flex-col gap-lg pl-lg" style="grid-column: span 1;">
+                <div class="box" style="padding: var(--space-lg); border: none; background: var(--color-bg-secondary);">
+                    <div class="flex items-center gap-sm mb-md" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <i class="fas fa-fingerprint text-info"></i>
+                        <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Selo de Metadados</h2>
+                    </div>
+                    
+                    <ul style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.8;">
+                        <li><strong>Criado em:</strong> <br> {{ provedor.criado_em.strftime('%d/%m/%Y %H:%M') if provedor.criado_em else '-' }}</li>
                         {% if provedor.atualizado_em %}
-                        <p><strong>Atualizado em:</strong><br>
-                        {{ provedor.atualizado_em.strftime('%d/%m/%Y %H:%M') }}</p>
+                        <li><strong>Editado em:</strong> <br> {{ provedor.atualizado_em.strftime('%d/%m/%Y %H:%M') }}</li>
                         {% endif %}
-                        
-                        {% if provedor.ultimo_teste %}
-                        <p><strong>Último teste:</strong><br>
-                        {{ provedor.ultimo_teste.strftime('%d/%m/%Y %H:%M') }}</p>
-                        {% endif %}
-                        
-                        <p><strong>Status:</strong><br>
-                        {% if provedor.status %}
-                            {% if provedor.status.value == 'ativo' %}
-                                <span class="tag is-success">Conectado</span>
-                            {% elif provedor.status.value == 'erro' %}
-                                <span class="tag is-danger">Erro de Conexão</span>
+                        <li><strong>Status Físico:</strong> <br> 
+                            {% if provedor.status and provedor.status.value == 'ativo' %}
+                                <span style="color: var(--color-success); font-weight: 600;">CONECTADO / ACT</span>
+                            {% elif provedor.status and provedor.status.value == 'erro' %}
+                                <span style="color: var(--color-error); font-weight: 600;">LINK DEAD</span>
                             {% else %}
-                                <span class="tag is-warning">Não Testado</span>
+                                <span style="color: var(--color-warning); font-weight: 600;">DESCONHECIDO</span>
                             {% endif %}
-                        {% else %}
-                            <span class="tag is-light">Desconhecido</span>
-                        {% endif %}
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="box">
-                    <h3 class="title is-6">
-                        <i class="fas fa-question-circle"></i>
-                        Provedores Suportados
-                    </h3>
-                    <div class="content is-small">
-                        <ul>
-                            <li><strong>LM Studio</strong> - http://localhost:1234</li>
-                            <li><strong>llama.cpp</strong> - http://localhost:8080</li>
-                            <li><strong>Ollama</strong> - http://localhost:11434</li>
-                            <li><strong>OpenRouter</strong> - https://openrouter.ai/api/v1</li>
-                            <li><strong>OpenAI</strong> - https://api.openai.com/v1</li>
-                        </ul>
+                        </li>
+                    </ul>
+
+                    <div style="margin-top: var(--space-xl); padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+                        <form method="POST" action="/provedores-llm/{{ provedor.id }}/deletar" onsubmit="return confirm('ATENÇÃO ABSOLUTA: Deseja apagar de vez este record?');">
+                            <button type="submit" class="button is-small" style="width: 100%; border-color: var(--color-error); color: var(--color-error); background: transparent;">
+                                <i class="fas fa-trash-alt" style="margin-right: 6px;"></i> Terminar Nó
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
-    <!-- Tab Content: Estatísticas -->
-    <div class="tab-content" data-content="estatisticas">
-        {% if estatisticas and estatisticas.total_requisicoes > 0 %}
-        <div class="columns">
-            <div class="column is-one-quarter">
-                <div class="box has-text-centered">
-                    <p class="heading">Total de Requisições</p>
-                    <p class="title is-3">{{ estatisticas.total_requisicoes }}</p>
-                </div>
-            </div>
-            <div class="column is-one-quarter">
-                <div class="box has-text-centered">
-                    <p class="heading">Sucessos</p>
-                    <p class="title is-3 has-text-success">{{ estatisticas.requisicoes_sucesso }}</p>
-                </div>
-            </div>
-            <div class="column is-one-quarter">
-                <div class="box has-text-centered">
-                    <p class="heading">Erros</p>
-                    <p class="title is-3 has-text-danger">{{ estatisticas.requisicoes_erro }}</p>
-                </div>
-            </div>
-            <div class="column is-one-quarter">
-                <div class="box has-text-centered">
-                    <p class="heading">Tempo Médio</p>
-                    <p class="title is-3">{{ "%.0f"|format(estatisticas.tempo_medio_ms) }}ms</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="columns">
-            <div class="column is-full">
-                <div class="box">
-                    <h3 class="title is-5">
-                        <i class="fas fa-percentage"></i>
-                        Taxa de Sucesso
-                    </h3>
-                    
-                    {% set taxa_sucesso = (estatisticas.requisicoes_sucesso / estatisticas.total_requisicoes * 100) %}
-                    <div class="columns is-vcentered">
-                        <div class="column is-four-fifths">
-                            <progress class="progress is-large {% if taxa_sucesso >= 90 %}is-success{% elif taxa_sucesso >= 70 %}is-warning{% else %}is-danger{% endif %}" 
-                                      value="{{ taxa_sucesso }}" 
-                                      max="100">{{ taxa_sucesso }}%</progress>
-                        </div>
-                        <div class="column">
-                            <p class="title is-2 has-text-centered">{{ "%.1f"|format(taxa_sucesso) }}%</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="columns">
-            <div class="column is-half">
-                <div class="box">
-                    <h3 class="title is-5">
-                        <i class="fas fa-clock"></i>
-                        Informações Temporais
-                    </h3>
-                    
-                    <div class="content">
-                        {% if estatisticas.ultima_requisicao %}
-                        <p>
-                            <strong>Última Requisição:</strong><br>
-                            {{ estatisticas.ultima_requisicao.strftime('%d/%m/%Y às %H:%M:%S') }}
-                        </p>
-                        {% endif %}
-                        
-                        <p>
-                            <strong>Tempo Médio de Resposta:</strong><br>
-                            {{ "%.0f"|format(estatisticas.tempo_medio_ms) }} milissegundos
-                        </p>
-                        
-                        <p>
-                            <strong>Performance:</strong><br>
-                            {% if estatisticas.tempo_medio_ms < 1000 %}
-                                <span class="tag is-success">Excelente (&lt; 1s)</span>
-                            {% elif estatisticas.tempo_medio_ms < 3000 %}
-                                <span class="tag is-warning">Bom (1-3s)</span>
-                            {% else %}
-                                <span class="tag is-danger">Lento (&gt; 3s)</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="column is-half">
-                <div class="box">
-                    <h3 class="title is-5">
-                        <i class="fas fa-chart-pie"></i>
-                        Distribuição de Requisições
-                    </h3>
-                    
-                    <div class="content">
-                        <div class="columns is-mobile">
-                            <div class="column">
-                                <div class="has-text-centered">
-                                    <p class="title is-4 has-text-success">{{ estatisticas.requisicoes_sucesso }}</p>
-                                    <p class="heading">Sucesso</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="has-text-centered">
-                                    <p class="title is-4 has-text-danger">{{ estatisticas.requisicoes_erro }}</p>
-                                    <p class="heading">Erro</p>
-                                </div>
-                            </div>
-                            <div class="column">
-                                <div class="has-text-centered">
-                                    <p class="title is-4">{{ estatisticas.total_requisicoes }}</p>
-                                    <p class="heading">Total</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% else %}
-        <div class="box has-text-centered" style="padding: 5rem;">
-            <span class="icon is-large has-text-grey-light">
-                <i class="fas fa-chart-line fa-4x"></i>
-            </span>
-            <h3 class="title is-3 has-text-grey">Nenhuma estatística disponível</h3>
-            <p class="subtitle has-text-grey">Use a aba "Testar" para enviar requisições e gerar estatísticas de uso.</p>
-            <br>
-            <a href="#" onclick="document.querySelector('[data-tab=testar]').click(); return false;" class="button is-primary is-large">
-                <span class="icon">
-                    <i class="fas fa-play"></i>
-                </span>
-                <span>Ir para Teste</span>
-            </a>
-        </div>
-        {% endif %}
-    </div>
 </div>
 
+<style>
+.tab-content { display: none; }
+.tab-content.is-active { display: block; animation: fadeIn 0.3s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Estilo dinâmico das tags de aba manual */
+.tab-item { transition: all 0.2s ease; }
+.tab-item:not(.is-active):hover { color: #6366f1 !important; border-bottom: 2px solid rgba(99, 102, 241, 0.3) !important; }
+</style>
+
 <script>
-// Sistema de Tabs
 document.addEventListener('DOMContentLoaded', () => {
-    const tabs = document.querySelectorAll('.tabs li');
+    // Nav de Abas custom
+    const tabs = document.querySelectorAll('.tab-item');
     const tabContents = document.querySelectorAll('.tab-content');
     
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            const targetTab = tab.getAttribute('data-tab');
+            const target = tab.getAttribute('data-tab');
             
-            // Remove active class from all tabs
-            tabs.forEach(t => t.classList.remove('is-active'));
+            tabs.forEach(t => {
+                t.classList.remove('is-active');
+                t.style.borderColor = 'transparent';
+                t.style.color = 'var(--color-text-secondary)';
+            });
             tabContents.forEach(tc => tc.classList.remove('is-active'));
             
-            // Add active class to clicked tab
             tab.classList.add('is-active');
-            document.querySelector(`[data-content="${targetTab}"]`).classList.add('is-active');
+            tab.style.borderColor = '#6366f1';
+            tab.style.color = '#6366f1';
+            
+            document.querySelector(`[data-content="${target}"]`).classList.add('is-active');
         });
     });
     
-    // Auto-dismiss notifications
-    const deleteButtons = document.querySelectorAll('.notification .delete');
-    deleteButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            button.parentElement.remove();
-        });
-    });
-    
-    // AJAX para envio de teste
+    // Teste AJAX Flow
     const formTeste = document.getElementById('form-teste');
     if (formTeste) {
         formTeste.addEventListener('submit', async (e) => {
@@ -643,18 +438,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const metricasDiv = document.getElementById('metricas-teste');
             const submitBtn = formTeste.querySelector('button[type="submit"]');
             
-            // Mostrar loading
-            submitBtn.classList.add('is-loading');
+            // UI Loading state em estilo CMD Console
             submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 6px;"></i> Estabelecendo socket...';
             
-            resultadoDiv.innerHTML = `
-                <div class="has-text-centered" style="padding: 3rem;">
-                    <span class="icon is-large has-text-info">
-                        <i class="fas fa-spinner fa-pulse fa-3x"></i>
-                    </span>
-                    <p class="has-text-grey">Aguardando resposta...</p>
-                </div>
-            `;
+            resultadoDiv.innerHTML = '<span style="color: #eab308;">> Disparando request. Aguarde processamento inferencial...</span>';
+            metricasDiv.style.display = 'none';
             
             try {
                 const formData = new FormData(formTeste);
@@ -666,67 +455,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 
                 if (data.sucesso) {
-                    // Mostrar resultado
-                    resultadoDiv.innerHTML = `
-                        <div class="message is-success">
-                            <div class="message-header">
-                                <p>Resposta do Modelo</p>
-                            </div>
-                            <div class="message-body" style="white-space: pre-wrap;">${data.conteudo}</div>
-                        </div>
-                    `;
+                    resultadoDiv.innerHTML = `<span style="color: #4ade80;">[LLM_RESPONSE] -></span>\n\n${data.conteudo}`;
                     
-                    // Mostrar métricas
                     document.getElementById('tempo-resposta').textContent = data.tempo_ms + 'ms';
-                    document.getElementById('tokens-usados').textContent = data.tokens || '-';
-                    document.getElementById('modelo-usado').textContent = data.modelo || '-';
+                    document.getElementById('tokens-usados').textContent = data.tokens || 'N/A';
+                    document.getElementById('modelo-usado').textContent = data.modelo || 'N/A';
                     metricasDiv.style.display = 'block';
                 } else {
-                    // Mostrar erro
-                    resultadoDiv.innerHTML = `
-                        <div class="message is-danger">
-                            <div class="message-header">
-                                <p>Erro</p>
-                            </div>
-                            <div class="message-body">${data.erro}</div>
-                        </div>
-                    `;
-                    metricasDiv.style.display = 'none';
+                    resultadoDiv.innerHTML = `<span style="color: #ef4444;">[FATAL] Erro do Node Externo -></span>\n\n${data.erro}`;
                 }
             } catch (error) {
-                resultadoDiv.innerHTML = `
-                    <div class="message is-danger">
-                        <div class="message-header">
-                            <p>Erro de Conexão</p>
-                        </div>
-                        <div class="message-body">Não foi possível enviar a requisição: ${error.message}</div>
-                    </div>
-                `;
-                metricasDiv.style.display = 'none';
+                resultadoDiv.innerHTML = `<span style="color: #ef4444;">[TIMEOUT/NETWORK ERROR] -></span>\n\nNão foi possível alcançar a URL do Endpoint. Cheque o daemon local ou porta do docker. \n(${error.message})`;
             } finally {
-                submitBtn.classList.remove('is-loading');
                 submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-play" style="margin-right: 6px;"></i> Disparar Chamada API';
             }
         });
     }
 });
 </script>
-
-<style>
-.tab-content {
-    display: none;
-}
-
-.tab-content.is-active {
-    display: block;
-}
-
-.tabs li {
-    cursor: pointer;
-}
-
-.box {
-    box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
-}
-</style>
 {% endblock %}

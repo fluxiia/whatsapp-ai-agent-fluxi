@@ -1,0 +1,161 @@
+{% extends "base_modern.html" %}
+{% block title %}Coding Agent — Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="flex items-center justify-between mb-lg"
+         style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">Coding Agent</h1>
+            <p style="margin-top: 2px; color: var(--color-text-secondary); font-size: 0.875rem;">
+                Agentes de programação autônomos — shell-first, tarefas isoladas, memória persistente.
+            </p>
+        </div>
+    </div>
+
+    {% if resumos %}
+    <div class="flex flex-col gap-md">
+        {% for r in resumos %}
+        <div class="card" style="border-left: 3px solid var(--color-primary, #3b82f6);">
+            <div class="flex items-center justify-between" style="padding: var(--space-md) var(--space-lg);">
+                <div class="flex flex-col gap-xs">
+                    <div class="flex items-center gap-md">
+                        <span style="font-weight: 600; font-size: 0.95rem;">
+                            <i class="fas fa-robot" style="color: var(--color-primary, #3b82f6); margin-right: 0.4rem;"></i>
+                            {{ r.cs.agente.nome if r.cs.agente else "Agente #" ~ r.cs.agente_id }}
+                        </span>
+                        {% if r.running > 0 %}
+                        <span class="badge badge-warning" style="font-size: 0.7rem;">
+                            <i class="fas fa-circle-notch fa-spin" style="margin-right: 0.25rem;"></i>{{ r.running }} rodando
+                        </span>
+                        {% else %}
+                        <span class="badge" style="font-size: 0.7rem; background: var(--color-surface-raised, #f1f5f9); color: var(--color-text-secondary);">idle</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-md" style="font-size: 0.8rem; color: var(--color-text-secondary);">
+                        <span><i class="fas fa-folder" style="margin-right: 0.3rem; opacity: 0.5;"></i>{{ r.cs.workspace_path }}</span>
+                        <span><i class="fas fa-hashtag" style="margin-right: 0.3rem; opacity: 0.5;"></i><code style="font-size: 0.78rem;">{{ r.cs.routing_prefix }}</code></span>
+                        <span><i class="fas fa-tasks" style="margin-right: 0.3rem; opacity: 0.5;"></i>{{ r.total }} tarefas</span>
+                    </div>
+                    <div class="flex items-center gap-md" style="font-size: 0.78rem; margin-top: 2px;">
+                        <span style="color: #22c55e;"><i class="fas fa-check-circle" style="margin-right: 0.25rem;"></i>{{ r.completed }} concluídas</span>
+                        <span style="color: #ef4444;"><i class="fas fa-times-circle" style="margin-right: 0.25rem;"></i>{{ r.failed }} falhas</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-sm">
+                    <a href="/coding/chat/{{ r.cs.id }}" class="button is-primary is-small">
+                        <i class="fas fa-comments"></i>&nbsp; Chat
+                    </a>
+                    <a href="/coding/sessao/{{ r.cs.id }}" class="button is-outline is-small">
+                        <i class="fas fa-list"></i>&nbsp; Tarefas
+                    </a>
+                    <button onclick="confirmarReset({{ r.cs.id }}, '{{ r.cs.agente.nome if r.cs.agente else 'Sessão ' ~ r.cs.id }}')"
+                            class="button is-small"
+                            style="background: #dc2626; color: white; border: none;"
+                            title="Limpar tudo: tarefas, memória, workspace">
+                        <i class="fas fa-trash-alt"></i>&nbsp; Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <i class="fas fa-code" style="font-size: 2.5rem; color: var(--color-text-tertiary); display: block; margin-bottom: 1rem;"></i>
+        <p style="color: var(--color-text-secondary); font-size: 1rem; font-weight: 500;">Nenhuma sessão de coding encontrada.</p>
+        <p style="color: var(--color-text-tertiary); font-size: 0.85rem; margin-top: 0.5rem;">
+            Crie uma nova sessão WhatsApp — o agente de coding é criado automaticamente.
+        </p>
+        <a href="/sessoes" class="button is-primary is-small" style="margin-top: 1.25rem; display: inline-flex;">
+            <i class="fas fa-plus"></i>&nbsp; Criar Sessão WhatsApp
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Modal de confirmação de reset -->
+    <div id="modal-reset" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+        <div style="background:var(--color-surface, #1e1e2e); border:1px solid var(--color-border, #333); border-radius:12px; padding:2rem; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+            <div style="text-align:center; margin-bottom:1.5rem;">
+                <i class="fas fa-exclamation-triangle" style="font-size:2.5rem; color:#dc2626; display:block; margin-bottom:0.75rem;"></i>
+                <h3 style="font-size:1.1rem; font-weight:600; margin:0;">Resetar <span id="reset-agent-name"></span>?</h3>
+                <p style="color:var(--color-text-secondary); font-size:0.85rem; margin-top:0.5rem;">
+                    Isso vai apagar <strong>permanentemente</strong>:
+                </p>
+            </div>
+            <ul style="font-size:0.85rem; color:var(--color-text-secondary); margin:0 0 1.5rem 1.25rem; line-height:1.8;">
+                <li><i class="fas fa-tasks" style="width:18px; color:#ef4444;"></i> Todas as tarefas e historicos de chat</li>
+                <li><i class="fas fa-brain" style="width:18px; color:#ef4444;"></i> Memoria persistente</li>
+                <li><i class="fas fa-folder-open" style="width:18px; color:#ef4444;"></i> Todos os arquivos do workspace</li>
+                <li><i class="fas fa-terminal" style="width:18px; color:#ef4444;"></i> Shells ativos</li>
+            </ul>
+            <p style="font-size:0.8rem; color:var(--color-text-tertiary); margin-bottom:1.25rem; text-align:center;">
+                <i class="fas fa-shield-alt" style="margin-right:0.25rem;"></i>
+                A sessao e as configuracoes serao preservadas.
+            </p>
+            <div class="flex items-center gap-sm" style="justify-content:flex-end;">
+                <button onclick="fecharModal()" class="button is-outline is-small">Cancelar</button>
+                <button id="btn-confirmar-reset" class="button is-small" style="background:#dc2626; color:white; border:none;">
+                    <i class="fas fa-trash-alt"></i>&nbsp; Confirmar Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let _resetSessionId = null;
+
+function confirmarReset(sessionId, agentName) {
+    _resetSessionId = sessionId;
+    document.getElementById('reset-agent-name').textContent = agentName;
+    document.getElementById('modal-reset').style.display = 'flex';
+}
+
+function fecharModal() {
+    document.getElementById('modal-reset').style.display = 'none';
+    _resetSessionId = null;
+}
+
+document.getElementById('btn-confirmar-reset').addEventListener('click', async () => {
+    if (!_resetSessionId) return;
+
+    const btn = document.getElementById('btn-confirmar-reset');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>&nbsp; Resetando...';
+
+    try {
+        const resp = await fetch(`/api/coding/sessions/${_resetSessionId}/reset`, {
+            method: 'DELETE',
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            fecharModal();
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:2000;background:#059669;color:white;padding:0.75rem 1.25rem;border-radius:8px;font-size:0.9rem;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+            toast.innerHTML = `<i class="fas fa-check-circle" style="margin-right:0.5rem;"></i>Reset completo! ${data.tasks_deleted} tarefas, ${data.workspace_files_removed} arquivos removidos.`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.remove(); location.reload(); }, 2500);
+        } else {
+            alert('Erro: ' + (data.detail || JSON.stringify(data)));
+        }
+    } catch (err) {
+        alert('Erro ao resetar: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+});
+
+document.getElementById('modal-reset').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) fecharModal();
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') fecharModal();
+});
+</script>
+{% endblock %}

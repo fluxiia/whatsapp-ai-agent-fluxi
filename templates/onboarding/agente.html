@@ -1,0 +1,211 @@
+{% extends "onboarding/base.html" %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+    .tpl-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-md);
+        margin-bottom: var(--space-xl);
+    }
+    @media (max-width: 720px) { .tpl-grid { grid-template-columns: 1fr; } }
+    .tpl-card {
+        background: var(--color-bg-secondary);
+        border: 2px solid var(--color-border);
+        border-radius: 12px;
+        padding: var(--space-md);
+        cursor: pointer;
+        transition: all 0.18s;
+    }
+    .tpl-card:hover {
+        border-color: var(--color-primary-light);
+        background: var(--color-surface);
+        transform: translateY(-1px);
+    }
+    .tpl-card.active {
+        border-color: var(--color-primary);
+        background: var(--color-info-light);
+        box-shadow: 0 0 0 4px rgba(59,130,246,0.08);
+    }
+    .tpl-card .tpl-icon {
+        width: 42px; height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+        background: var(--color-surface);
+        font-size: 1.2rem;
+    }
+    .tpl-card .tpl-nome {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--color-text-primary);
+    }
+    .tpl-card .tpl-desc {
+        font-size: 0.78rem;
+        color: var(--color-text-tertiary);
+        margin-top: 0.3rem;
+        line-height: 1.4;
+    }
+
+    .ob-advanced-toggle {
+        background: none;
+        border: 1px dashed var(--color-border);
+        color: var(--color-text-secondary);
+        padding: 0.6rem 1rem;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-size: 0.85rem;
+        width: 100%;
+        margin-top: var(--space-md);
+        transition: all 0.15s;
+    }
+    .ob-advanced-toggle:hover { background: var(--color-bg-secondary); }
+
+    .ob-advanced { display: none; margin-top: var(--space-md); }
+    .ob-advanced.open { display: block; }
+    .ob-advanced .ob-field label { font-size: 0.78rem; }
+</style>
+{% endblock %}
+
+{% block ob_content %}
+<div class="ob-card">
+    <h2>3. Como esse agente vai se comportar?</h2>
+    <p class="ob-card-lead">Escolha um perfil pra comecar. Tudo e editavel — voce ajusta depois.</p>
+
+    <div class="tpl-grid">
+        {% for tpl in templates_agente %}
+        <div class="tpl-card{% if selecionado and selecionado.id == tpl.id %} active{% endif %}"
+             onclick="aplicarTemplate('{{ tpl.id }}')" id="tpl-card-{{ tpl.id }}">
+            <div class="tpl-icon" style="color: {{ tpl.cor }};">
+                <i class="fas {{ tpl.icone }}"></i>
+            </div>
+            <div class="tpl-nome">{{ tpl.nome }}</div>
+            <div class="tpl-desc">{{ tpl.descricao }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <form method="post" action="/onboarding/agente/salvar" id="form-agente">
+        <div class="ob-field">
+            <label>Nome do agente</label>
+            <input class="ob-input" type="text" name="nome" id="f_nome"
+                   value="{{ form.nome if form else (selecionado.nome if selecionado else 'Fluxi') }}" required>
+            <div class="hint">Nome interno. Tambem pode ser usado em comandos (ex.: #fluxi).</div>
+        </div>
+
+        <div class="ob-field">
+            <label>Descricao (opcional)</label>
+            <input class="ob-input" type="text" name="descricao" id="f_descricao"
+                   value="{{ form.descricao if form else (selecionado.descricao if selecionado else '') }}">
+        </div>
+
+        <!-- Templates definem os 7 campos via hidden inputs/textareas escondidos no avancado -->
+        <button type="button" class="ob-advanced-toggle" onclick="toggleAvancado()">
+            <i class="fas fa-sliders-h"></i> <span id="adv-label">Personalizar prompt completo</span>
+        </button>
+
+        <div class="ob-advanced" id="ob-advanced">
+            <div class="ob-field">
+                <label>Papel</label>
+                <textarea class="ob-textarea" name="agente_papel" id="f_papel" required>{{ form.agente_papel if form else (selecionado.agente_papel if selecionado else '') }}</textarea>
+            </div>
+            <div class="ob-field">
+                <label>Objetivo</label>
+                <textarea class="ob-textarea" name="agente_objetivo" id="f_objetivo" required>{{ form.agente_objetivo if form else (selecionado.agente_objetivo if selecionado else '') }}</textarea>
+            </div>
+            <div class="ob-field">
+                <label>Politicas / regras de conduta</label>
+                <textarea class="ob-textarea" name="agente_politicas" id="f_politicas" required>{{ form.agente_politicas if form else (selecionado.agente_politicas if selecionado else '') }}</textarea>
+            </div>
+            <div class="ob-field">
+                <label>Tarefa principal</label>
+                <textarea class="ob-textarea" name="agente_tarefa" id="f_tarefa" required>{{ form.agente_tarefa if form else (selecionado.agente_tarefa if selecionado else '') }}</textarea>
+            </div>
+            <div class="ob-field">
+                <label>Objetivo explicito (resultado esperado)</label>
+                <textarea class="ob-textarea" name="agente_objetivo_explicito" id="f_objetivo_explicito" required>{{ form.agente_objetivo_explicito if form else (selecionado.agente_objetivo_explicito if selecionado else '') }}</textarea>
+            </div>
+            <div class="ob-field">
+                <label>Publico-alvo</label>
+                <textarea class="ob-textarea" name="agente_publico" id="f_publico" required>{{ form.agente_publico if form else (selecionado.agente_publico if selecionado else '') }}</textarea>
+            </div>
+            <div class="ob-field">
+                <label>Restricoes / o que evitar</label>
+                <textarea class="ob-textarea" name="agente_restricoes" id="f_restricoes" required>{{ form.agente_restricoes if form else (selecionado.agente_restricoes if selecionado else '') }}</textarea>
+            </div>
+        </div>
+
+        <div class="ob-actions">
+            <div class="ob-actions-left">
+                <a href="/onboarding/canal" class="ob-btn ob-btn-ghost">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+            </div>
+            <div class="ob-actions-right">
+                <button type="submit" class="ob-btn ob-btn-primary">
+                    Criar agente <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block ob_scripts %}
+<script>
+const TEMPLATES = {
+{% for tpl in templates_agente %}
+    "{{ tpl.id }}": {
+        nome: {{ tpl.nome|tojson }},
+        descricao: {{ tpl.descricao|tojson }},
+        agente_papel: {{ tpl.agente_papel|tojson }},
+        agente_objetivo: {{ tpl.agente_objetivo|tojson }},
+        agente_politicas: {{ tpl.agente_politicas|tojson }},
+        agente_tarefa: {{ tpl.agente_tarefa|tojson }},
+        agente_objetivo_explicito: {{ tpl.agente_objetivo_explicito|tojson }},
+        agente_publico: {{ tpl.agente_publico|tojson }},
+        agente_restricoes: {{ tpl.agente_restricoes|tojson }}
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+};
+
+function aplicarTemplate(id) {
+    const tpl = TEMPLATES[id];
+    if (!tpl) return;
+    document.querySelectorAll('.tpl-card').forEach(c => c.classList.remove('active'));
+    document.getElementById(`tpl-card-${id}`).classList.add('active');
+
+    document.getElementById('f_nome').value = tpl.nome;
+    document.getElementById('f_descricao').value = tpl.descricao;
+    document.getElementById('f_papel').value = tpl.agente_papel;
+    document.getElementById('f_objetivo').value = tpl.agente_objetivo;
+    document.getElementById('f_politicas').value = tpl.agente_politicas;
+    document.getElementById('f_tarefa').value = tpl.agente_tarefa;
+    document.getElementById('f_objetivo_explicito').value = tpl.agente_objetivo_explicito;
+    document.getElementById('f_publico').value = tpl.agente_publico;
+    document.getElementById('f_restricoes').value = tpl.agente_restricoes;
+}
+
+function toggleAvancado() {
+    const adv = document.getElementById('ob-advanced');
+    const label = document.getElementById('adv-label');
+    if (adv.classList.contains('open')) {
+        adv.classList.remove('open');
+        label.innerText = 'Personalizar prompt completo';
+    } else {
+        adv.classList.add('open');
+        label.innerText = 'Ocultar campos avancados';
+    }
+}
+
+// Aplicar template inicial se nada selecionado
+(function () {
+    {% if not selecionado and not form %}
+    aplicarTemplate('assistente');
+    {% endif %}
+})();
+</script>
+{% endblock %}

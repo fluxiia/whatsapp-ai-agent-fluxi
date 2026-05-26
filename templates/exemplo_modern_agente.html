@@ -1,0 +1,222 @@
+{% extends "base_modern.html" %}
+
+{% block title %}Novo Agente - Fluxi.IA{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos exatos inspirados no fluxo limpo do exemplo fornecido */
+    .wizard-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding-top: var(--space-xl);
+        padding-bottom: var(--space-2xl);
+    }
+    
+    .wizard-steps {
+        display: flex;
+        align-items: center;
+        gap: var(--space-lg);
+        margin-bottom: var(--space-xl);
+    }
+    
+    .wizard-step {
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+        color: var(--color-text-muted);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: color var(--transition-base);
+    }
+    
+    .wizard-step.active {
+        color: var(--color-text-primary);
+    }
+    
+    .wizard-step.done {
+        color: var(--color-success);
+    }
+
+    .wizard-step-num {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+    }
+    
+    .wizard-step.active .wizard-step-num {
+        background: var(--color-primary);
+        color: white;
+        border-color: var(--color-primary);
+    }
+    
+    .wizard-step.done .wizard-step-num {
+        background: var(--color-success-light);
+        color: var(--color-success);
+        border-color: var(--color-success);
+        text-indent: -9999px;
+        position: relative;
+    }
+    
+    .wizard-step.done .wizard-step-num::after {
+        content: "✓";
+        position: absolute;
+        text-indent: 0;
+        font-weight: bold;
+    }
+
+    .form-group {
+        margin-bottom: var(--space-lg);
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin-bottom: var(--space-xs);
+    }
+
+    .form-hint {
+        font-size: 0.75rem;
+        color: var(--color-text-secondary);
+        margin-top: 4px;
+    }
+    
+    .tool-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-md);
+        margin-top: var(--space-md);
+    }
+    
+    .tool-card {
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-md);
+        background: var(--color-surface);
+        cursor: pointer;
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-md);
+        transition: all var(--transition-fast);
+    }
+    
+    .tool-card:hover {
+        border-color: var(--color-primary-light);
+        background: var(--color-bg-secondary);
+    }
+
+    .tool-card.selected {
+        border-color: var(--color-primary);
+        background: var(--color-info-light);
+        box-shadow: 0 0 0 1px var(--color-primary);
+    }
+
+    .toggle-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .toggle-row {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-md);
+        padding: var(--space-md);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        background: var(--color-surface);
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wizard-container">
+    
+    <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: var(--space-sm);">Agente de IA</div>
+    <h1 class="page-title" style="font-size: 2rem; margin-bottom: var(--space-xs);">Estruture seu Agente</h1>
+    <p style="color: var(--color-text-secondary); margin-bottom: var(--space-2xl);">Configure o cérebro que responderá as mensagens do seu WhatsApp.</p>
+
+    <!-- Header do Wizard -->
+    <div class="wizard-steps">
+        <div class="wizard-step active">
+            <span class="wizard-step-num">1</span>
+            <span>Personalidade</span>
+        </div>
+        <div class="wizard-step">
+            <span class="wizard-step-num">2</span>
+            <span>Ferramentas</span>
+        </div>
+        <div class="wizard-step">
+            <span class="wizard-step-num">3</span>
+            <span>Segurança</span>
+        </div>
+    </div>
+
+    <form class="box" style="padding: var(--space-2xl); border: none; box-shadow: var(--shadow-sm);">
+        <div class="form-section">
+            
+            <div class="form-group">
+                <label>Nome do Agente <span style="color: var(--color-error);">*</span></label>
+                <input type="text" class="input" placeholder="ex: Suporte Financeiro" style="font-size: 1rem; padding: 0.75rem 1rem;">
+                <div class="form-hint">Apenas para sua organização interna. O cliente final não vê este nome.</div>
+            </div>
+
+            <div class="form-group mt-xl">
+                <label>Instrução de Comportamento (System Prompt) <span style="color: var(--color-error);">*</span></label>
+                <textarea class="textarea" rows="6" placeholder="Você é um assistente de suporte responsável, seu objetivo é..." style="font-size: 0.9375rem; padding: 1rem; resize: vertical; line-height: 1.5;"></textarea>
+                <div class="form-hint" style="margin-top: 8px;">Forneça a "personalidade", o tom de voz e as regras gerais de atendimento. Isso atua como a diretriz de ouro do agente LLM.</div>
+            </div>
+
+            <!-- Provider Selection -->
+            <div class="form-group mt-xl">
+                <label>Qual "cérebro" esse agente usará?</label>
+                <div class="tool-grid">
+                    <label class="tool-card selected">
+                        <input type="radio" name="provider" value="openai" checked style="display: none;">
+                        <span style="font-size: 1.5rem;"><i class="fas fa-brain" style="color: var(--color-success);"></i></span>
+                        <div class="flex flex-col">
+                            <span style="font-weight: 600; font-size: 0.875rem;">GPT-4o Mini</span>
+                            <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px;">Melhor custo x benefício</span>
+                        </div>
+                    </label>
+                    <label class="tool-card">
+                        <input type="radio" name="provider" value="anthropic" style="display: none;">
+                        <span style="font-size: 1.5rem;"><i class="fas fa-cube" style="color: var(--color-accent);"></i></span>
+                        <div class="flex flex-col">
+                            <span style="font-weight: 600; font-size: 0.875rem;">Claude 3.5 Sonnet</span>
+                            <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px;">Extrema inteligência</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="flex items-center justify-end gap-md" style="margin-top: var(--space-2xl); padding-top: var(--space-lg); border-top: 1px solid var(--color-border);">
+            <button type="button" class="button is-outline">Cancelar</button>
+            <a href="#" class="button is-primary">Continuar: Ferramentas <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Simple script to toggle visual selection of cards
+    document.querySelectorAll('.tool-card').forEach(card => {
+        card.addEventListener('click', function() {
+            document.querySelectorAll('.tool-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            const radio = this.querySelector('input[type="radio"]');
+            if(radio) radio.checked = true;
+        });
+    });
+</script>
+{% endblock %}

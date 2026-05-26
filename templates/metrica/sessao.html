@@ -1,208 +1,186 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Métricas - {{ sessao.nome }} - Fluxi.IA{% endblock %}
+{% block title %}Ops de Sessão - {{ sessao.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <nav class="breadcrumb" aria-label="breadcrumbs" style="margin-bottom: 0.75rem !important;">
-        <ul style="margin-bottom: 0 !important;">
-            <li><a href="/metricas" style="color: #6b7280;"><i class="fas fa-chart-line"></i> Métricas</a></li>
-            <li class="is-active"><a style="color: #C75B9B;">{{ sessao.nome }}</a></li>
-        </ul>
-    </nav>
-    <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
-        <i class="fab fa-whatsapp" style="color: #25D366;"></i> {{ sessao.nome }}
-    </h1>
-    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-        Estatísticas detalhadas e performance da sessão
-    </p>
-</div>
-    <!-- Métricas de Mensagens -->
-    <div class="box">
-        <h2 class="title is-4">
-            <i class="fas fa-comments"></i> Mensagens
-        </h2>
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fab fa-whatsapp text-primary mb-xs" style="color: #22c55e;"></i> {{ sessao.nome }}
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/metricas" style="color: var(--color-text-secondary); text-decoration: none;">Sistema Global</a> / 
+                <span style="color: var(--color-text-primary);">Data Stream da Sessão</span>
+            </p>
+        </div>
         
-        <div class="columns is-multiline">
-            <div class="column is-3">
-                <div class="metric-card">
-                    <div class="metric-value">{{ metricas.mensagens.total }}</div>
-                    <div class="metric-label">Total</div>
-                </div>
-            </div>
-            
-            <div class="column is-3">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: #3273dc;">{{ metricas.mensagens.recebidas }}</div>
-                    <div class="metric-label">Recebidas</div>
-                </div>
-            </div>
-            
-            <div class="column is-3">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: #48c774;">{{ metricas.mensagens.respondidas }}</div>
-                    <div class="metric-label">Respondidas</div>
-                </div>
-            </div>
-            
-            <div class="column is-3">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: #ffdd57;">{{ metricas.mensagens.com_imagem }}</div>
-                    <div class="metric-label">Com Imagem</div>
-                </div>
-            </div>
+        <div class="flex items-center gap-sm">
+            <a href="/sessoes/{{ sessao.id }}/detalhes" class="button is-small is-primary" style="background: #6366f1; border: none;">
+                <i class="fas fa-satellite-dish" style="margin-right: 6px;"></i> Console de Sessão
+            </a>
+            <a href="/mensagens/sessao/{{ sessao.id }}" class="button is-small is-outline">
+                <i class="fas fa-comment-dots" style="margin-right: 4px;"></i> Inspecionar Logs
+            </a>
         </div>
     </div>
 
-    <!-- Performance -->
-    <div class="box">
-        <h2 class="title is-4">
-            <i class="fas fa-tachometer-alt"></i> Performance
-        </h2>
-        
-        <div class="columns">
-            <div class="column">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: #48c774;">{{ metricas.performance.taxa_resposta }}%</div>
-                    <div class="metric-label">Taxa de Resposta</div>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: #3273dc;">{{ metricas.performance.tempo_medio_ms }}ms</div>
-                    <div class="metric-label">Tempo Médio</div>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: #667eea;">{{ metricas.performance.clientes_unicos }}</div>
-                    <div class="metric-label">Clientes Únicos</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tokens -->
-    <div class="box">
-        <h2 class="title is-4">
-            <i class="fas fa-coins"></i> Uso de Tokens
-        </h2>
-        
-        <div class="columns">
-            <div class="column">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: #3273dc;">{{ metricas.tokens.input_total }}</div>
-                    <div class="metric-label">Tokens Input</div>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: #48c774;">{{ metricas.tokens.output_total }}</div>
-                    <div class="metric-label">Tokens Output</div>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: #667eea;">{{ metricas.tokens.total }}</div>
-                    <div class="metric-label">Total de Tokens</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="columns">
-        <!-- Top Clientes -->
-        <div class="column is-6">
-            <div class="box">
-                <h2 class="title is-4">
-                    <i class="fas fa-users"></i> Top 10 Clientes
-                </h2>
-                
-                {% if top_clientes %}
-                <div class="table-container">
-                    <table class="table is-fullwidth is-hoverable">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Telefone</th>
-                                <th>Mensagens</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for cliente in top_clientes %}
-                            <tr>
-                                <td>{{ loop.index }}</td>
-                                <td>{{ cliente.telefone }}</td>
-                                <td><strong>{{ cliente.total_mensagens }}</strong></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="notification is-info is-light">
-                    <p>Nenhum cliente ainda.</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Uso de Ferramentas -->
-        <div class="column is-6">
-            <div class="box">
-                <h2 class="title is-4">
-                    <i class="fas fa-tools"></i> Uso de Ferramentas
-                </h2>
-                
-                {% if uso_ferramentas %}
-                <div class="table-container">
-                    <table class="table is-fullwidth is-hoverable">
-                        <thead>
-                            <tr>
-                                <th>Ferramenta</th>
-                                <th>Usos</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for ferramenta in uso_ferramentas %}
-                            <tr>
-                                <td>{{ ferramenta.nome }}</td>
-                                <td><strong>{{ ferramenta.total_usos }}</strong></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                <div class="notification is-info is-light">
-                    <p>Nenhuma ferramenta utilizada ainda.</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-<!-- Ações -->
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
-    <a href="/sessoes/{{ sessao.id }}/detalhes" class="button is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-        <span class="icon"><i class="fas fa-eye"></i></span>
-        <span>Ver Detalhes da Sessão</span>
-    </a>
+    <!-- Cluster Central de Dados (3 Dashboards Blocks) -->
     
-    <a href="/mensagens/sessao/{{ sessao.id }}" class="button is-medium" style="border: 2px solid #3b82f6; color: #3b82f6; font-weight: 600; border-radius: 8px;">
-        <span class="icon"><i class="fas fa-comments"></i></span>
-        <span>Ver Mensagens</span>
-    </a>
-    
-    <a href="/metricas" class="button is-medium" style="border-radius: 8px; font-weight: 600;">
-        <span class="icon"><i class="fas fa-arrow-left"></i></span>
-        <span>Voltar</span>
-    </a>
-</div>
+    <!-- 1: Mensagens -->
+    <div class="box mb-lg" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); background: #0f172a;">
+        <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid #334155; padding-bottom: var(--space-sm);">
+            <i class="fas fa-exchange-alt" style="color: #38bdf8;"></i>
+            <h2 style="font-size: 1rem; font-weight: 600; color: #f8fafc;">I/O de Rede (Mensagens)</h2>
+        </div>
+        
+        <div class="grid grid-cols-4 gap-md">
+            <div class="box flex flex-col items-center justify-center text-center p-0" style="padding: var(--space-lg) 0; background: #1e293b; border: 1px solid #334155;">
+                <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Total de Packets</span>
+                <span style="font-size: 2rem; font-weight: 700; color: #cbd5e1;">{{ metricas.mensagens.total }}</span>
+            </div>
+            
+            <div class="box flex flex-col items-center justify-center text-center p-0" style="padding: var(--space-lg) 0; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);">
+                <span style="font-size: 0.75rem; color: #7dd3fc; text-transform: uppercase;">Recebidos (IN)</span>
+                <span style="font-size: 2rem; font-weight: 700; color: #38bdf8;">{{ metricas.mensagens.recebidas }}</span>
+            </div>
+            
+            <div class="box flex flex-col items-center justify-center text-center p-0" style="padding: var(--space-lg) 0; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3);">
+                <span style="font-size: 0.75rem; color: #34d399; text-transform: uppercase;">Entregues (OUT)</span>
+                <span style="font-size: 2rem; font-weight: 700; color: #10b981;">{{ metricas.mensagens.respondidas }}</span>
+            </div>
 
+            <div class="box flex flex-col items-center justify-center text-center p-0" style="padding: var(--space-lg) 0; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3);">
+                <span style="font-size: 0.75rem; color: #fbbf24; text-transform: uppercase;">Payload Binário (Img)</span>
+                <span style="font-size: 2rem; font-weight: 700; color: #f59e0b;">{{ metricas.mensagens.com_imagem }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2: Tokens e Desempenho -->
+    <div class="grid grid-cols-2 gap-lg mb-lg">
+        
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-coins text-warning"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Consumo Energético (Tokens)</h2>
+            </div>
+            <div class="grid grid-cols-3 gap-sm text-center">
+                <div class="flex flex-col gap-xs pt-sm pb-sm" style="border-right: 1px solid var(--color-border);">
+                    <span style="font-size: 0.75rem; color: var(--color-info); text-transform: uppercase;">Input (Prompt)</span>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">{{ metricas.tokens.input_total }}</span>
+                </div>
+                <div class="flex flex-col gap-xs pt-sm pb-sm" style="border-right: 1px solid var(--color-border);">
+                    <span style="font-size: 0.75rem; color: var(--color-success); text-transform: uppercase;">Output (Generation)</span>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">{{ metricas.tokens.output_total }}</span>
+                </div>
+                <div class="flex flex-col gap-xs pt-sm pb-sm">
+                    <span style="font-size: 0.75rem; color: var(--color-warning); text-transform: uppercase;">Aprovionamento Final</span>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">{{ metricas.tokens.total }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-tachometer-alt text-primary"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Qualidade de Serviço (QoS)</h2>
+            </div>
+            <div class="grid grid-cols-3 gap-sm text-center">
+                <div class="flex flex-col gap-xs pt-sm pb-sm" style="border-right: 1px solid var(--color-border);">
+                    <span style="font-size: 0.75rem; color: var(--color-success); text-transform: uppercase;">SLO de Resposta</span>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">{{ metricas.performance.taxa_resposta }}%</span>
+                </div>
+                <div class="flex flex-col gap-xs pt-sm pb-sm" style="border-right: 1px solid var(--color-border);">
+                    <span style="font-size: 0.75rem; color: var(--color-info); text-transform: uppercase;">Latência Global</span>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">{{ metricas.performance.tempo_medio_ms }}ms</span>
+                </div>
+                <div class="flex flex-col gap-xs pt-sm pb-sm">
+                    <span style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase;">Hosts Servidos</span>
+                    <span style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">{{ metricas.performance.clientes_unicos }}</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Elementos Tabelados Embutidos -->
+    <div class="grid grid-cols-2 gap-lg">
+        
+        <!-- Top Hosts -->
+        <div class="box" style="padding: 0; box-shadow: var(--shadow-sm); border: none; overflow: hidden;">
+            <div class="flex items-center gap-sm" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border);">
+                <i class="fas fa-list-ol text-primary"></i>
+                <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Hosts Mais Ativos (Top 10)</h2>
+            </div>
+            
+            {% if top_clientes %}
+            <table class="table is-fullwidth is-hoverable" style="margin: 0; font-size: 0.8125rem;">
+                <thead>
+                    <tr>
+                        <th style="padding: var(--space-sm) var(--space-lg); width: 60px;">Rank</th>
+                        <th>Host ID</th>
+                        <th style="text-align: right; padding-right: var(--space-lg);">Carga Demandada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in top_clientes %}
+                    <tr>
+                        <td style="padding: var(--space-sm) var(--space-lg); color: var(--color-text-secondary);">#{{ loop.index }}</td>
+                        <td style="font-family: monospace; color: var(--color-text-primary); font-weight: 600;">{{ cliente.telefone }}</td>
+                        <td style="text-align: right; padding-right: var(--space-lg);">
+                            <span class="tag" style="background: var(--color-surface); border: 1px solid var(--color-border);">{{ cliente.total_mensagens }} requisições</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center" style="padding: var(--space-2xl) var(--space-lg);">
+                <i class="fas fa-user-slash fa-2x text-muted mb-sm"></i>
+                <p style="font-size: 0.8125rem; color: var(--color-text-secondary);">Piscina de conexões vazia na sessão local.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Ferramentas Executadas -->
+        <div class="box" style="padding: 0; box-shadow: var(--shadow-sm); border: none; overflow: hidden;">
+            <div class="flex items-center gap-sm" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border);">
+                <i class="fas fa-wrench text-info"></i>
+                <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Ferramentas Instanciadas por Agentes</h2>
+            </div>
+            
+            {% if uso_ferramentas %}
+            <table class="table is-fullwidth is-hoverable" style="margin: 0; font-size: 0.8125rem;">
+                <thead>
+                    <tr>
+                        <th style="padding: var(--space-sm) var(--space-lg);">Subrotina Disparada</th>
+                        <th style="text-align: right; padding-right: var(--space-lg);">Vezes Acionada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ferramenta in uso_ferramentas %}
+                    <tr>
+                        <td style="padding: var(--space-sm) var(--space-lg);">
+                            <span style="font-family: monospace; font-weight: 600; color: var(--color-text-primary);">{{ ferramenta.nome }}</span>
+                        </td>
+                        <td style="text-align: right; padding-right: var(--space-lg);">
+                            <span class="tag" style="background: var(--color-info-light); color: var(--color-info); font-weight: 600; font-size: 0.65rem;">{{ ferramenta.total_usos }} runs</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="text-center" style="padding: var(--space-2xl) var(--space-lg);">
+                <i class="fas fa-ban fa-2x text-muted mb-sm"></i>
+                <p style="font-size: 0.8125rem; color: var(--color-text-secondary);">Agentes da base associada não dispararam side-effects e scripts.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
 {% endblock %}

@@ -1,0 +1,389 @@
+{% extends "base_modern.html" %}
+
+{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-brain text-primary"></i> {{ titulo }}
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/skills" style="color: var(--color-text-secondary); text-decoration: none;">Skills</a> /
+                <span style="color: var(--color-text-primary);">{{ "Editar" if acao == "editar" else "Nova" }}</span>
+            </p>
+        </div>
+    </div>
+
+    {% if request.query_params.get('erro') %}
+    <div style="background: var(--color-error, #e53e3e); color: white; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
+        ❌ {{ request.query_params.get('erro') }}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-3">
+        <div style="grid-column: span 2;">
+            <form method="POST" action="{{ '/skills/' + skill.id|string + '/atualizar' if acao == 'editar' else '/skills/criar' }}">
+                <div class="box" style="padding: var(--space-lg);">
+                    <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">Identidade da Skill</h2>
+
+                    <div class="grid grid-cols-2 gap-md mb-md">
+                        <div>
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-secondary); display: block; margin-bottom: 6px;">Nome <span style="color: var(--color-error, red);">*</span></label>
+
+                            {% if skills_pai %}
+                            <div style="display: flex; gap: 8px; margin-bottom: 6px; align-items: center;">
+                                <select id="select-pai" onchange="aplicarPai(this.value)"
+                                    style="flex: 1; padding: 6px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-secondary); font-size: 0.8rem;">
+                                    <option value="">— Skill independente —</option>
+                                    {% for sp in skills_pai %}
+                                    <option value="{{ sp.nome }}"
+                                        {% if skill and skill.nome.startswith(sp.nome + '-') %}selected{% endif %}>
+                                        {{ sp.icone or '🔧' }} Sub-skill de: {{ sp.nome }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <span style="font-size: 0.7rem; color: var(--color-text-muted); white-space: nowrap;">ou escreva livremente →</span>
+                            </div>
+                            {% endif %}
+
+                            <input type="text" name="nome" id="input-nome" required
+                                value="{{ skill.nome if skill else '' }}"
+                                placeholder="ex: vendas-abertura"
+                                style="width: 100%; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-primary); font-size: 0.875rem;">
+                            <p style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px;">Use hífens para sub-skills (ex: vendas-abertura)</p>
+                        </div>
+                        <div style="position: relative;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-secondary); display: block; margin-bottom: 6px;">Ícone</label>
+                            <input type="hidden" name="icone" id="icone-input" value="{{ skill.icone if skill else '🔧' }}">
+
+                            <button type="button" id="icone-btn" onclick="toggleEmojiPicker()"
+                                style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); cursor: pointer; font-size: 0.875rem; color: var(--color-text-primary); width: 100%;">
+                                <span id="icone-preview" style="font-size: 1.4rem; line-height: 1;">{{ skill.icone if skill else '🔧' }}</span>
+                                <span style="color: var(--color-text-secondary); font-size: 0.8rem;">Clique para escolher</span>
+                                <i class="fas fa-chevron-down" style="margin-left: auto; font-size: 0.7rem; color: var(--color-text-muted);"></i>
+                            </button>
+
+                            <!-- Dropdown picker -->
+                            <div id="emoji-picker" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 100; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: 0 8px 24px rgba(0,0,0,0.15); width: 280px; padding: 10px;">
+                                <!-- Categorias -->
+                                <div style="display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap;">
+                                    <button type="button" onclick="mostrarCategoria('negocio')" class="cat-btn" data-cat="negocio" style="font-size: 0.65rem; padding: 3px 7px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-primary); color: white; cursor: pointer;">💼 Negócio</button>
+                                    <button type="button" onclick="mostrarCategoria('tech')" class="cat-btn" data-cat="tech" style="font-size: 0.65rem; padding: 3px 7px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-bg-secondary); color: var(--color-text-secondary); cursor: pointer;">⚙️ Tech</button>
+                                    <button type="button" onclick="mostrarCategoria('comunicacao')" class="cat-btn" data-cat="comunicacao" style="font-size: 0.65rem; padding: 3px 7px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-bg-secondary); color: var(--color-text-secondary); cursor: pointer;">💬 Comunicação</button>
+                                    <button type="button" onclick="mostrarCategoria('status')" class="cat-btn" data-cat="status" style="font-size: 0.65rem; padding: 3px 7px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-bg-secondary); color: var(--color-text-secondary); cursor: pointer;">✅ Status</button>
+                                    <button type="button" onclick="mostrarCategoria('pessoa')" class="cat-btn" data-cat="pessoa" style="font-size: 0.65rem; padding: 3px 7px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-bg-secondary); color: var(--color-text-secondary); cursor: pointer;">👤 Persona</button>
+                                </div>
+
+                                <!-- Grid de emojis por categoria -->
+                                <div id="emoji-grid" style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-md">
+                        <label style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-secondary); display: block; margin-bottom: 6px;">Descrição <span style="color: var(--color-error, red);">*</span></label>
+                        <input type="text" name="descricao" required maxlength="250"
+                            value="{{ skill.descricao if skill else '' }}"
+                            placeholder="O que esta skill faz e QUANDO o agente deve usá-la"
+                            style="width: 100%; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-primary); font-size: 0.875rem;">
+                        <p style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px;">⚠️ Crucial para a seleção automática pelo LLM. Inclua <strong>o que faz</strong> E <strong>quando usar</strong>.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-md mb-md">
+                        <div>
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-secondary); display: block; margin-bottom: 6px;">Categoria</label>
+                            <select name="categoria" style="width: 100%; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-primary); font-size: 0.875rem;">
+                                {% set cats = ['utilitário', 'comportamento', 'fluxo', 'especialização', 'integração', 'outro'] %}
+                                {% for cat in cats %}
+                                <option value="{{ cat }}" {% if skill and skill.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-secondary); display: block; margin-bottom: 6px;">Versão</label>
+                            <input type="text" name="versao"
+                                value="{{ skill.versao if skill else '1.0' }}"
+                                placeholder="1.0"
+                                style="width: 100%; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-primary); font-size: 0.875rem;">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-sm mb-md">
+                        <input type="checkbox" name="ativa" id="ativa" value="on" {% if not skill or skill.ativa %}checked{% endif %} style="width: 16px; height: 16px;">
+                        <label for="ativa" style="font-size: 0.875rem; color: var(--color-text-primary);">Skill ativa</label>
+                    </div>
+                </div>
+
+                <!-- Instrução Completa -->
+                <div class="box" style="padding: var(--space-lg); margin-top: var(--space-md);">
+                    <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-xs); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">Instrução Completa (Level 2)</h2>
+                    <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: var(--space-md);">Conteúdo enviado ao LLM quando ele invoca a skill. Suporta markdown. Use <code>{variavel}</code> para substituições do script.</p>
+                    <textarea name="instrucao_completa" required rows="12"
+                        placeholder="# Skill: Nome&#10;&#10;## Instruções&#10;..."
+                        style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-primary); font-size: 0.85rem; font-family: monospace; resize: vertical;">{{ skill.instrucao_completa if skill else '' }}</textarea>
+                </div>
+
+                <!-- Script de Contexto -->
+                <div class="box" style="padding: var(--space-lg); margin-top: var(--space-md);">
+                    <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-xs); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">Script de Contexto (opcional)</h2>
+                    <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: 4px;">
+                        Executado quando o LLM chama <code>invocar_skill("nome", {"chave": "valor"})</code>.
+                        O dict passado pelo LLM chega aqui como <code>argumentos</code>.
+                        Atribua <code>resultado = {...}</code> — cada chave substitui <code>{chave}</code> na instrução abaixo.
+                    </p>
+                    <p style="font-size: 0.7rem; color: var(--color-text-muted); margin-bottom: var(--space-md);">
+                        <strong>Ciclo:</strong> LLM decide usar a skill → chama <code>invocar_skill</code> com argumentos → script roda → <code>resultado</code> injeta dados dinâmicos → instrução completa (com substituições) é devolvida ao LLM → LLM responde.
+                    </p>
+                    <textarea name="script_codigo" rows="6"
+                        placeholder="# 'argumentos' = dict que o LLM passou ao chamar invocar_skill()
+# Ex: LLM chamou invocar_skill('vendas-proposta', {'produto': 'Plano Pro', 'cliente': 'João'})
+
+from datetime import datetime
+
+produto  = argumentos.get('produto', 'nosso produto')
+cliente  = argumentos.get('cliente', 'cliente')
+
+# --- Contexto temporal automático ---
+hora = datetime.now().hour
+if   6  <= hora < 12: saudacao = 'Bom dia'
+elif 12 <= hora < 18: saudacao = 'Boa tarde'
+else:                 saudacao = 'Boa noite'
+
+dia_semana = datetime.now().weekday()   # 0=seg … 6=dom
+urgencia = 'Oferta válida só este fim de semana!' if dia_semana >= 4 \
+           else f'Expira em {4 - dia_semana} dias úteis.'
+
+# --- resultado: cada chave vira {chave} na instrução_completa ---
+resultado = {
+    'saudacao' : saudacao,
+    'cliente'  : cliente,
+    'produto'  : produto,
+    'urgencia' : urgencia,
+    'data'     : datetime.now().strftime('%d/%m/%Y'),
+}
+
+# Na instrução_completa use: {saudacao}, {cliente}! Fale sobre {produto}.
+# ⚠️ {urgencia} — gerada em {data}"
+                        style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-primary); font-size: 0.85rem; font-family: monospace; resize: vertical;">{{ skill.script_codigo if skill and skill.script_codigo else '' }}</textarea>
+                </div>
+
+                <!-- Ferramentas Extras -->
+                <div class="box" style="padding: var(--space-lg); margin-top: var(--space-md);">
+                    <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-xs); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">Ferramentas Extras (opcional)</h2>
+                    <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-bottom: var(--space-md);">Ferramentas injetadas automaticamente no contexto do agente quando esta skill for invocada.</p>
+
+                    <input type="hidden" name="ferramentas_ids" id="ferramentas_ids_input"
+                        value="{{ skill.ferramentas_ids if skill and skill.ferramentas_ids else '' }}">
+
+                    {% if todas_ferramentas %}
+                    <!-- Barra de busca -->
+                    <input type="text" id="busca-ferramenta" placeholder="Buscar ferramenta..."
+                        oninput="filtrarFerramentas(this.value)"
+                        style="width: 100%; padding: 7px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-primary); font-size: 0.8rem; margin-bottom: var(--space-sm);">
+
+                    <!-- Lista de ferramentas -->
+                    <div id="lista-ferramentas" style="max-height: 260px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-secondary);">
+                        {% for f in todas_ferramentas %}
+                        <label class="ferramenta-item" data-nome="{{ f.nome|lower }}"
+                            style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--color-border); transition: background 0.15s;"
+                            onmouseover="this.style.background='var(--color-surface)'"
+                            onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" value="{{ f.id }}"
+                                {% if ferramentas_selecionadas is defined and f.id in ferramentas_selecionadas %}checked{% endif %}
+                                onchange="atualizarFerramentasIds()"
+                                style="width: 15px; height: 15px; flex-shrink: 0;">
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-primary);">{{ f.nome }}</div>
+                                <div style="font-size: 0.7rem; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ f.descricao }}</div>
+                            </div>
+                            <span style="font-size: 0.65rem; padding: 2px 6px; border-radius: 8px; background: var(--color-bg-secondary); color: var(--color-text-muted); border: 1px solid var(--color-border); flex-shrink: 0;">{{ f.tool_type or 'PYTHON' }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Preview do que foi selecionado -->
+                    <div id="preview-ferramentas" style="margin-top: var(--space-sm); font-size: 0.75rem; color: var(--color-text-muted);">
+                        Nenhuma ferramenta selecionada
+                    </div>
+                    {% else %}
+                    <div style="padding: var(--space-md); border: 1px dashed var(--color-border); border-radius: var(--radius-md); text-align: center;">
+                        <p style="font-size: 0.8rem; color: var(--color-text-muted);">Nenhuma ferramenta cadastrada. <a href="/ferramentas/wizard/step1" target="_blank">Criar ferramentas →</a></p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="flex gap-sm mt-md">
+                    <button type="submit" class="button is-primary">
+                        <i class="fas fa-save" style="margin-right: 6px;"></i> {{ "Salvar Alterações" if acao == "editar" else "Criar Skill" }}
+                    </button>
+                    <a href="{{ '/skills/' + skill.id|string if acao == 'editar' else '/skills' }}" class="button is-outline">Cancelar</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="flex flex-col gap-md" style="padding-left: var(--space-lg);">
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-sm);">Boas práticas</h3>
+                <ul style="font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.8; padding-left: 16px;">
+                    <li><strong>Descrição</strong>: sempre inclua "quando usar"</li>
+                    <li><strong>Nome</strong>: use kebab-case, sem espaços</li>
+                    <li><strong>Sub-skills</strong>: prefixo compartilhado (ex: <code>vendas-fechamento</code>)</li>
+                    <li><strong>Script</strong>: use <code>argumentos</code> para receber contexto</li>
+                    <li><strong>Substituição</strong>: <code>{variavel}</code> na instrução substitui pelo resultado do script</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Ferramentas ──────────────────────────────────────────────
+function atualizarFerramentasIds() {
+    const checks = document.querySelectorAll('#lista-ferramentas input[type=checkbox]:checked');
+    const ids = Array.from(checks).map(c => parseInt(c.value));
+    document.getElementById('ferramentas_ids_input').value = ids.length ? JSON.stringify(ids) : '';
+
+    const preview = document.getElementById('preview-ferramentas');
+    if (!preview) return;
+    if (ids.length === 0) {
+        preview.textContent = 'Nenhuma ferramenta selecionada';
+        preview.style.color = 'var(--color-text-muted)';
+    } else {
+        const nomes = Array.from(checks).map(c => c.closest('label').querySelector('div > div').textContent.trim());
+        preview.innerHTML = `<strong style="color:var(--color-primary)">${ids.length} selecionada(s):</strong> ${nomes.join(', ')}`;
+        preview.style.color = 'var(--color-text-primary)';
+    }
+}
+
+function filtrarFerramentas(q) {
+    const termo = q.toLowerCase().trim();
+    document.querySelectorAll('#lista-ferramentas .ferramenta-item').forEach(item => {
+        item.style.display = (!termo || item.dataset.nome.includes(termo)) ? 'flex' : 'none';
+    });
+}
+
+// Inicializar preview no carregamento
+document.addEventListener('DOMContentLoaded', atualizarFerramentasIds);
+
+// ── Emoji Picker ─────────────────────────────────────────────
+const EMOJIS = {
+    negocio: ['💼','📊','📈','📉','💰','💳','🏦','🤝','📋','📌','📎','🗂️','🗃️','📁','📂','🏢','🏪','🏬','💹','🎯','🚀','⭐','🏆','🥇','🎖️','🎗️','📣','📢','💡','🔑','🗝️','⚖️'],
+    tech:    ['⚙️','🔧','🔨','🛠️','🖥️','💻','📱','⌨️','🖱️','🖨️','📡','🔌','🔋','💾','💿','📀','🤖','🧠','🔬','🔭','🧬','⚡','🌐','🛡️','🔒','🔓','🧩','🗜️','📟','🖲️','🔡','🔢'],
+    comunicacao: ['💬','🗨️','🗯️','📩','📧','📨','📤','📥','📞','☎️','📟','📠','🔔','🔕','📢','📣','🎙️','🎚️','🎛️','📻','📺','🗺️','📰','📄','📝','✏️','🖊️','🖋️','📓','📔','📒','📕'],
+    status:  ['✅','❌','⚠️','ℹ️','🚫','⛔','🔴','🟠','🟡','🟢','🔵','🟣','⚪','⚫','🟤','💯','🆗','🆙','🆕','🆓','🔝','🔛','🔜','🔚','⏸️','▶️','⏹️','🔄','🔃','♻️','✨','🎉'],
+    pessoa:  ['👤','👥','🧑','👨','👩','🧑‍💼','👨‍💼','👩‍💼','🧑‍💻','👨‍💻','👩‍💻','🧑‍🏫','👨‍🏫','👩‍🏫','🧑‍🔧','👨‍🔧','👩‍🔧','🤵','👮','🕵️','💂','🧙','🦸','🦹','🧑‍🎤','🎭','👑','🤴','👸','🧑‍🍳','🧑‍🌾','🏃']
+};
+
+let categoriaAtual = 'negocio';
+
+function mostrarCategoria(cat) {
+    categoriaAtual = cat;
+    // Atualizar botões de categoria
+    document.querySelectorAll('.cat-btn').forEach(b => {
+        const ativo = b.dataset.cat === cat;
+        b.style.background = ativo ? 'var(--color-primary)' : 'var(--color-bg-secondary)';
+        b.style.color = ativo ? 'white' : 'var(--color-text-secondary)';
+    });
+    // Renderizar grid
+    const grid = document.getElementById('emoji-grid');
+    grid.innerHTML = EMOJIS[cat].map(e =>
+        `<button type="button" onclick="selecionarEmoji('${e}')"
+            title="${e}"
+            style="font-size: 1.3rem; padding: 4px; border: none; background: none; cursor: pointer; border-radius: 6px; line-height: 1; transition: background 0.1s;"
+            onmouseover="this.style.background='var(--color-bg-secondary)'"
+            onmouseout="this.style.background='none'">${e}</button>`
+    ).join('');
+}
+
+function selecionarEmoji(emoji) {
+    document.getElementById('icone-input').value = emoji;
+    document.getElementById('icone-preview').textContent = emoji;
+    fecharEmojiPicker();
+}
+
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emoji-picker');
+    const aberto = picker.style.display !== 'none';
+    if (aberto) {
+        fecharEmojiPicker();
+    } else {
+        picker.style.display = 'block';
+        if (!document.getElementById('emoji-grid').innerHTML) mostrarCategoria('negocio');
+    }
+}
+
+function fecharEmojiPicker() {
+    document.getElementById('emoji-picker').style.display = 'none';
+}
+
+// Fechar ao clicar fora
+document.addEventListener('click', function(e) {
+    const btn = document.getElementById('icone-btn');
+    const picker = document.getElementById('emoji-picker');
+    if (picker && btn && !picker.contains(e.target) && !btn.contains(e.target)) {
+        fecharEmojiPicker();
+    }
+});
+
+// Inicializar grid na primeira categoria
+document.addEventListener('DOMContentLoaded', () => mostrarCategoria('negocio'));
+
+// ── Skill pai: auto-prefixo ───────────────────────────────────
+function aplicarPai(nomePai) {
+    const input = document.getElementById('input-nome');
+    if (!input) return;
+    if (!nomePai) {
+        // Limpar prefixo se houver (mantém a parte após o primeiro "-" ou limpa tudo)
+        const partes = input.value.split('-');
+        if (partes.length > 1) input.value = partes.slice(1).join('-');
+        return;
+    }
+    const atual = input.value.trim();
+    // Se já tem outro prefixo, substitui apenas o prefixo
+    const partes = atual.split('-');
+    const sufixo = partes.length > 1 ? partes.slice(1).join('-') : partes[0];
+    input.value = sufixo ? `${nomePai}-${sufixo}` : `${nomePai}-`;
+    input.focus();
+    // Posicionar cursor no final
+    input.selectionStart = input.selectionEnd = input.value.length;
+    atualizarDicaSubskill(input.value);
+}
+
+// ── Sub-skills: dica automática de família ────────────────────
+function atualizarDicaSubskill(valor) {
+    const dica = document.getElementById('dica-subskill');
+    if (!dica) return;
+    const partes = valor.trim().split('-');
+    if (partes.length >= 2 && partes[0]) {
+        dica.textContent = `Sub-skill da família "${partes[0]}" — agrupada visualmente com outras "${partes[0]}-*" no system prompt do agente.`;
+        dica.style.display = 'block';
+    } else {
+        dica.style.display = 'none';
+    }
+}
+
+const nomeInput = document.getElementById('input-nome');
+if (nomeInput) {
+    const dica = document.createElement('div');
+    dica.id = 'dica-subskill';
+    dica.style = 'font-size: 0.7rem; color: var(--color-primary); margin-top: 4px; display: none;';
+    nomeInput.parentNode.appendChild(dica);
+
+    nomeInput.addEventListener('input', function() {
+        atualizarDicaSubskill(this.value);
+        // Sincronizar select pai se o nome mudar manualmente
+        const sel = document.getElementById('select-pai');
+        if (!sel) return;
+        const prefixo = this.value.split('-')[0];
+        const opcao = Array.from(sel.options).find(o => o.value === prefixo);
+        sel.value = opcao ? prefixo : '';
+    });
+    // Disparar no load caso já tenha valor (edição)
+    atualizarDicaSubskill(nomeInput.value);
+}
+</script>
+{% endblock %}

@@ -16,8 +16,15 @@ class Sessao(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nome = Column(String(100), nullable=False, unique=True, index=True)
-    telefone = Column(String(20), nullable=True, index=True)  # Telefone conectado (após conexão)
+    # Canal de comunicação ('whatsapp' | 'telegram'). Default mantém compat com bancos antigos.
+    plataforma = Column(String(20), nullable=False, default="whatsapp", index=True)
+    telefone = Column(String(20), nullable=True, index=True)  # Telefone conectado (após conexão) — uso WhatsApp
     telefone_pareamento = Column(String(20), nullable=True)  # Telefone para pair code (antes de conectar)
+    # Identificador genérico do canal (telefone p/ WA, bot_id/username p/ TG).
+    # Convive com 'telefone' durante o período de migração.
+    identificador = Column(String(100), nullable=True, index=True)
+    # Credenciais por plataforma (JSON criptografado p/ Telegram bot_token). Nullable.
+    credenciais = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default="desconectado")  # desconectado, conectando, conectado, erro
     ativa = Column(Boolean, default=True)
     auto_responder = Column(Boolean, default=True)

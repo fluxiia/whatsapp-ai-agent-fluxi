@@ -1,271 +1,635 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Dashboard - Fluxi{% endblock %}
+{% block title %}Painel de Controle - Central de Comando - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div class="page-header">
-    <h1 class="title is-3">
-        <i class="fas fa-tachometer-alt"></i> Dashboard
-    </h1>
-    <p class="subtitle is-5">
-        Bem-vindo ao Fluxi - Seu Assistente Pessoal WhatsApp
-    </p>
-</div>
-
-<div class="content-wrapper">
-    <!-- Métricas Rápidas -->
-    <div class="columns is-multiline">
-        <div class="column is-6-mobile is-3-tablet">
-            <div class="card metric-card">
-                <span class="icon is-large has-text-info mb-3">
-                    <i class="fas fa-layer-group fa-2x"></i>
-                </span>
-                <div class="metric-value">{{ metricas.sessoes.total }}</div>
-                <div class="metric-label">Sessões Totais</div>
-            </div>
-        </div>
-        
-        <div class="column is-6-mobile is-3-tablet">
-            <div class="card metric-card">
-                <span class="icon is-large has-text-success mb-3">
-                    <i class="fas fa-check-circle fa-2x"></i>
-                </span>
-                <div class="metric-value">{{ metricas.sessoes.conectadas }}</div>
-                <div class="metric-label">Conectadas</div>
-            </div>
-        </div>
-        
-        <div class="column is-6-mobile is-3-tablet">
-            <div class="card metric-card">
-                <span class="icon is-large has-text-link mb-3">
-                    <i class="fas fa-comments fa-2x"></i>
-                </span>
-                <div class="metric-value">{{ metricas.mensagens.total }}</div>
-                <div class="metric-label">Mensagens</div>
-            </div>
-        </div>
-        
-        <div class="column is-6-mobile is-3-tablet">
-            <div class="card metric-card">
-                <span class="icon is-large has-text-warning mb-3">
-                    <i class="fas fa-users fa-2x"></i>
-                </span>
-                <div class="metric-value">{{ metricas.performance.clientes_unicos }}</div>
-                <div class="metric-label">Clientes</div>
-            </div>
+<div class="container">
+    <!-- Cabeçalho da Página: Estilo Mission Control Localizado -->
+    <div class="flex items-center justify-between mb-lg"
+        style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">Central de Comando</h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">Gestão unificada de conectores WhatsApp e inteligência
+                ativa.</p>
         </div>
     </div>
 
-    <!-- Ações Rápidas -->
-    <div class="box mb-5">
-        <h2 class="title is-4 mb-4">
-            <i class="fas fa-bolt"></i> Ações Rápidas
-        </h2>
-        
-        <div class="columns is-mobile is-multiline">
-            <div class="column is-6-mobile is-3-tablet">
-                <a href="/sessoes/nova" class="button is-primary is-fullwidth">
-                    <span class="icon"><i class="fab fa-whatsapp"></i></span>
-                    <span>Nova Sessão</span>
-                </a>
-            </div>
-            
-            <div class="column is-6-mobile is-3-tablet">
-                <a href="/ferramentas/wizard/step1" class="button is-info is-fullwidth">
-                    <span class="icon"><i class="fas fa-magic"></i></span>
-                    <span>Nova Ferramenta</span>
-                </a>
-            </div>
-            
-            <div class="column is-6-mobile is-3-tablet">
-                <a href="/configuracoes" class="button is-link is-fullwidth">
-                    <span class="icon"><i class="fas fa-cog"></i></span>
-                    <span>Configurações</span>
-                </a>
-            </div>
-            
-            <div class="column is-6-mobile is-3-tablet">
-                <a href="/metricas" class="button is-success is-fullwidth">
-                    <span class="icon"><i class="fas fa-chart-line"></i></span>
-                    <span>Métricas</span>
-                </a>
-            </div>
-        </div>
-    </div>
+    <div class="grid grid-cols-3">
 
-    <!-- Sessões Recentes -->
-    <div class="box mb-5">
-        <div class="level mb-4">
-            <div class="level-left">
-                <div class="level-item">
-                    <h2 class="title is-4 mb-0">
-                        <i class="fab fa-whatsapp"></i> Sessões Recentes
-                    </h2>
-                </div>
-            </div>
-            <div class="level-right">
-                <div class="level-item">
-                    <a href="/sessoes" class="button is-small is-outlined is-primary">
-                        Ver todas
-                        <span class="icon is-small"><i class="fas fa-arrow-right"></i></span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        {% if sessoes %}
-        <div class="is-scrollable-x">
-            <table class="table is-fullwidth is-hoverable">
-                <thead>
-                    <tr>
-                        <th>Nome</th>
-                        <th>Telefone</th>
-                        <th>Status</th>
-                        <th>Última Conexão</th>
-                        <th class="has-text-centered">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for sessao in sessoes[:5] %}
-                    <tr>
-                        <td>
-                            <strong>{{ sessao.nome }}</strong>
-                        </td>
-                        <td>{{ sessao.telefone or '-' }}</td>
-                        <td>
-                            <span class="status-badge status-{{ sessao.status }}">
-                                {% if sessao.status == 'conectado' %}
-                                    <i class="fas fa-check-circle"></i>
-                                {% elif sessao.status == 'desconectado' %}
-                                    <i class="fas fa-times-circle"></i>
-                                {% else %}
-                                    <i class="fas fa-spinner fa-pulse"></i>
+        <!-- COLUNA PRINCIPAL (2/3): Listagem de Conectores e Agentes Ativos -->
+        <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+
+            {% if sessoes %}
+            {% for sessao in sessoes %}
+            <div class="cockpit-card">
+                <!-- NÍVEL 1: INFRAESTRUTURA (Conexão WhatsApp) -->
+                <div class="cockpit-header">
+                    <div class="flex items-center gap-md">
+                        <div class="status-pulse {% if sessao.status == 'conectado' %}is-online{% endif %}"></div>
+                        <div class="flex flex-col">
+                            <span class="gateway-label">CONECTOR: {{ sessao.nome }}</span>
+                            <div class="flex items-center gap-md" style="margin-top: 2px;">
+                                <span class="technical-info">
+                                    <i class="fab fa-whatsapp" style="color: #25D366; margin-right: 4px;"></i> {{
+                                    sessao.telefone or 'Aguardando Pareamento' }}
+                                </span>
+                                {% if sessao.ultima_conexao %}
+                                <span class="technical-info">
+                                    <i class="fas fa-clock" style="margin-right: 4px;"></i> Sincronizado: {{
+                                    sessao.ultima_conexao.strftime('%d/%m %H:%M') }}
+                                </span>
                                 {% endif %}
-                                {{ sessao.status }}
-                            </span>
-                        </td>
-                        <td>{{ sessao.ultima_conexao.strftime('%d/%m/%Y %H:%M') if sessao.ultima_conexao else '-' }}</td>
-                        <td>
-                            <div class="buttons is-centered">
-                                <a href="/sessoes/{{ sessao.id }}/detalhes" class="button is-info is-small" title="Detalhes">
-                                    <span class="icon"><i class="fas fa-eye"></i></span>
-                                </a>
-                                <a href="/agentes/sessao/{{ sessao.id }}" class="button is-warning is-small" title="Agentes">
-                                    <span class="icon"><i class="fas fa-user-robot"></i></span>
-                                </a>
-                                <a href="/mensagens/sessao/{{ sessao.id }}" class="button is-link is-small" title="Mensagens">
-                                    <span class="icon"><i class="fas fa-comments"></i></span>
-                                </a>
                             </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="notification is-info is-light">
-            <div class="columns is-mobile is-vcentered">
-                <div class="column is-narrow">
-                    <span class="icon is-large">
-                        <i class="fas fa-info-circle fa-2x"></i>
-                    </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-sm">
+                        <!-- Indicadores de Configuração da Sessão -->
+                        <div class="flex gap-md mr-md"
+                            style="padding: 4px 12px; background: rgba(0,0,0,0.03); border-radius: 20px;">
+                            <div class="flex items-center gap-xs"
+                                title="Auto-Resposta: {{ 'Ativada' if sessao.auto_responder else 'Desativada' }}">
+                                <i class="fas fa-robot"
+                                    style="font-size: 0.75rem; color: {% if sessao.auto_responder %}var(--color-success){% else %}var(--color-text-muted){% endif %};"></i>
+                                <span
+                                    style="font-size: 0.6rem; font-weight: 800; color: var(--color-text-tertiary);">AUTO</span>
+                            </div>
+                            <div class="flex items-center gap-xs"
+                                title="Histórico: {{ 'Ligado' if sessao.salvar_historico else 'Desligado' }}">
+                                <i class="fas fa-history"
+                                    style="font-size: 0.75rem; color: {% if sessao.salvar_historico %}var(--color-primary){% else %}var(--color-text-muted){% endif %};"></i>
+                                <span
+                                    style="font-size: 0.6rem; font-weight: 800; color: var(--color-text-tertiary);">LOG</span>
+                            </div>
+                        </div>
+                        <a href="/sessoes/{{ sessao.id }}/detalhes" class="button is-ghost is-small technical-btn"
+                            title="Configurar Conexão">
+                            <i class="fas fa-cog"></i>
+                        </a>
+                    </div>
                 </div>
-                <div class="column">
-                    <p class="has-text-weight-semibold">Nenhuma sessão criada ainda</p>
-                    <p>Crie sua primeira sessão para começar a usar o Fluxi</p>
-                    <a href="/sessoes/nova" class="button is-info mt-3">
-                        <span class="icon"><i class="fas fa-plus"></i></span>
-                        <span>Criar Primeira Sessão</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-    </div>
 
-    <!-- Status do Sistema -->
-    <div class="columns is-multiline">
-        <div class="column is-12-mobile is-6-tablet">
-            <div class="box">
-                <h2 class="title is-5 mb-4">
-                    <i class="fas fa-server"></i> Status do Sistema
-                </h2>
-                
-                <div class="content">
-                    
-                    <div class="mb-3 p-3" style="background: #f8f9fa; border-radius: 8px;">
-                        <div class="level is-mobile mb-0">
-                            <div class="level-left">
-                                <div class="level-item">
-                                    <strong>Sessões Ativas</strong>
+                <!-- NÍVEL 2: INTELIGÊNCIA (O Cérebro do Agente) -->
+                <div class="cockpit-body">
+                    {% if sessao.agente_ativo %}
+                    <div class="grid grid-cols-2 gap-lg">
+
+                        <!-- LADO A: IDENTIDADE E PERSONA -->
+                        <div class="flex flex-col gap-md">
+                            <div class="flex items-start gap-md">
+                                <div class="agent-avatar">
+                                    <i class="fas fa-microchip"></i>
+                                    {% if sessao.agente_ativo.internal_sandbox_ativo %}
+                                    <div class="sandbox-badge" title="Modo Autônomo Ativo">
+                                        <i class="fas fa-terminal"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex flex-col flex-1">
+                                    <div class="flex items-center justify-between mb-xs">
+                                        <div class="flex items-center gap-sm">
+                                            <h3 class="agent-name">{{ sessao.agente_ativo.nome }}</h3>
+                                            <a href="/agentes/{{ sessao.agente_ativo_id }}"
+                                                class="button is-ghost is-small"
+                                                style="padding: 0; min-width: auto; height: auto;"
+                                                title="Editar Cérebro / Prompt">
+                                                <i class="fas fa-edit"
+                                                    style="font-size: 0.8125rem; color: var(--color-primary);"></i>
+                                            </a>
+                                        </div>
+                                        <span class="model-tag">{{ sessao.agente_ativo.modelo_llm or 'Gemini 2.0'
+                                            }}</span>
+                                    </div>
+                                    <p class="agent-role">{{ sessao.agente_ativo.agente_papel|truncate(120) }}</p>
                                 </div>
                             </div>
-                            <div class="level-right">
-                                <div class="level-item">
-                                    <span class="tag is-info is-medium">{{ metricas.sessoes.ativas }}</span>
+
+                            <div class="tuning-bar">
+                                <div class="tuning-item" title="Temperatura: Controla a aleatoriedade da resposta">
+                                    <span class="tuning-label">TEMP</span>
+                                    <span class="tuning-value">{{ sessao.agente_ativo.temperatura or '0.7' }}</span>
                                 </div>
+                                <div class="tuning-item" title="Top-P: Controla a diversidade do vocabulário">
+                                    <span class="tuning-label">TOP-P</span>
+                                    <span class="tuning-value">{{ sessao.agente_ativo.top_p or '1.0' }}</span>
+                                </div>
+                                <div class="tuning-item" title="Número de agentes registrados nesta conexão">
+                                    <span class="tuning-label">INSTÂNCIAS</span>
+                                    <span class="tuning-value">{{ sessao.agentes|length }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LADO B: CAPACIDADES E FERRAMENTAS -->
+                        <div class="capability-area">
+                            <div class="flex items-center justify-between mb-sm">
+                                <span class="capability-title">STACK DE CAPACIDADES</span>
+                                <a href="/agentes/{{ sessao.agente_ativo_id }}?tab=ferramentas"
+                                    class="button is-ghost is-small setup-link">GESTÃO <i
+                                        class="fas fa-chevron-right ml-xs"></i></a>
+                            </div>
+
+                            <div class="tool-grid">
+                                {% if sessao.agente_ativo.rag %}
+                                <div class="compact-tool" title="Base de Conhecimento RAG Ativa">
+                                    <i class="fas fa-database" style="color: var(--color-success);"></i> <span>RAG:
+                                        Documentos</span>
+                                </div>
+                                {% endif %}
+
+                                {% for ferramenta in sessao.agente_ativo.ferramentas.all() %}
+                                <div class="compact-tool" title="{{ ferramenta.descricao }}">
+                                    <i class="fas {% if ferramenta.tool_type == 'web' %}fa-globe{% else %}fa-code{% endif %}"
+                                        style="color: var(--color-primary);"></i>
+                                    <span>{{ ferramenta.nome }}</span>
+                                </div>
+                                {% endfor %}
+
+                                {% for client in sessao.agente_ativo.mcp_clients %}
+                                <div class="compact-tool" title="Servidor MCP Externo">
+                                    <i class="fas fa-plug" style="color: #f59e0b;"></i> <span>MCP: {{
+                                        client.name|truncate(12) }}</span>
+                                </div>
+                                {% endfor %}
+
+                                {% if not sessao.agente_ativo.ferramentas.all() and not sessao.agente_ativo.mcp_clients
+                                and not sessao.agente_ativo.rag %}
+                                <div class="empty-capabilities">
+                                    Nenhuma ferramenta acoplada
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="p-3" style="background: #f8f9fa; border-radius: 8px;">
-                        <div class="level is-mobile mb-0">
-                            <div class="level-left">
-                                <div class="level-item">
-                                    <strong>Taxa de Sucesso</strong>
-                                </div>
-                            </div>
-                            <div class="level-right">
-                                <div class="level-item">
-                                    <span class="tag is-success is-medium">{{ metricas.performance.taxa_sucesso }}%</span>
-                                </div>
-                            </div>
+                    {% else %}
+                    <div class="empty-intelligence">
+                        <i class="fas fa-brain fa-2x mb-sm"></i>
+                        <p>Este conector está sem cérebro ativo.</p>
+                        <a href="/agente/sessao/{{ sessao.id }}" class="button is-primary is-small">Acoplar Agente</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- NÍVEL 3: OPERAÇÕES (Gatilhos e Protocolos) -->
+                <div class="cockpit-footer">
+                    <div class="footer-section">
+                        <span class="footer-label">PROTOCOLO DE MÍDIA:</span>
+                        <div class="flex gap-sm">
+                            {% set rules = {} %}
+                            {% for type in sessao.tipos_mensagem %}
+                            {% set _ = rules.update({type.tipo: type.acao}) %}
+                            {% endfor %}
+                            <i class="fas fa-microphone" title="Áudio: {{ rules.audio or 'ignorar' }}"
+                                style="color: {% if rules.audio == 'enviar_ia' %}var(--color-primary){% else %}var(--color-text-muted){% endif %};"></i>
+                            <i class="fas fa-image" title="Imagem: {{ rules.imagem or 'ignorar' }}"
+                                style="color: {% if rules.imagem == 'enviar_ia' %}var(--color-primary){% else %}var(--color-text-muted){% endif %};"></i>
+                            <i class="fas fa-file-pdf" title="Documentos: {{ rules.documento or 'ignorar' }}"
+                                style="color: {% if rules.documento == 'enviar_ia' %}var(--color-primary){% else %}var(--color-text-muted){% endif %};"></i>
+                            <i class="fas fa-video" title="Vídeo: {{ rules.video or 'ignorar' }}"
+                                style="color: {% if rules.video == 'enviar_ia' %}var(--color-primary){% else %}var(--color-text-muted){% endif %};"></i>
                         </div>
+                    </div>
+
+                    <div class="footer-divider"></div>
+
+                    <div class="footer-section flex-1">
+                        <span class="footer-label">GATILHOS ATIVOS:</span>
+                        <div class="flex flex-wrap gap-xs">
+                            {% for cmd in sessao.comandos %}
+                            {% if cmd.ativo %}
+                            <span class="trigger-pill">{{ cmd.gatilho }}</span>
+                            {% endif %}
+                            {% endfor %}
+                            {% if not sessao.comandos %}<span
+                                style="font-size: 0.65rem; color: var(--color-text-tertiary);">Nenhum gatilho
+                                configurado</span>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-sm">
+                        <a href="/mensagens/sessao/{{ sessao.id }}" class="action-btn"
+                            title="Ver Histórico Completo">HISTÓRICO</a>
+                        <a href="/agentes/sessao/{{ sessao.id }}" class="action-btn"
+                            title="Gerenciar Personas deste Número">AGENTES</a>
                     </div>
                 </div>
             </div>
+            {% endfor %}
+            {% else %}
+            <div class="box p-2xl text-center"
+                style="border: 2px dashed var(--color-border); background: var(--color-bg-primary);">
+                <i class="fab fa-whatsapp fa-4x mb-md" style="color: var(--color-text-muted); opacity: 0.2;"></i>
+                <h3 style="font-size: 1.125rem; color: var(--color-text-primary);">Nenhum Conector Ativado</h3>
+                <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: var(--space-xl);">
+                    Você precisa conectar pelo menos um número de WhatsApp para iniciar as operações.</p>
+                <a href="/sessoes/nova" class="button is-primary">Iniciar Nova Instância</a>
+            </div>
+            {% endif %}
+
         </div>
-        
-        <div class="column is-12-mobile is-6-tablet">
-            <div class="box">
-                <h2 class="title is-5 mb-4">
-                    <i class="fas fa-info-circle"></i> Sobre o Fluxi
-                </h2>
-                
-                <div class="content">
-                    <p>
-                        <strong>Fluxi</strong> é um assistente pessoal inteligente que integra 
-                        WhatsApp com modelos de linguagem através do OpenRouter.
-                    </p>
-                    
-                    <p class="has-text-weight-semibold mb-2">Recursos:</p>
-                    <div class="columns is-mobile is-multiline">
-                        <div class="column is-6">
-                            <div class="p-2" style="background: #f0f7ff; border-radius: 8px;">
-                                <i class="fas fa-whatsapp has-text-success"></i> Múltiplas sessões
-                            </div>
+
+        <!-- COLUNA SECUNDÁRIA (1/3): Performance e Saúde -->
+        <div class="flex flex-col gap-lg">
+
+            <!-- MÉTRICAS OPERACIONAIS -->
+            <div class="box" style="padding: var(--space-md) var(--space-lg); border-color: var(--color-border);">
+                <div class="flex items-center justify-between mb-lg">
+                    <h3
+                        style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); font-weight: 700;">
+                        Métricas Globais</h3>
+                    <i class="fas fa-chart-bar" style="color: var(--color-text-muted);"></i>
+                </div>
+
+                <div class="metric-list">
+                    <div class="metric-row">
+                        <div class="flex flex-col">
+                            <span class="metric-value">{{ metricas.sessoes.ativas }}</span>
+                            <span class="metric-label">Canais Online</span>
                         </div>
-                        <div class="column is-6">
-                            <div class="p-2" style="background: #f0f7ff; border-radius: 8px;">
-                                <i class="fas fa-robot has-text-info"></i> Agentes LLM
-                            </div>
+                        <div class="metric-icon-box bg-blue"><i class="fas fa-link"></i></div>
+                    </div>
+
+                    <div class="metric-row">
+                        <div class="flex flex-col">
+                            <span class="metric-value">{{ metricas.mensagens.total }}</span>
+                            <span class="metric-label">Mensagens Processadas</span>
                         </div>
-                        <div class="column is-6">
-                            <div class="p-2" style="background: #f0f7ff; border-radius: 8px;">
-                                <i class="fas fa-image has-text-warning"></i> Suporte a imagens
-                            </div>
+                        <div class="metric-icon-box bg-amber"><i class="fas fa-bolt"></i></div>
+                    </div>
+
+                    <div class="metric-row">
+                        <div class="flex flex-col">
+                            <span class="metric-value" style="color: var(--color-success);">{{
+                                metricas.performance.taxa_sucesso }}%</span>
+                            <span class="metric-label">Taxa de Precisão</span>
                         </div>
-                        <div class="column is-6">
-                            <div class="p-2" style="background: #f0f7ff; border-radius: 8px;">
-                                <i class="fas fa-tools has-text-link"></i> Ferramentas custom
-                            </div>
-                        </div>
+                        <div class="metric-icon-box bg-green"><i class="fas fa-check-double"></i></div>
                     </div>
                 </div>
             </div>
+
+            <!-- SAÚDE DO SISTEMA -->
+            <div class="box"
+                style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-tertiary); border: none;">
+                <h4
+                    style="font-size: 0.7rem; font-weight: 800; color: var(--color-text-primary); text-transform: uppercase; margin-bottom: var(--space-md);">
+                    Status da Infraestrutura</h4>
+                <div class="flex flex-col gap-sm">
+                    <div class="health-item">
+                        <span>OpenRouter - Núcleo de Processamento</span>
+                        <span class="health-status status-up">OPERACIONAL</span>
+                    </div>
+                    <div class="health-item">
+                        <span>Neonize - Ponte WhatsApp</span>
+                        <span class="health-status status-up">CONECTADO</span>
+                    </div>
+                    <div class="health-item">
+                        <span>Serviço de Descoberta MCP</span>
+                        <span class="health-status status-ready">PRONTO</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INSTRUÇÃO RÁPIDA -->
+            <div class="box"
+                style="padding: var(--space-md) var(--space-lg); background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-bg-secondary) 100%); border: 1px dashed var(--color-border);">
+                <div class="flex items-center gap-sm mb-sm">
+                    <i class="fas fa-lightbulb" style="color: #f59e0b;"></i>
+                    <strong style="font-size: 0.75rem;">Dica Pro</strong>
+                </div>
+                <p style="font-size: 0.7rem; color: var(--color-text-secondary); line-height: 1.5;">
+                    Você pode trocar de **Agente** (Persona) instantaneamente clicando em "Agentes" ou enviando o
+                    comando gatilho `#` seguido do código dele no chat.
+                </p>
+            </div>
+
         </div>
     </div>
 </div>
+
+<style>
+    /* Cockpit Card Architecture */
+    .cockpit-card {
+        border: 1px solid var(--color-border);
+        background: var(--color-surface);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Header Layer (Sessions) */
+    .cockpit-header {
+        background: var(--color-bg-secondary);
+        border-bottom: 1px solid var(--color-border);
+        padding: var(--space-md) var(--space-lg);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .gateway-label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: var(--color-text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .technical-info {
+        font-size: 0.65rem;
+        color: var(--color-text-secondary);
+        font-weight: 600;
+    }
+
+    .technical-btn {
+        padding: 6px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        color: var(--color-text-secondary);
+    }
+
+    /* Body Layer (Intelligence) */
+    .cockpit-body {
+        padding: var(--space-lg);
+    }
+
+    .agent-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--color-primary) 0%, #6366f1 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+        position: relative;
+        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+    }
+
+    .sandbox-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 18px;
+        height: 18px;
+        background: #d946ef;
+        border-radius: 50%;
+        border: 2px solid var(--color-surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.55rem;
+        color: white;
+    }
+
+    .agent-name {
+        font-size: 1.125rem;
+        font-weight: 800;
+        color: var(--color-text-primary);
+        margin: 0;
+    }
+
+    .model-tag {
+        font-size: 0.6rem;
+        font-weight: 800;
+        background: var(--color-bg-tertiary);
+        color: var(--color-text-secondary);
+        padding: 2px 8px;
+        border-radius: 4px;
+        border: 1px solid var(--color-border);
+    }
+
+    .agent-role {
+        font-size: 0.75rem;
+        color: var(--color-text-secondary);
+        line-height: 1.4;
+        margin-top: 4px;
+    }
+
+    /* Tuning Specs */
+    .tuning-bar {
+        display: flex;
+        gap: var(--space-md);
+        margin-top: var(--space-md);
+        padding: 8px 12px;
+        background: var(--color-bg-tertiary);
+        border-radius: var(--radius-md);
+        width: fit-content;
+    }
+
+    .tuning-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tuning-label {
+        font-size: 0.55rem;
+        font-weight: 800;
+        color: var(--color-text-tertiary);
+        text-transform: uppercase;
+    }
+
+    .tuning-value {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--color-text-primary);
+    }
+
+    /* Capabilities */
+    .capability-area {
+        padding-left: var(--space-lg);
+        border-left: 1px solid var(--color-border);
+    }
+
+    .capability-title {
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: var(--color-text-tertiary);
+        letter-spacing: 0.05em;
+    }
+
+    .tool-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .compact-tool {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--color-text-primary);
+        transition: all 0.2s;
+    }
+
+    .compact-tool:hover {
+        border-color: var(--color-primary-light);
+        transform: translateX(2px);
+    }
+
+    .setup-link {
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: var(--color-primary);
+        text-transform: uppercase;
+    }
+
+    /* Footer Layer (Operations) */
+    .cockpit-footer {
+        background: var(--color-surface);
+        border-top: 1px solid var(--color-border);
+        padding: 8px var(--space-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--space-lg);
+    }
+
+    .footer-section {
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+    }
+
+    .footer-label {
+        font-size: 0.6rem;
+        font-weight: 800;
+        color: var(--color-text-tertiary);
+    }
+
+    .footer-divider {
+        width: 1px;
+        height: 16px;
+        background: var(--color-border);
+    }
+
+    .trigger-pill {
+        font-size: 0.6rem;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+        color: var(--color-text-secondary);
+    }
+
+    .action-btn {
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        padding: 4px 8px;
+    }
+
+    .action-btn:hover {
+        color: var(--color-primary);
+    }
+
+    /* Metrics */
+    .metric-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--space-md);
+    }
+
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .metric-label {
+        font-size: 0.7rem;
+        color: var(--color-text-secondary);
+        margin-top: 4px;
+    }
+
+    .metric-icon-box {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.125rem;
+    }
+
+    .bg-blue {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+
+    .bg-amber {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .bg-green {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .health-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.65rem;
+        font-weight: 600;
+    }
+
+    .health-status {
+        font-weight: 800;
+    }
+
+    .status-up {
+        color: var(--color-success);
+    }
+
+    .status-ready {
+        color: #0ea5e9;
+    }
+
+    /* Status Animation */
+    .status-pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--color-text-muted);
+        position: relative;
+    }
+
+    .status-pulse.is-online {
+        background: var(--color-success);
+    }
+
+    .status-pulse.is-online::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: var(--color-success);
+        border-radius: 50%;
+        animation: pulse-ring 2s infinite;
+    }
+
+    @keyframes pulse-ring {
+        0% {
+            transform: scale(0.8);
+            opacity: 0.6;
+        }
+
+        100% {
+            transform: scale(3.5);
+            opacity: 0;
+        }
+    }
+</style>
 {% endblock %}

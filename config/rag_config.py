@@ -16,25 +16,31 @@ class RAGConfig:
         "rag_openai_chunk_size": 1000,
         "rag_openai_chunk_overlap": 200,
         "rag_openai_top_k": 3,
-        
+
+        # OpenRouter
+        "rag_openrouter_model": "openai/text-embedding-3-small",
+        "rag_openrouter_chunk_size": 1000,
+        "rag_openrouter_chunk_overlap": 200,
+        "rag_openrouter_top_k": 3,
+
         # Cohere
         "rag_cohere_model": "embed-english-v3.0",
         "rag_cohere_chunk_size": 1000,
         "rag_cohere_chunk_overlap": 200,
         "rag_cohere_top_k": 3,
-        
+
         # HuggingFace
         "rag_huggingface_model": "sentence-transformers/all-mpnet-base-v2",
         "rag_huggingface_chunk_size": 1000,
         "rag_huggingface_chunk_overlap": 200,
         "rag_huggingface_top_k": 3,
-        
+
         # Google
         "rag_google_model": "models/embedding-001",
         "rag_google_chunk_size": 1000,
         "rag_google_chunk_overlap": 200,
         "rag_google_top_k": 3,
-        
+
         # Configurações gerais
         "rag_default_provider": "openai",
         "rag_max_chunk_size": 5000,
@@ -62,7 +68,7 @@ class RAGConfig:
         else:
             # Buscar configurações gerais
             for key, default_value in RAGConfig.DEFAULT_CONFIG.items():
-                if not any(provider in key for provider in ["openai", "cohere", "huggingface", "google"]):
+                if not any(provider in key for provider in ["openai", "openrouter", "cohere", "huggingface", "google"]):
                     config_key = key.replace("rag_", "").replace("_default", "")
                     config[config_key] = ConfiguracaoService.obter_valor(
                         db, key, default_value
@@ -85,7 +91,7 @@ class RAGConfig:
     @staticmethod
     def get_available_providers() -> list:
         """Lista providers disponíveis."""
-        return ["openai", "cohere", "huggingface", "google"]
+        return ["openai", "openrouter", "cohere", "huggingface", "google"]
     
     @staticmethod
     def get_provider_models(provider: str) -> list:
@@ -93,8 +99,13 @@ class RAGConfig:
         models = {
             "openai": [
                 "text-embedding-3-small",
-                "text-embedding-3-large", 
+                "text-embedding-3-large",
                 "text-embedding-ada-002"
+            ],
+            "openrouter": [
+                "openai/text-embedding-3-small",
+                "openai/text-embedding-3-large",
+                "openai/text-embedding-ada-002"
             ],
             "cohere": [
                 "embed-english-v3.0",

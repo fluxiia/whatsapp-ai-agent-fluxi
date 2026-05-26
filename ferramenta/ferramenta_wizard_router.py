@@ -15,6 +15,7 @@ from ferramenta.ferramenta_schema import FerramentaCriar
 from ferramenta.ferramenta_model import ToolType, ToolScope, OutputDestination, ChannelType
 from ferramenta.ferramenta_variavel_service import FerramentaVariavelService
 from config.config_service import ConfiguracaoService
+from log.log_service import fluxi_log
 
 router = APIRouter(prefix="/ferramentas/wizard", tags=["Wizard Ferramentas"])
 templates = Jinja2Templates(directory="templates")
@@ -220,12 +221,12 @@ async def wizard_step4_get(request: Request):
     test_result = _test_results_cache.get('last_test_result')
     last_execution_id = _test_results_cache.get('last_execution_id', 'N/A')
     
-    print(f"📊 Renderizando Step 4 - Execution ID: {last_execution_id}")
+    fluxi_log.info("ferramenta", "wizard", "Renderizando Step 4", extra={"execution_id": last_execution_id})
     if test_result:
         if isinstance(test_result, dict) and 'erro' not in test_result:
-            print(f"✅ test_result OK: {len(test_result)} chaves")
+            fluxi_log.info("ferramenta", "wizard", "test_result OK", extra={"num_chaves": len(test_result)})
         else:
-            print(f"⚠️  test_result com erro")
+            fluxi_log.warning("ferramenta", "wizard", "test_result com erro")
     
     return templates.TemplateResponse("ferramenta/wizard/step4.html", {
         "request": request,
@@ -240,9 +241,7 @@ async def wizard_step4_testar(request: Request, db: Session = Depends(get_db)):
     """Executa teste da ferramenta."""
     import uuid
     execution_id = str(uuid.uuid4())[:8]
-    print(f"\n{'='*70}")
-    print(f"NOVA EXECUÇÃO DE TESTE - ID: {execution_id}")
-    print(f"{'='*70}")
+    fluxi_log.info("ferramenta", "wizard", "Nova execucao de teste", extra={"execution_id": execution_id})
     
     wizard_data = get_wizard_data(request)
     form_data = await request.form()
@@ -365,19 +364,19 @@ async def wizard_step4_testar(request: Request, db: Session = Depends(get_db)):
         # Salvar test_result em cache em memória (mais confiável que sessão)
         _test_results_cache['last_test_result'] = test_result
         _test_results_cache['last_execution_id'] = execution_id
-        print(f"[{execution_id}] ✅ test_result salvo em cache")
+        fluxi_log.info("ferramenta", "wizard", "test_result salvo em cache", extra={"execution_id": execution_id})
         
         # Salvar wizard_data SEM test_result (para economizar espaço na sessão)
         wizard_data['last_test_execution_id'] = execution_id
         save_wizard_data(request, wizard_data)
         
     except httpx.TimeoutException:
-        print(f"[{execution_id}] ❌ TimeoutException")
+        fluxi_log.error("ferramenta", "execucao", "TimeoutException no teste", exc_info=True, extra={"execution_id": execution_id})
         timeout_teste = ConfiguracaoService.obter_valor(db, "ferramenta_timeout_teste", 10)
         _test_results_cache['last_test_result'] = {"erro": f"Timeout na requisição ({timeout_teste}s)"}
         _test_results_cache['last_execution_id'] = execution_id
     except Exception as e:
-        print(f"[{execution_id}] ❌ Erro: {type(e).__name__}: {e}")
+        fluxi_log.error("ferramenta", "execucao", "Erro ao executar teste", exc_info=True, extra={"execution_id": execution_id})
         _test_results_cache['last_test_result'] = {"erro": f"Erro ao executar: {str(e)}"}
         _test_results_cache['last_execution_id'] = execution_id
     

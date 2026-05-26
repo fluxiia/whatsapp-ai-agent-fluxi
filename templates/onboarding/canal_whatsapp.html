@@ -1,0 +1,44 @@
+{% extends "onboarding/base.html" %}
+
+{% block ob_content %}
+<div class="ob-card">
+    <h2><i class="fab fa-whatsapp" style="color:#25D366;"></i> Conectar WhatsApp</h2>
+    <p class="ob-card-lead">
+        De um nome a essa conexao. Em seguida voce vai escanear um QR code com o
+        celular onde o WhatsApp ja esta instalado.
+    </p>
+
+    <form method="post" action="/onboarding/canal/criar">
+        <input type="hidden" name="canal" value="whatsapp">
+
+        <div class="ob-field">
+            <label>Nome da conexao</label>
+            <input class="ob-input" type="text" name="nome" required
+                   value="{{ form_nome or 'Meu WhatsApp' }}" autofocus>
+            <div class="hint">So pra voce se localizar entre conexoes. Ex.: "Loja", "Suporte", "Pessoal".</div>
+        </div>
+
+        <div class="ob-alert ob-alert-info">
+            <i class="fas fa-lightbulb"></i>
+            <div>
+                <strong>Como vai funcionar:</strong> ao continuar, geramos um QR code. Abra o
+                WhatsApp no celular &rarr; <strong>Aparelhos conectados</strong> &rarr;
+                <strong>Conectar um aparelho</strong> &rarr; aponte a camera pra tela. Pronto.
+            </div>
+        </div>
+
+        <div class="ob-actions">
+            <div class="ob-actions-left">
+                <a href="/onboarding/canal" class="ob-btn ob-btn-ghost">
+                    <i class="fas fa-arrow-left"></i> Trocar canal
+                </a>
+            </div>
+            <div class="ob-actions-right">
+                <button type="submit" class="ob-btn ob-btn-primary">
+                    Gerar QR code <i class="fas fa-qrcode"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

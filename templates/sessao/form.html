@@ -1,381 +1,172 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+{% block title %}Nova Sessão Base - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <nav class="breadcrumb" aria-label="breadcrumbs" style="margin-bottom: 0.75rem !important;">
-        <ul style="margin-bottom: 0 !important;">
-            <li><a href="/sessoes" style="color: #6b7280;"><i class="fas fa-home"></i> Sessões</a></li>
-            <li class="is-active"><a style="color: #C75B9B;">{{ titulo }}</a></li>
-        </ul>
-    </nav>
-    <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
-        <i class="{% if acao == 'criar' %}fas fa-plus-circle{% else %}fas fa-edit{% endif %}" style="color: #C75B9B;"></i> {{ titulo }}
-    </h1>
-    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-        Configure seu canal de comunicação WhatsApp
-    </p>
-</div>
-
-<div class="columns">
-    <div class="column is-8">
-        <form method="POST" action="{% if acao == 'criar' %}/sessoes/criar{% else %}/sessoes/{{ sessao.id }}/atualizar{% endif %}">
-
-            <!-- Informações da Sessão -->
-            <div class="box" style="margin-bottom: 2rem;">
-                <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                    <i class="fas fa-info-circle" style="color: #C75B9B;"></i> Informações da Sessão
-                </h2>
-                
-                <div class="field">
-                    <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                        Nome da Sessão *
-                    </label>
-                    <div class="control has-icons-left">
-                        <input class="input" type="text" name="nome" required
-                               value="{% if sessao %}{{ sessao.nome }}{% endif %}"
-                               placeholder="Ex: Atendimento Principal, Suporte Técnico, Vendas"
-                               style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">
-                        <span class="icon is-small is-left" style="color: #C75B9B;">
-                            <i class="fas fa-tag"></i>
-                        </span>
-                    </div>
-                    <p class="help" style="color: #6b7280; margin-top: 0.5rem;">
-                        <i class="fas fa-info-circle"></i> Nome único para identificar este canal WhatsApp
-                    </p>
-                </div>
-            </div>
-
-            {% if acao == 'criar' %}
-            <!-- Configuração do Agente Padrão -->
-            <div class="box" style="margin-bottom: 2rem;">
-                <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                    <i class="fas fa-robot" style="color: #8b5cf6;"></i> Configuração do Agente Padrão
-                </h2>
-
-                <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.6;">
-                    Ao criar uma sessão, um agente padrão será gerado automaticamente com as configurações abaixo. Ajuste conforme desejado.
-                </p>
-
-                <div class="field">
-                    <label class="label">Papel do Agente *</label>
-                    <div class="control">
-                        <textarea class="textarea" name="agente_papel" rows="2" required>{{ config_agente.papel }}</textarea>
-                    </div>
-                    <p class="help">Descreva o papel principal deste agente.</p>
-                </div>
-
-                <div class="field">
-                    <label class="label">Objetivo do Agente *</label>
-                    <div class="control">
-                        <textarea class="textarea" name="agente_objetivo" rows="2" required>{{ config_agente.objetivo }}</textarea>
-                    </div>
-                    <p class="help">Explique qual objetivo este agente deve alcançar.</p>
-                </div>
-
-                <div class="field">
-                    <label class="label">Políticas do Agente *</label>
-                    <div class="control">
-                        <textarea class="textarea" name="agente_politicas" rows="2" required>{{ config_agente.politicas }}</textarea>
-                    </div>
-                    <p class="help">Regras e diretrizes que o agente deve seguir.</p>
-                </div>
-
-                <div class="field">
-                    <label class="label">Tarefa do Agente *</label>
-                    <div class="control">
-                        <textarea class="textarea" name="agente_tarefa" rows="2" required>{{ config_agente.tarefa }}</textarea>
-                    </div>
-                    <p class="help">Principais atividades que o agente deve realizar.</p>
-                </div>
-
-                <div class="field">
-                    <label class="label">Objetivo Explícito *</label>
-                    <div class="control">
-                        <textarea class="textarea" name="agente_objetivo_explicito" rows="2" required>{{ config_agente.objetivo_explicito }}</textarea>
-                    </div>
-                    <p class="help">Mensagem direta que explicita o objetivo do agente.</p>
-                </div>
-
-                <div class="field">
-                    <label class="label">Público-alvo *</label>
-                    <div class="control">
-                        <textarea class="textarea" name="agente_publico" rows="2" required>{{ config_agente.publico }}</textarea>
-                    </div>
-                    <p class="help">Para quem o agente irá responder (clientes, leads, equipe interna, etc.).</p>
-                </div>
-
-                <div class="field">
-                    <label class="label">Restrições *</label>
-                    <div class="control">
-                        <textarea class="textarea" name="agente_restricoes" rows="2" required>{{ config_agente.restricoes }}</textarea>
-                    </div>
-                    <p class="help">Limitações e orientações que o agente deve respeitar.</p>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Configurações -->
-            <div class="box" style="margin-bottom: 2rem;">
-                <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                    <i class="fas fa-cog" style="color: #6b7280;"></i> Configurações
-                </h2>
-                
-                <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 12px; padding: 1.5rem; border: 2px solid #10b981;">
-                    <label class="checkbox" style="display: flex; align-items: start; gap: 1rem; cursor: pointer;">
-                        <input type="checkbox" name="auto_responder" value="true"
-                               {% if not sessao or sessao.auto_responder %}checked{% endif %}
-                               style="margin-top: 0.25rem; transform: scale(1.2);">
-                        <div>
-                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                                <div style="width: 40px; height: 40px; border-radius: 8px; background: #10b981; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-robot" style="color: white; font-size: 1.125rem;"></i>
-                                </div>
-                                <strong style="color: #1f2937; font-size: 1.125rem;">Auto-responder com IA</strong>
-                            </div>
-                            <p style="color: #166534; font-size: 0.9375rem; line-height: 1.7; font-weight: 500;">
-                                Quando ativado, o <strong>agente ativo</strong> responderá automaticamente todas as mensagens recebidas nesta sessão usando inteligência artificial.
-                            </p>
-                            <p style="color: #166534; font-size: 0.8125rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(16, 185, 129, 0.3);">
-                                <i class="fas fa-lightbulb"></i> <strong>Dica:</strong> Desative se quiser responder manualmente ou se ainda não configurou um agente.
-                            </p>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            {% if acao == 'criar' %}
-            <!-- Tipos de Mensagem -->
-            <div class="box" style="margin-bottom: 2rem;">
-                <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                    <i class="fas fa-comments" style="color: #ec4899;"></i> Comportamento por Tipo de Mensagem
-                </h2>
-                <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.6;">
-                    Configure como esta sessão deve tratar cada tipo de mensagem recebida. Você pode alterar depois.
-                </p>
-
-                <!-- Áudio -->
-                <div style="background: #fdf4ff; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #f0abfc;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                        <div style="width: 36px; height: 36px; border-radius: 8px; background: #d946ef; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-microphone" style="color: white;"></i>
-                        </div>
-                        <strong style="color: #1f2937;">Mensagem de Áudio</strong>
-                    </div>
-                    <div class="field">
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_audio" value="enviar_ia" checked> Transcrever e enviar para IA responder</label>
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_audio" value="transcricao_apenas"> Apenas responder com a transcrição</label>
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_audio" value="resposta_fixa" onclick="document.getElementById('audio_resposta').style.display='block'"> Responder com mensagem fixa</label>
-                            <input type="text" class="input" name="tipo_audio_resposta" id="audio_resposta" placeholder="Digite a resposta..." style="display:none; margin-top: 0.5rem; margin-left: 1.5rem; max-width: 400px;">
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_audio" value="ignorar"> Ignorar</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Imagem -->
-                <div style="background: #fef3c7; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #fcd34d;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                        <div style="width: 36px; height: 36px; border-radius: 8px; background: #f59e0b; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-image" style="color: white;"></i>
-                        </div>
-                        <strong style="color: #1f2937;">Mensagem com Imagem</strong>
-                    </div>
-                    <div class="field">
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_imagem" value="enviar_ia" checked> Enviar para IA responder (visão)</label>
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_imagem" value="resposta_fixa" onclick="document.getElementById('imagem_resposta').style.display='block'"> Responder com mensagem fixa</label>
-                            <input type="text" class="input" name="tipo_imagem_resposta" id="imagem_resposta" placeholder="Digite a resposta..." style="display:none; margin-top: 0.5rem; margin-left: 1.5rem; max-width: 400px;">
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_imagem" value="ignorar"> Ignorar</label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Vídeo -->
-                <div style="background: #f0f9ff; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #7dd3fc;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                        <div style="width: 36px; height: 36px; border-radius: 8px; background: #0ea5e9; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-video" style="color: white;"></i>
-                        </div>
-                        <strong style="color: #1f2937;">Mensagem com Vídeo</strong>
-                    </div>
-                    <div class="field">
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_video" value="ignorar" checked> Ignorar</label>
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_video" value="resposta_fixa" onclick="document.getElementById('video_resposta').style.display='block'"> Responder com mensagem fixa</label>
-                            <input type="text" class="input" name="tipo_video_resposta" id="video_resposta" placeholder="Digite a resposta..." style="display:none; margin-top: 0.5rem; margin-left: 1.5rem; max-width: 400px;">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sticker -->
-                <div style="background: #fef2f2; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #fca5a5;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                        <div style="width: 36px; height: 36px; border-radius: 8px; background: #ef4444; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-sticky-note" style="color: white;"></i>
-                        </div>
-                        <strong style="color: #1f2937;">Sticker (Figurinha)</strong>
-                    </div>
-                    <div class="field">
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_sticker" value="ignorar" checked> Ignorar</label>
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_sticker" value="resposta_fixa" onclick="document.getElementById('sticker_resposta').style.display='block'"> Responder com mensagem fixa</label>
-                            <input type="text" class="input" name="tipo_sticker_resposta" id="sticker_resposta" placeholder="Digite a resposta..." style="display:none; margin-top: 0.5rem; margin-left: 1.5rem; max-width: 400px;">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Localização -->
-                <div style="background: #f0fdf4; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #86efac;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                        <div style="width: 36px; height: 36px; border-radius: 8px; background: #22c55e; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-map-marker-alt" style="color: white;"></i>
-                        </div>
-                        <strong style="color: #1f2937;">Localização</strong>
-                    </div>
-                    <div class="field">
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_localizacao" value="ignorar" checked> Ignorar</label>
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_localizacao" value="enviar_ia"> Enviar para IA (latitude/longitude)</label>
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_localizacao" value="resposta_fixa" onclick="document.getElementById('localizacao_resposta').style.display='block'"> Responder com mensagem fixa</label>
-                            <input type="text" class="input" name="tipo_localizacao_resposta" id="localizacao_resposta" placeholder="Digite a resposta..." style="display:none; margin-top: 0.5rem; margin-left: 1.5rem; max-width: 400px;">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Documento -->
-                <div style="background: #f5f3ff; border-radius: 8px; padding: 1rem; border: 1px solid #c4b5fd;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                        <div style="width: 36px; height: 36px; border-radius: 8px; background: #8b5cf6; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-file-alt" style="color: white;"></i>
-                        </div>
-                        <strong style="color: #1f2937;">Documento</strong>
-                    </div>
-                    <div class="field">
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_documento" value="ignorar" checked> Ignorar</label>
-                        </div>
-                        <div class="control">
-                            <label class="radio"><input type="radio" name="tipo_documento" value="resposta_fixa" onclick="document.getElementById('documento_resposta').style.display='block'"> Responder com mensagem fixa</label>
-                            <input type="text" class="input" name="tipo_documento_resposta" id="documento_resposta" placeholder="Digite a resposta..." style="display:none; margin-top: 0.5rem; margin-left: 1.5rem; max-width: 400px;">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Botões -->
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <button type="submit" class="button is-primary is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>{% if acao == 'criar' %}Criar Sessão{% else %}Salvar Alterações{% endif %}</span>
-                </button>
-                <a href="/sessoes" class="button is-medium" style="border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
-                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                    <span>Voltar</span>
-                </a>
-            </div>
-        </form>
-    </div>
-
-    <!-- Sidebar de Ajuda -->
-    <div class="column is-4">
-        <div class="box" style="position: sticky; top: 2rem; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb;">
-            <h3 class="title is-5" style="margin-bottom: 1rem;">
-                <i class="fas fa-lightbulb" style="color: #f59e0b;"></i> Dicas
-            </h3>
-            
-            <div style="display: grid; gap: 1rem;">
-                <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 3px solid #C75B9B;">
-                    <p style="font-weight: 600; color: #1f2937; margin-bottom: 0.5rem;">
-                        <i class="fas fa-tag"></i> Nome da Sessão
-                    </p>
-                    <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.6;">
-                        Use nomes descritivos como "Atendimento 24h", "Vendas", "Suporte" para identificar facilmente cada canal.
-                    </p>
-                </div>
-
-                <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 3px solid #10b981;">
-                    <p style="font-weight: 600; color: #1f2937; margin-bottom: 0.5rem;">
-                        <i class="fas fa-robot"></i> Agentes
-                    </p>
-                    <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.6;">
-                        Após criar a sessão, você poderá adicionar agentes com diferentes personalidades para responder neste canal.
-                    </p>
-                </div>
-
-                <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 3px solid #3b82f6;">
-                    <p style="font-weight: 600; color: #1f2937; margin-bottom: 0.5rem;">
-                        <i class="fas fa-plug"></i> Conexão
-                    </p>
-                    <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.6;">
-                        Conecte a sessão ao WhatsApp usando QR Code ou pair code após a criação.
-                    </p>
-                </div>
-            </div>
+<div class="container" style="max-width: 900px;">
+    <!-- Page Header Menor e Contido -->
+    <div class="flex items-center justify-between mb-lg"
+        style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">Abrir Nova Conexão (WhatsApp ou Telegram)</h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/sessoes" style="color: var(--color-text-secondary); text-decoration: none;"><i
+                        class="fas fa-home" style="margin-right: 4px;"></i> Workspace</a> / <span
+                    style="color: var(--color-text-primary);">Configurar Sessão</span>
+            </p>
         </div>
     </div>
-</div>
 
-<!-- Footer de Documentação -->
-<div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; margin-top: 3rem;">
-    <div style="display: flex; gap: 2rem; align-items: start; flex-wrap: wrap;">
-        <div style="flex-shrink: 0;">
-            <div style="width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-book" style="font-size: 1.75rem; color: #C75B9B;"></i>
+    <form method="POST" action="/sessoes/criar" class="flex flex-col gap-lg">
+
+        <!-- Informações do Agente Base -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg"
+                style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-tag" style="color: var(--color-text-secondary);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Identidade Física do
+                    Canal</h2>
             </div>
-        </div>
-        <div style="flex: 1; min-width: 300px;">
-            <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 0.75rem;">
-                <i class="fas fa-info-circle"></i> O que é uma Sessão?
-            </h3>
-            <div style="color: #4b5563; line-height: 1.7; font-size: 0.9375rem;">
-                <p style="margin-bottom: 1rem;">
-                    <strong style="color: #1f2937;">Sessão = Canal WhatsApp.</strong> É a conexão física com uma conta do WhatsApp. Pense na sessão como o "telefone" do seu sistema.
-                </p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
-                    <div style="display: flex; align-items: start; gap: 0.75rem;">
-                        <i class="fas fa-check-circle" style="color: #10b981; margin-top: 0.25rem;"></i>
-                        <div>
-                            <strong style="color: #1f2937;">Uma sessão</strong> por número WhatsApp
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: start; gap: 0.75rem;">
-                        <i class="fas fa-check-circle" style="color: #10b981; margin-top: 0.25rem;"></i>
-                        <div>
-                            <strong style="color: #1f2937;">Múltiplos agentes</strong> podem usar a mesma sessão
-                        </div>
-                    </div>
-                    <div style="display: flex; align-items: start; gap: 0.75rem;">
-                        <i class="fas fa-check-circle" style="color: #10b981; margin-top: 0.25rem;"></i>
-                        <div>
-                            <strong style="color: #1f2937;">Agente ativo</strong> responde as mensagens automaticamente
-                        </div>
-                    </div>
+
+            <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: var(--space-md);">
+                A Sessão representa um canal de comunicação (WhatsApp ou Telegram). Você poderá acoplar e moldar a
+                "Inteligência Artificial" dele após terminar este setup.
+            </p>
+
+            <div class="form-group mb-lg">
+                <label
+                    style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Apelido do Aparelho/Número <span style="color: var(--color-error);">*</span>
+                </label>
+                <input type="text" class="input" name="nome" required placeholder="Ex: Suporte N1, Fone Vendas B2B..."
+                    style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">
+                    Apenas para seu controle interno.</div>
+            </div>
+
+            <div class="form-group mb-lg">
+                <label
+                    style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Plataforma <span style="color: var(--color-error);">*</span>
+                </label>
+                <select id="plataforma-select" class="input" name="plataforma"
+                    onchange="(function(v){document.getElementById('telegram-fields').style.display = (v === 'telegram' ? 'block' : 'none'); document.getElementById('webchat-hint').style.display = (v === 'webchat' ? 'block' : 'none');})(this.value);"
+                    style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                    <option value="whatsapp" selected>WhatsApp (via Neonize / QR Code)</option>
+                    <option value="telegram">Telegram (via Bot Token)</option>
+                    <option value="webchat">Web Chat (página pública no próprio Fluxi)</option>
+                </select>
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">
+                    Escolha o canal de comunicação. WhatsApp usa pareamento por QR; Telegram usa um bot criado no
+                    BotFather; Web Chat gera uma página pública embutida no Fluxi.
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
+            <div id="webchat-hint" class="form-group mb-lg"
+                style="display: none; background: var(--color-info-light, #eef2ff); border-radius: 8px; padding: var(--space-md);">
+                <p style="font-size: 0.8125rem; color: var(--color-text-primary); margin: 0;">
+                    <i class="fas fa-info-circle" style="color: #6366f1; margin-right: 6px;"></i>
+                    Depois de criar, você receberá um <strong>link público</strong> tipo
+                    <code style="background: rgba(0,0,0,0.05); padding: 1px 6px; border-radius: 4px;">/chat/&lt;id&gt;</code>
+                    que pode ser compartilhado com seus clientes. Eles abrem no navegador e conversam direto — sem
+                    instalar nada.
+                </p>
+            </div>
+
+            <div id="telegram-fields" class="form-group mb-lg" style="display: none;">
+                <label
+                    style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Telegram Bot Token <span style="color: var(--color-error);">*</span>
+                </label>
+                <input type="text" class="input" name="telegram_bot_token"
+                    placeholder="Ex: 7123456789:AAH-abcDEF..."
+                    style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; font-family: monospace;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">
+                    Token obtido do <strong>@BotFather</strong>. Será armazenado criptografado. Cada bot só pode ser
+                    usado em uma sessão por vez (Telegram bloqueia polling duplo).
+                </div>
+            </div>
+
+            <!-- Auto Responder -->
+            <label class="toggle-row"
+                style="display: flex; align-items: flex-start; gap: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); cursor: pointer;">
+                <input type="checkbox" name="auto_responder" value="true" checked
+                    style="margin-top: 4px; transform: scale(1.1);">
+                <div class="flex flex-col">
+                    <span style="font-size: 0.9375rem; font-weight: 600; color: var(--color-text-primary);">Delegar
+                        Leitura à IA (Auto-Responder)</span>
+                    <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px;">
+                        Com isso ativo, a IA acoplada a este chip irá responder mensagens. Você pode usar desativado se
+                        quiser que ele só encaminhe Webhooks.
+                    </span>
+                </div>
+            </label>
+        </div>
+
+        <!-- Tipos de Mensagens de Mídia -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg"
+                style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-filter" style="color: var(--color-text-secondary);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Roteamento de
+                    Multimídia</h2>
+            </div>
+
+            <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: var(--space-xl);">
+                Configure o que a I/O da Sessão deve fazer com anexos antes mesmo de passar para a Inteligência do
+                agente.
+            </p>
+
+            <div class="flex flex-col gap-md">
+
+                <div class="toggle-row" style="flex-direction: column; gap: var(--space-sm);">
+                    <strong style="font-size: 0.875rem; margin-bottom: 4px;"><i class="fas fa-microphone"
+                            style="margin-right: 4px; color: var(--color-text-secondary);"></i> Áudio</strong>
+                    <div class="flex items-center gap-lg" style="font-size: 0.8125rem;">
+                        <label><input type="radio" name="tipo_audio" value="enviar_ia" checked> Transcrever e repassar à
+                            IA</label>
+                        <label><input type="radio" name="tipo_audio" value="transcricao_apenas"> Apenas entregar
+                            texto</label>
+                        <label><input type="radio" name="tipo_audio" value="ignorar"> Ignorar Mensagem</label>
+                    </div>
+                </div>
+
+                <div class="toggle-row" style="flex-direction: column; gap: var(--space-sm);">
+                    <strong style="font-size: 0.875rem; margin-bottom: 4px;"><i class="fas fa-image"
+                            style="margin-right: 4px; color: var(--color-text-secondary);"></i> Imagens</strong>
+                    <div class="flex items-center gap-lg" style="font-size: 0.8125rem;">
+                        <label><input type="radio" name="tipo_imagem" value="enviar_ia" checked> Analisar Semântica c/
+                            Vision</label>
+                        <label><input type="radio" name="tipo_imagem" value="ignorar"> Ignorar Imagens</label>
+                    </div>
+                </div>
+
+                <div class="toggle-row" style="flex-direction: column; gap: var(--space-sm);">
+                    <strong style="font-size: 0.875rem; margin-bottom: 4px;"><i class="fas fa-video"
+                            style="margin-right: 4px; color: var(--color-text-secondary);"></i> Vídeos, Stickers &
+                        Mapas</strong>
+                    <div class="flex items-center gap-lg" style="font-size: 0.8125rem;">
+                        <label><input type="radio" name="tipo_video" value="ignorar" checked> Ignorar
+                            (Recomendado)</label>
+                        <input type="hidden" name="tipo_sticker" value="ignorar">
+                        <input type="hidden" name="tipo_localizacao" value="ignorar">
+                        <input type="hidden" name="tipo_documento" value="ignorar">
+                    </div>
+                    <div class="form-hint" style="font-size: 0.75rem;">Ações de recusa com envio de recado fixo podem
+                        ser configuradas no painel após a criação.</div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-md mt-lg"
+            style="padding-top: var(--space-lg); border-top: 1px solid var(--color-border);">
+            <a href="/sessoes" class="button is-outline">Cancelar</a>
+            <button type="submit" class="button is-primary">
+                Finalizar e Criar Conexão
+            </button>
+        </div>
+
+    </form>
+</div>
 {% endblock %}

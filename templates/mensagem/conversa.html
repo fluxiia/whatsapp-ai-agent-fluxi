@@ -1,361 +1,154 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Conversa - {{ nome_cliente or telefone }}{% endblock %}
-
-{% block extra_css %}
-<style>
-    .chat-container {
-        display: flex;
-        flex-direction: column;
-        height: calc(100vh - 150px);
-        max-height: 800px;
-        background: var(--bg-primary);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    
-    .chat-header {
-        display: flex;
-        align-items: center;
-        padding: 1rem 1.5rem;
-        background: var(--fluxi-gradient);
-        color: white;
-        gap: 1rem;
-    }
-    
-    .chat-back {
-        color: white;
-        text-decoration: none;
-        font-size: 1.25rem;
-        opacity: 0.9;
-        transition: opacity 0.2s;
-    }
-    
-    .chat-back:hover {
-        opacity: 1;
-    }
-    
-    .chat-avatar {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 1.25rem;
-    }
-    
-    .chat-info h2 {
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin-bottom: 0.125rem;
-    }
-    
-    .chat-info p {
-        font-size: 0.8125rem;
-        opacity: 0.9;
-    }
-    
-    .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1.5rem;
-        background: #f0f2f5;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-    
-    .message {
-        display: flex;
-        flex-direction: column;
-        max-width: 70%;
-        animation: fadeIn 0.3s ease;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .message.recebida {
-        align-self: flex-start;
-    }
-    
-    .message.enviada {
-        align-self: flex-end;
-    }
-    
-    .message-bubble {
-        padding: 0.75rem 1rem;
-        border-radius: 12px;
-        position: relative;
-        word-wrap: break-word;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
-    
-    .message.recebida .message-bubble {
-        background: white;
-        border-bottom-left-radius: 4px;
-    }
-    
-    .message.enviada .message-bubble {
-        background: #dcf8c6;
-        border-bottom-right-radius: 4px;
-    }
-    
-    .message-text {
-        font-size: 0.9375rem;
-        line-height: 1.5;
-        color: var(--text-primary);
-        white-space: pre-wrap;
-    }
-    
-    .message-meta {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 0.375rem;
-        margin-top: 0.25rem;
-        font-size: 0.6875rem;
-        color: var(--text-muted);
-    }
-    
-    .message-time {
-        color: rgba(0,0,0,0.45);
-    }
-    
-    .message-status {
-        color: #53bdeb;
-    }
-    
-    .message-label {
-        font-size: 0.6875rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-        color: var(--text-secondary);
-    }
-    
-    .message.recebida .message-label {
-        color: var(--fluxi-purple);
-    }
-    
-    .message.enviada .message-label {
-        color: var(--success);
-        text-align: right;
-    }
-    
-    /* Resposta do agente dentro da mensagem recebida */
-    .message-response {
-        margin-top: 0.75rem;
-        padding-top: 0.75rem;
-        border-top: 1px dashed var(--border-color);
-    }
-    
-    .message-response-label {
-        display: flex;
-        align-items: center;
-        gap: 0.375rem;
-        font-size: 0.6875rem;
-        font-weight: 600;
-        color: var(--success);
-        margin-bottom: 0.5rem;
-    }
-    
-    .message-response-text {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        line-height: 1.5;
-        white-space: pre-wrap;
-    }
-    
-    .message-tools {
-        margin-top: 0.5rem;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.375rem;
-    }
-    
-    .tool-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.125rem 0.5rem;
-        background: rgba(91, 78, 155, 0.1);
-        color: var(--fluxi-purple);
-        border-radius: 50px;
-        font-size: 0.6875rem;
-        font-weight: 500;
-    }
-    
-    .message-image {
-        max-width: 280px;
-        border-radius: 8px;
-        margin-bottom: 0.5rem;
-    }
-    
-    .date-separator {
-        text-align: center;
-        margin: 1rem 0;
-    }
-    
-    .date-separator span {
-        background: rgba(0,0,0,0.1);
-        padding: 0.375rem 1rem;
-        border-radius: 50px;
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-    }
-    
-    .chat-footer {
-        padding: 1rem 1.5rem;
-        background: var(--bg-primary);
-        border-top: 1px solid var(--border-color);
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    
-    .chat-footer p {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-    }
-    
-    .empty-chat {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-muted);
-    }
-    
-    .empty-chat i {
-        font-size: 4rem;
-        margin-bottom: 1rem;
-        opacity: 0.5;
-    }
-
-    @media (max-width: 768px) {
-        .message {
-            max-width: 85%;
-        }
-        
-        .chat-container {
-            height: calc(100vh - 120px);
-        }
-    }
-</style>
-{% endblock %}
+{% block title %}Tracing: {{ nome_cliente or telefone }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="chat-container">
-    <div class="chat-header">
-        <a href="/mensagens/sessao/{{ sessao.id }}" class="chat-back">
-            <i class="fas fa-arrow-left"></i>
-        </a>
-        <div class="chat-avatar">
-            {{ (nome_cliente or telefone)[0].upper() }}
+<div class="container" style="max-width: 1000px; height: calc(100vh - 120px); display: flex; flex-direction: column;">
+    
+    <!-- Header Fixo da Conversa -->
+    <div class="box mb-0" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 1px solid var(--color-border); padding: var(--space-md) var(--space-lg); box-shadow: none; display: flex; align-items: center; justify-content: space-between; z-index: 10;">
+        <div class="flex items-center gap-md">
+            <a href="/mensagens/sessao/{{ sessao.id }}" class="text-secondary" style="font-size: 1.25rem; text-decoration: none; padding-right: var(--space-sm); border-right: 1px solid var(--color-border);">
+                <i class="fas fa-arrow-left hover-primary"></i>
+            </a>
+            
+            <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--color-bg-secondary); color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.125rem;">
+                {{ (nome_cliente or telefone)[0].upper() }}
+            </div>
+            
+            <div class="flex flex-col">
+                <span style="font-size: 1rem; font-weight: 700; color: var(--color-text-primary); line-height: 1.2;">
+                    {{ nome_cliente or ('+' ~ telefone) }}
+                </span>
+                <span style="font-size: 0.75rem; color: var(--color-text-secondary); font-family: monospace;">
+                    Sessão Router: {{ sessao.nome }} ({{ mensagens|length }} pacotes)
+                </span>
+            </div>
         </div>
-        <div class="chat-info">
-            <h2>{{ nome_cliente or ('+' ~ telefone) }}</h2>
-            <p>{{ mensagens|length }} mensagens - Sessão: {{ sessao.nome }}</p>
+        
+        <div class="flex items-center gap-sm">
+            <span class="tag" style="background: var(--color-success-light); color: var(--color-success); font-size: 0.65rem; border: 1px solid rgba(16,185,129,0.3);">END-TO-END CAPTURE</span>
         </div>
     </div>
-    
-    <div class="chat-messages" id="chatMessages">
+
+    <!-- Área de Logs de Mensagem (Chat) -->
+    <div id="chatMessages" style="flex: 1; background: #0f172a; overflow-y: auto; padding: var(--space-xl); display: flex; flex-direction: column; gap: var(--space-md); border-left: 1px solid var(--color-border); border-right: 1px solid var(--color-border);">
+        
         {% if mensagens %}
             {% set current_date = None %}
             {% for msg in mensagens %}
-                {# Separador de data #}
+                
+                {# Separador de Data Tech #}
                 {% set msg_date = msg.criado_em.strftime('%d/%m/%Y') %}
                 {% if msg_date != current_date %}
                     {% set current_date = msg_date %}
-                    <div class="date-separator">
-                        <span>{{ msg.criado_em.strftime('%d de %B de %Y') }}</span>
+                    <div style="display: flex; justify-content: center; margin: var(--space-lg) 0 var(--space-md) 0;">
+                        <span style="background: #1e293b; color: #94a3b8; font-size: 0.7rem; font-family: monospace; font-weight: 600; padding: 4px 12px; border-radius: 50px; border: 1px solid #334155;">
+                            ---- SYSTEM TIMESTAMP: {{ msg.criado_em.strftime('%Y-%m-%d') }} ----
+                        </span>
                     </div>
                 {% endif %}
                 
-                <div class="message {{ msg.direcao }}">
-                    <div class="message-label">
-                        {% if msg.direcao == 'recebida' %}
-                            <i class="fas fa-user"></i> Cliente
-                        {% else %}
-                            <i class="fas fa-robot"></i> Agente
-                        {% endif %}
-                    </div>
-                    <div class="message-bubble">
-                        {# Imagem se houver #}
-                        {% if msg.conteudo_imagem_base64 %}
-                            <img src="data:image/jpeg;base64,{{ msg.conteudo_imagem_base64 }}" class="message-image" alt="Imagem">
-                        {% elif msg.conteudo_imagem_path %}
-                            <div style="color: var(--text-muted); font-size: 0.875rem;">
-                                <i class="fas fa-image"></i> Imagem anexada
-                            </div>
-                        {% endif %}
+                <!-- Wrapper da Mensagem -->
+                <div style="display: flex; width: 100%; justify-content: {% if msg.direcao == 'recebida' %}flex-start{% else %}flex-end{% endif %};">
+                    
+                    <div style="max-width: 75%; display: flex; flex-direction: column;">
                         
-                        {# Texto da mensagem #}
-                        {% if msg.conteudo_texto %}
-                            <div class="message-text">{{ msg.conteudo_texto }}</div>
-                        {% endif %}
-                        
-                        {# Resposta do agente (apenas para mensagens recebidas) #}
-                        {% if msg.direcao == 'recebida' and msg.resposta_texto %}
-                            <div class="message-response">
-                                <div class="message-response-label">
-                                    <i class="fas fa-robot"></i> Resposta do Agente
-                                </div>
-                                <div class="message-response-text">{{ msg.resposta_texto }}</div>
-                                
-                                {# Ferramentas usadas #}
-                                {% if msg.ferramentas_usadas %}
-                                    <div class="message-tools">
-                                        {% for ferramenta in msg.ferramentas_usadas %}
-                                            <span class="tool-badge">
-                                                <i class="fas fa-cog"></i>
-                                                {{ ferramenta }}
-                                            </span>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-                        
-                        <div class="message-meta">
-                            <span class="message-time">{{ msg.criado_em.strftime('%H:%M') }}</span>
-                            {% if msg.direcao == 'enviada' %}
-                                <i class="fas fa-check-double message-status"></i>
+                        <!-- Header da Bolha -->
+                        <div style="display: flex; align-items: center; justify-content: {% if msg.direcao == 'recebida' %}flex-start{% else %}flex-end{% endif %}; gap: 6px; margin-bottom: 4px; padding: 0 4px;">
+                            {% if msg.direcao == 'recebida' %}
+                                <i class="fas fa-mobile-alt" style="font-size: 0.65rem; color: #a78bfa;"></i>
+                                <span style="font-size: 0.65rem; font-weight: 700; color: #a78bfa; text-transform: uppercase;">External Client (In)</span>
+                            {% else %}
+                                <span style="font-size: 0.65rem; font-weight: 700; color: #34d399; text-transform: uppercase;">Agent Engine (Out)</span>
+                                <i class="fas fa-robot" style="font-size: 0.65rem; color: #34d399;"></i>
                             {% endif %}
                         </div>
+
+                        <!-- Bolha Main -->
+                        <div style="background: {% if msg.direcao == 'recebida' %}#1e293b{% else %}#064e3b{% endif %}; 
+                                    border: 1px solid {% if msg.direcao == 'recebida' %}#334155{% else %}#065f46{% endif %}; 
+                                    border-radius: var(--radius-lg); 
+                                    {% if msg.direcao == 'recebida' %}border-top-left-radius: 4px;{% else %}border-top-right-radius: 4px;{% endif %}
+                                    padding: var(--space-md); color: #f8fafc; font-size: 0.875rem; line-height: 1.5; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                            
+                            {# Midia Anexada #}
+                            {% if msg.conteudo_imagem_base64 %}
+                                <img src="data:image/jpeg;base64,{{ msg.conteudo_imagem_base64 }}" style="max-width: 300px; width: 100%; border-radius: var(--radius-md); margin-bottom: var(--space-sm); border: 1px solid rgba(255,255,255,0.1);" alt="Payload Imagem">
+                            {% elif msg.conteudo_imagem_path %}
+                                <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 4px; font-size: 0.75rem; color: #94a3b8; margin-bottom: 8px; border: 1px dashed rgba(255,255,255,0.1);">
+                                    <i class="fas fa-paperclip" style="margin-right: 4px;"></i> Binário atachado no log.
+                                </div>
+                            {% endif %}
+                            
+                            {# Texto #}
+                            {% if msg.conteudo_texto %}
+                                <div style="white-space: pre-wrap; word-wrap: break-word; font-family: ui-sans-serif, system-ui, sans-serif;">{{ msg.conteudo_texto }}</div>
+                            {% endif %}
+                            
+                            {# Ferramentas Usadas/Resposta Interna #}
+                            {% if msg.direcao == 'recebida' and msg.resposta_texto %}
+                                <div style="margin-top: var(--space-md); padding-top: var(--space-sm); border-top: 1px solid #334155;">
+                                    <div style="font-size: 0.65rem; font-weight: 700; color: #60a5fa; text-transform: uppercase; margin-bottom: 4px;">
+                                        <i class="fas fa-bolt" style="margin-right: 2px;"></i> Processamento GenAI Interno
+                                    </div>
+                                    <div style="font-size: 0.8125rem; color: #94a3b8; white-space: pre-wrap; font-family: monospace; line-height: 1.4;">{{ msg.resposta_texto }}</div>
+                                    
+                                    {% if msg.ferramentas_usadas %}
+                                        <div class="flex flex-wrap gap-xs mt-sm">
+                                            {% for ferramenta in msg.ferramentas_usadas %}
+                                                <span style="background: rgba(59, 130, 246, 0.15); color: #93c5fd; font-size: 0.65rem; font-family: monospace; padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                                                    <i class="fas fa-terminal" style="font-size: 0.5rem; margin-right: 2px;"></i> {{ ferramenta }}()
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            
+                            {# Meta Footer #}
+                            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin-top: 6px; font-size: 0.65rem; font-family: monospace; color: {% if msg.direcao == 'recebida' %}#64748b{% else %}#a7f3d0{% endif %};">
+                                {{ msg.criado_em.strftime('%H:%M:%S.%f')[:12] }}
+                                {% if msg.direcao == 'enviada' %}
+                                    <i class="fas fa-check-double" style="margin-left: 2px;"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+
                     </div>
+
                 </div>
             {% endfor %}
         {% else %}
-            <div class="empty-chat">
-                <i class="fas fa-comments"></i>
-                <p>Nenhuma mensagem nesta conversa</p>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                <i class="fas fa-comment-slash" style="font-size: 3rem; color: #334155; margin-bottom: var(--space-md);"></i>
+                <h3 style="font-size: 1rem; font-weight: 600; color: #94a3b8; margin-bottom: 4px;">Stream Vazia</h3>
+                <p style="font-size: 0.8125rem; color: #64748b;">Nenhuma troca de pacotes interceptada entre este Host e a Engine.</p>
             </div>
         {% endif %}
+
     </div>
     
-    <div class="chat-footer">
-        <i class="fas fa-info-circle" style="color: var(--text-muted);"></i>
-        <p>Este é um histórico de mensagens. Para responder, use o WhatsApp diretamente.</p>
+    <!-- Footer Técnico -->
+    <div class="box mt-0" style="border-top-left-radius: 0; border-top-right-radius: 0; border-top: 1px solid var(--color-border); padding: var(--space-sm) var(--space-lg); box-shadow: none; background: var(--color-surface); display: flex; align-items: center; justify-content: center;">
+        <span style="font-size: 0.75rem; color: var(--color-text-muted); font-family: monospace;">
+            <i class="fas fa-lock" style="margin-right: 4px;"></i> Visualização Read-Only (Auditoria de Tráfego M2M). O Agent assume a interface interativa.
+        </span>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-// Scroll para o final das mensagens
-document.addEventListener('DOMContentLoaded', function() {
-    const chatMessages = document.getElementById('chatMessages');
-    if (chatMessages) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+// Auto-scroll tail logs (estilo tail -f)
+document.addEventListener('DOMContentLoaded', () => {
+    const chat = document.getElementById('chatMessages');
+    if(chat) {
+        chat.scrollTop = chat.scrollHeight;
     }
 });
 </script>
+
+<style>
+.hover-primary { transition: color 0.2s; }
+.hover-primary:hover { color: #6366f1; }
+</style>
 {% endblock %}

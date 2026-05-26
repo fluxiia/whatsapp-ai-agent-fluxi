@@ -1,6 +1,8 @@
 """
 Rotas do frontend para sessões.
 """
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -10,6 +12,7 @@ from sessao.sessao_service import SessaoService
 from sessao.sessao_schema import SessaoCriar, SessaoAtualizar
 from sessao.sessao_tipo_mensagem_service import SessaoTipoMensagemService
 from config.config_service import ConfiguracaoService
+from log.log_service import fluxi_log
 
 router = APIRouter(prefix="/sessoes", tags=["Frontend - Sessões"])
 templates = Jinja2Templates(directory="templates")
@@ -42,7 +45,7 @@ def pagina_nova_sessao(request: Request, db: Session = Depends(get_db)):
     }
     
     # Buscar configurações LLM
-    modelo_padrao = ConfiguracaoService.obter_valor(db, "openrouter_modelo_padrao", "google/gemini-2.0-flash-001")
+    modelo_padrao = ConfiguracaoService.obter_valor(db, "openrouter_modelo_padrao", "google/gemini-3.1-flash-lite-preview")
     temperatura_padrao = ConfiguracaoService.obter_valor(db, "openrouter_temperatura", "0.7")
     max_tokens_padrao = ConfiguracaoService.obter_valor(db, "openrouter_max_tokens", "2000")
     top_p_padrao = ConfiguracaoService.obter_valor(db, "openrouter_top_p", "1.0")
@@ -61,25 +64,17 @@ def pagina_nova_sessao(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/{sessao_id}/editar", response_class=HTMLResponse)
 def pagina_editar_sessao(sessao_id: int, request: Request, db: Session = Depends(get_db)):
-    """Página para editar sessão."""
-    sessao = SessaoService.obter_por_id(db, sessao_id)
-    if not sessao:
-        return templates.TemplateResponse("shared/erro.html", {
-            "request": request,
-            "mensagem": "Sessão não encontrada",
-            "titulo": "Erro"
-        })
-    
-    return templates.TemplateResponse("sessao/form.html", {
-        "request": request,
-        "sessao": sessao,
-        "titulo": f"Editar Sessão - {sessao.nome}",
-        "acao": "editar"
-    })
+    """Redireciona para o painel de detalhes (aba de propriedades)."""
+    return RedirectResponse(url=f"/sessoes/{sessao_id}/detalhes?tab=propriedades", status_code=303)
 
 
 @router.get("/{sessao_id}/detalhes", response_class=HTMLResponse)
-def pagina_detalhes_sessao(sessao_id: int, request: Request, db: Session = Depends(get_db)):
+def pagina_detalhes_sessao(
+    sessao_id: int,
+    request: Request,
+    erro: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
     """Página de detalhes da sessão."""
     sessao = SessaoService.obter_por_id(db, sessao_id)
     if not sessao:
@@ -88,19 +83,36 @@ def pagina_detalhes_sessao(sessao_id: int, request: Request, db: Session = Depen
             "mensagem": "Sessão não encontrada",
             "titulo": "Erro"
         })
-    
+
+    # Buscar comandos ativos
+    from sessao.sessao_comando_service import SessaoComandoService
+    comandos = SessaoComandoService.obter_comandos_dict(db, sessao_id)
+
+    # Buscar tipos de mensagem configurados
+    configs = SessaoTipoMensagemService.listar_por_sessao(db, sessao_id)
+    tipos = {}
+    for config in configs:
+        tipos[config.tipo] = {"acao": config.acao, "resposta_fixa": config.resposta_fixa}
+
+    for tipo in ["audio", "imagem", "video", "sticker", "localizacao", "documento"]:
+        if tipo not in tipos:
+            tipos[tipo] = {"acao": "ignorar", "resposta_fixa": None}
+
     return templates.TemplateResponse("sessao/detalhes.html", {
         "request": request,
         "sessao": sessao,
-        "titulo": f"Detalhes - {sessao.nome}"
+        "comandos": comandos,
+        "tipos": tipos,
+        "erro": erro,
+        "titulo": f"Painel do Agente - {sessao.nome}"
     })
 
 
 @router.get("/{sessao_id}/conectar", response_class=HTMLResponse)
 def pagina_conectar_sessao(sessao_id: int, request: Request, db: Session = Depends(get_db)):
-    """Página para conectar sessão via QR Code."""
+    """Página para conectar sessão (WhatsApp: QR; Telegram: dispara polling)."""
     from datetime import datetime, timedelta
-    
+
     sessao = SessaoService.obter_por_id(db, sessao_id)
     if not sessao:
         return templates.TemplateResponse("shared/erro.html", {
@@ -108,26 +120,42 @@ def pagina_conectar_sessao(sessao_id: int, request: Request, db: Session = Depen
             "mensagem": "Sessão não encontrada",
             "titulo": "Erro"
         })
-    
-    # Verificar se QR Code expirou (60 segundos)
+
+    # Telegram: não há QR — dispara conexão e volta pra detalhes.
+    if sessao.plataforma == "telegram":
+        erro_msg = None
+        try:
+            if sessao.status != "conectado":
+                SessaoService.conectar(db, sessao_id)
+        except ValueError as ve:
+            erro_msg = str(ve)
+            fluxi_log.error("sessao", "conexao", "Erro ao conectar Telegram", exc_info=True, extra={"sessao_id": sessao_id, "erro": erro_msg})
+        except Exception:
+            erro_msg = "Falha inesperada ao conectar o bot. Veja os logs do servidor."
+            fluxi_log.error("sessao", "conexao", "Erro ao conectar Telegram", exc_info=True, extra={"sessao_id": sessao_id})
+        destino = f"/sessoes/{sessao_id}/detalhes"
+        if erro_msg:
+            from urllib.parse import quote
+            destino += f"?erro={quote(erro_msg)}"
+        return RedirectResponse(url=destino, status_code=303)
+
+    # WhatsApp: fluxo de QR.
     qr_code_expirado = False
     if sessao.qr_code and sessao.qr_code_gerado_em:
         tempo_decorrido = datetime.now() - sessao.qr_code_gerado_em
         if tempo_decorrido > timedelta(seconds=60):
             qr_code_expirado = True
-            print(f"⏰ QR Code expirado para sessão {sessao_id} ({tempo_decorrido.seconds}s)")
-            # Limpar QR Code expirado
+            fluxi_log.info("sessao", "qrcode", "QR Code expirado", extra={"sessao_id": sessao_id, "tempo_decorrido_s": tempo_decorrido.seconds})
             sessao.qr_code = None
             sessao.status = "desconectado"
-    
-    # Verificar se há QR Code no gerenciador (sempre prioritário)
+
+    # QR mais fresco vem do adapter ativo (se já está conectando).
     from sessao.sessao_service import gerenciador_sessoes
-    qr_code_gerenciador = gerenciador_sessoes.qr_codes.get(sessao_id)
-    if qr_code_gerenciador and not qr_code_expirado:
-        # Sempre usar QR Code do gerenciador (mais recente)
-        sessao.qr_code = qr_code_gerenciador
-        print(f"🔄 QR Code do gerenciador aplicado à sessão {sessao_id} ({len(qr_code_gerenciador)} chars)")
-    
+    canal_ativo = gerenciador_sessoes.obter_cliente(sessao_id)
+    qr_canal = getattr(canal_ativo, "qr_code", None) if canal_ativo else None
+    if qr_canal and not qr_code_expirado:
+        sessao.qr_code = qr_canal
+
     return templates.TemplateResponse("sessao/paircode.html", {
         "request": request,
         "sessao": sessao,
@@ -141,20 +169,29 @@ def conectar_sessao_post(
     sessao_id: int,
     db: Session = Depends(get_db)
 ):
-    """Conecta uma sessão WhatsApp via QR Code."""
+    """Inicia conexão (WA: QR; TG: polling)."""
+    erro_msg: Optional[str] = None
+    sessao = SessaoService.obter_por_id(db, sessao_id)
     try:
-        # Limpar QR Code antigo antes de gerar novo
-        sessao = SessaoService.obter_por_id(db, sessao_id)
-        if sessao:
+        if sessao and sessao.plataforma == "whatsapp":
             sessao.qr_code = None
             sessao.qr_code_gerado_em = None
             db.commit()
-            print(f"🧹 QR Code antigo limpo para sessão {sessao_id}")
-        
+            fluxi_log.info("sessao", "qrcode", "QR Code antigo limpo", extra={"sessao_id": sessao_id})
+
         SessaoService.conectar(db, sessao_id, usar_paircode=False)
-    except Exception as e:
-        print(f"Erro ao conectar: {e}")
-    return RedirectResponse(url=f"/sessoes/{sessao_id}/conectar", status_code=303)
+    except ValueError as ve:
+        erro_msg = str(ve)
+        fluxi_log.error("sessao", "conexao", "Erro ao conectar", exc_info=True, extra={"sessao_id": sessao_id, "erro": erro_msg})
+    except Exception:
+        erro_msg = "Erro inesperado ao iniciar conexão."
+        fluxi_log.error("sessao", "conexao", "Erro ao conectar", exc_info=True, extra={"sessao_id": sessao_id})
+
+    destino = f"/sessoes/{sessao_id}/detalhes" if (sessao and sessao.plataforma in ("telegram", "webchat")) else f"/sessoes/{sessao_id}/conectar"
+    if erro_msg:
+        from urllib.parse import quote
+        destino += ("&" if "?" in destino else "?") + f"erro={quote(erro_msg)}"
+    return RedirectResponse(url=destino, status_code=303)
 
 
 @router.post("/{sessao_id}/desconectar")
@@ -163,7 +200,7 @@ def desconectar_sessao_post(sessao_id: int, db: Session = Depends(get_db)):
     try:
         SessaoService.desconectar(db, sessao_id)
     except Exception as e:
-        print(f"Erro ao desconectar: {e}")
+        fluxi_log.error("sessao", "conexao", "Erro ao desconectar", exc_info=True, extra={"sessao_id": sessao_id})
     return RedirectResponse(url="/sessoes", status_code=303)
 
 
@@ -172,22 +209,17 @@ def deletar_sessao_post(sessao_id: int, db: Session = Depends(get_db)):
     """Deleta uma sessão WhatsApp."""
     try:
         SessaoService.deletar(db, sessao_id)
-        print(f"✅ Sessão {sessao_id} deletada com sucesso")
+        fluxi_log.info("sessao", "conexao", "Sessao deletada com sucesso", extra={"sessao_id": sessao_id})
     except Exception as e:
-        print(f"Erro ao deletar: {e}")
+        fluxi_log.error("sessao", "conexao", "Erro ao deletar", exc_info=True, extra={"sessao_id": sessao_id})
     return RedirectResponse(url="/sessoes", status_code=303)
 
 
 @router.post("/criar")
 def criar_sessao_post(
     nome: str = Form(...),
-    agente_papel: str = Form(...),
-    agente_objetivo: str = Form(...),
-    agente_politicas: str = Form(...),
-    agente_tarefa: str = Form(...),
-    agente_objetivo_explicito: str = Form(...),
-    agente_publico: str = Form(...),
-    agente_restricoes: str = Form(...),
+    plataforma: str = Form("whatsapp"),
+    telegram_bot_token: str = Form(None),
     modelo_llm: str = Form(None),
     temperatura: str = Form(None),
     max_tokens: str = Form(None),
@@ -214,23 +246,14 @@ def criar_sessao_post(
         # Converter checkboxes
         auto_responder_bool = auto_responder == "true"
         salvar_historico_bool = salvar_historico == "true"
-        
+
         # Criar sessão
         sessao_data = SessaoCriar(
             nome=nome,
-            agente_papel=agente_papel,
-            agente_objetivo=agente_objetivo,
-            agente_politicas=agente_politicas,
-            agente_tarefa=agente_tarefa,
-            agente_objetivo_explicito=agente_objetivo_explicito,
-            agente_publico=agente_publico,
-            agente_restricoes=agente_restricoes,
-            modelo_llm=modelo_llm if modelo_llm else None,
-            temperatura=temperatura if temperatura else None,
-            max_tokens=max_tokens if max_tokens else None,
-            top_p=top_p if top_p else None,
+            plataforma=plataforma,
+            telegram_bot_token=(telegram_bot_token.strip() if telegram_bot_token else None),
             auto_responder=auto_responder_bool,
-            salvar_historico=salvar_historico_bool
+            salvar_historico=salvar_historico_bool,
         )
         
         sessao = SessaoService.criar(db, sessao_data)
@@ -253,37 +276,8 @@ def criar_sessao_post(
 
 @router.get("/{sessao_id}/tipos-mensagem", response_class=HTMLResponse)
 def pagina_tipos_mensagem(sessao_id: int, request: Request, db: Session = Depends(get_db)):
-    """Página para configurar tipos de mensagem da sessão."""
-    sessao = SessaoService.obter_por_id(db, sessao_id)
-    if not sessao:
-        return templates.TemplateResponse("shared/erro.html", {
-            "request": request,
-            "mensagem": "Sessão não encontrada",
-            "titulo": "Erro"
-        })
-    
-    # Obter configurações atuais
-    configs = SessaoTipoMensagemService.listar_por_sessao(db, sessao_id)
-    
-    # Organizar por tipo
-    tipos = {}
-    for config in configs:
-        tipos[config.tipo] = {
-            "acao": config.acao,
-            "resposta_fixa": config.resposta_fixa
-        }
-    
-    # Garantir que todos os tipos existam
-    for tipo in ["audio", "imagem", "video", "sticker", "localizacao", "documento"]:
-        if tipo not in tipos:
-            tipos[tipo] = {"acao": "ignorar", "resposta_fixa": None}
-    
-    return templates.TemplateResponse("sessao/tipos_mensagem.html", {
-        "request": request,
-        "sessao": sessao,
-        "tipos": tipos,
-        "titulo": f"Tipos de Mensagem - {sessao.nome}"
-    })
+    """Redireciona para o painel de detalhes."""
+    return RedirectResponse(url=f"/sessoes/{sessao_id}/detalhes?tab=midia", status_code=303)
 
 
 @router.post("/{sessao_id}/tipos-mensagem/salvar")
@@ -320,21 +314,8 @@ def salvar_tipos_mensagem(
 
 @router.get("/{sessao_id}/comandos", response_class=HTMLResponse)
 def pagina_comandos(sessao_id: int, request: Request, db: Session = Depends(get_db)):
-    """Página para configurar comandos personalizáveis."""
-    from sessao.sessao_comando_service import SessaoComandoService
-    
-    sessao = SessaoService.obter_por_id(db, sessao_id)
-    if not sessao:
-        return RedirectResponse(url="/sessoes/", status_code=303)
-    
-    # Obter comandos (cria padrões se não existirem)
-    comandos = SessaoComandoService.obter_comandos_dict(db, sessao_id)
-    
-    return templates.TemplateResponse("sessao/comandos.html", {
-        "request": request,
-        "sessao": sessao,
-        "comandos": comandos
-    })
+    """Redireciona para o painel de detalhes."""
+    return RedirectResponse(url=f"/sessoes/{sessao_id}/detalhes?tab=comandos", status_code=303)
 
 
 @router.post("/{sessao_id}/comandos/salvar")

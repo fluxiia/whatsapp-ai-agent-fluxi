@@ -1,129 +1,99 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+{% block title %}Inventário de Modelos - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Header -->
-    <div class="level">
-        <div class="level-left">
-            <div class="level-item">
-                <h1 class="title is-3">
-                    <i class="fas fa-cube"></i>
-                    {{ titulo }}
-                </h1>
-            </div>
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-cubes text-primary mb-xs" style="color: #6366f1;"></i> {{ titulo }}
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/provedores-llm/{{ provedor.id }}/detalhes" style="color: var(--color-text-secondary); text-decoration: none;">{{ provedor.nome }}</a> / 
+                <span style="color: var(--color-text-primary);">Tabela de Modelos Sincronizados</span>
+            </p>
         </div>
-        <div class="level-right">
-            <div class="level-item">
-                <div class="buttons">
-                    <a href="/provedores-llm/{{ provedor.id }}/testar" class="button is-info">
-                        <span class="icon">
-                            <i class="fas fa-sync"></i>
-                        </span>
-                        <span>Atualizar</span>
-                    </a>
-                    <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-light">
-                        <span class="icon">
-                            <i class="fas fa-arrow-left"></i>
-                        </span>
-                        <span>Voltar</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Lista de Modelos -->
-    {% if modelos %}
-    <div class="columns is-multiline">
-        {% for modelo in modelos %}
-        <div class="column is-one-third">
-            <div class="card">
-                <div class="card-content">
-                    <div class="media">
-                        <div class="media-left">
-                            <figure class="image is-48x48">
-                                <span class="icon is-large has-text-primary">
-                                    <i class="fas fa-cube fa-2x"></i>
-                                </span>
-                            </figure>
-                        </div>
-                        <div class="media-content">
-                            <p class="title is-5">{{ modelo.nome }}</p>
-                            <p class="subtitle is-6">
-                                {% if modelo.ativo %}
-                                    <span class="tag is-success">Ativo</span>
-                                {% else %}
-                                    <span class="tag is-light">Inativo</span>
-                                {% endif %}
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="content">
-                        {% if modelo.contexto %}
-                        <p>
-                            <i class="fas fa-memory"></i>
-                            <strong>Contexto:</strong> {{ modelo.contexto }} tokens
-                        </p>
-                        {% endif %}
-                        
-                        {% if modelo.tamanho %}
-                        <p>
-                            <i class="fas fa-weight"></i>
-                            <strong>Tamanho:</strong> {{ modelo.tamanho }}
-                        </p>
-                        {% endif %}
-                        
-                        {% if modelo.quantizacao %}
-                        <p>
-                            <i class="fas fa-compress"></i>
-                            <strong>Quantização:</strong> {{ modelo.quantizacao }}
-                        </p>
-                        {% endif %}
-                        
-                        <div class="tags">
-                            {% if modelo.suporta_imagens %}
-                                <span class="tag is-success">
-                                    <i class="fas fa-image"></i> Imagens
-                                </span>
-                            {% endif %}
-                            {% if modelo.suporta_ferramentas %}
-                                <span class="tag is-info">
-                                    <i class="fas fa-tools"></i> Ferramentas
-                                </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                
-                <footer class="card-footer">
-                    <a href="/provedores-llm/{{ provedor.id }}/testar" class="card-footer-item">
-                        <i class="fas fa-play"></i> Testar
-                    </a>
-                </footer>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="box has-text-centered">
-        <div class="content">
-            <span class="icon is-large has-text-grey">
-                <i class="fas fa-cube fa-3x"></i>
-            </span>
-            <h3 class="title is-4 has-text-grey">Nenhum modelo encontrado</h3>
-            <p class="has-text-grey">Teste a conexão com o provedor para carregar os modelos disponíveis.</p>
-            <br>
-            <a href="/provedores-llm/{{ provedor.id }}/testar" class="button is-primary is-large">
-                <span class="icon">
-                    <i class="fas fa-play"></i>
-                </span>
-                <span>Testar Conexão</span>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/provedores-llm/{{ provedor.id }}/testar" class="button is-small is-primary" style="background: #6366f1; border: none;">
+                <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Probe Refresh
+            </a>
+            <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-small is-outline">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Voltar para Painel Central
             </a>
         </div>
     </div>
-    {% endif %}
+
+    <div class="box" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-sm);">
+        {% if modelos %}
+        <table class="table is-fullwidth" style="margin: 0; font-size: 0.875rem;">
+            <thead style="background: var(--color-bg-secondary);">
+                <tr>
+                    <th style="padding: var(--space-md) var(--space-lg);">ID do Modelo Base</th>
+                    <th>Janela de Contexto</th>
+                    <th>Features Inerentes</th>
+                    <th>Tamanho Est.</th>
+                    <th style="text-align: right; padding-right: var(--space-lg);">Status de Inconsistência</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for modelo in modelos %}
+                <tr>
+                    <td style="padding: var(--space-md) var(--space-lg);">
+                        <strong style="color: var(--color-text-primary);">{{ modelo.nome }}</strong>
+                        {% if modelo.quantizacao %}
+                        <div style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 2px;">VRAM: {{ modelo.quantizacao }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span style="font-family: monospace; color: var(--color-text-secondary);">
+                            {{ modelo.contexto or '-' }} tokens
+                        </span>
+                    </td>
+                    <td>
+                        <div class="flex gap-xs">
+                            {% if modelo.suporta_imagens %}
+                                <span class="tag" style="background: var(--color-success-light); color: var(--color-success); font-size: 0.65rem;">Visão</span>
+                            {% endif %}
+                            {% if modelo.suporta_ferramentas %}
+                                <span class="tag" style="background: var(--color-info-light); color: var(--color-info); font-size: 0.65rem;">Tools/Functions</span>
+                            {% endif %}
+                            {% if not modelo.suporta_imagens and not modelo.suporta_ferramentas %}
+                                <span style="color: var(--color-text-muted);">-</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span style="color: var(--color-text-secondary);">{{ modelo.tamanho or '-' }}</span>
+                    </td>
+                    <td style="text-align: right; padding-right: var(--space-lg);">
+                        {% if modelo.ativo %}
+                            <span class="tag" style="background: var(--color-success); color: white; font-size: 0.65rem;">Sincronizado</span>
+                        {% else %}
+                            <span class="tag" style="background: var(--color-text-muted); color: white; font-size: 0.65rem;">Sem Resposta / Legacy</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="flex flex-col items-center justify-center p-xl text-center" style="background: var(--color-surface); padding: 4rem 1rem;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: #e0e7ff; display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-md);">
+                <i class="fas fa-cubes" style="font-size: 2rem; color: #6366f1;"></i>
+            </div>
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Nenhum Modelo Encontrado no Endpoint</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-secondary); max-width: 400px; margin-bottom: var(--space-lg);">
+                Acesse a tela de Probe/Refresh e tente baixar a indexação de recursos da API novamente. Caso persista, verifique se seu LM Studio/Ollama está rodando localmente na porta correta.
+            </p>
+            <a href="/provedores-llm/{{ provedor.id }}/testar" class="button is-primary" style="background: #6366f1; border: none;">
+                <i class="fas fa-play" style="margin-right: 6px;"></i> Testar Conexão Novamente
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
 </div>
 {% endblock %}

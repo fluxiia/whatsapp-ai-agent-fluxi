@@ -80,3 +80,11 @@ def deletar_configuracao(chave: str, db: Session = Depends(get_db)):
 async def testar_conexao_openrouter(api_key: str = None, db: Session = Depends(get_db)):
     """Testa conexão com OpenRouter e busca modelos disponíveis."""
     return await ConfiguracaoService.testar_conexao_openrouter(db, api_key)
+
+
+@router.get("/openrouter/modelos-audio")
+async def listar_modelos_audio_openrouter():
+    """Lista modelos do OpenRouter que suportam áudio."""
+    from audio.transcription_service import TranscriptionService
+    modelos = await TranscriptionService.listar_modelos_openrouter_audio()
+    return modelos

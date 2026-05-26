@@ -1,10 +1,14 @@
 """
 Rotas da API para RAG.
 """
-from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import logging
+import os
+import tempfile
+import shutil
+from pathlib import Path
 from database import get_db
 from rag.rag_schema import (
     RAGResposta,
@@ -149,13 +153,10 @@ def listar_chunks(rag_id: int, limit: int = 50, offset: int = 0, db: Session = D
 def obter_chunk(rag_id: int, chunk_id: str, db: Session = Depends(get_db)):
     """Obtém um chunk específico."""
     try:
-        chunks = RAGService.obter_chunks(db, rag_id, limit=1000)
-        
-        for chunk in chunks:
-            if chunk["id"] == chunk_id:
-                return chunk
-        
-        raise HTTPException(status_code=404, detail="Chunk não encontrado")
+        chunk = RAGService.obter_chunk_por_id(db, rag_id, chunk_id)
+        if not chunk:
+            raise HTTPException(status_code=404, detail="Chunk não encontrado")
+        return chunk
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -178,6 +179,49 @@ def deletar_chunk(rag_id: int, chunk_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"API: Erro ao deletar chunk: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro ao deletar chunk: {str(e)}")
+
+
+@router.post("/{rag_id}/adicionar-arquivo")
+async def adicionar_arquivo(
+    rag_id: int,
+    titulo: str = Form(...),
+    arquivo: UploadFile = File(...),
+    chunk_size: int = Form(None),
+    chunk_overlap: int = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Converte um arquivo (PDF, DOCX, PPTX, XLSX...) via MarkItDown e adiciona ao RAG."""
+    logger.info(f"API: Upload de arquivo '{arquivo.filename}' para RAG {rag_id}")
+    
+    suffix = Path(arquivo.filename).suffix if arquivo.filename else ".tmp"
+    tmp_path = None
+    
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            shutil.copyfileobj(arquivo.file, tmp)
+            tmp_path = tmp.name
+        
+        resultado = RAGService.adicionar_arquivo(
+            db, rag_id, titulo, tmp_path, chunk_size, chunk_overlap
+        )
+        
+        if resultado["sucesso"]:
+            return {
+                "mensagem": "Arquivo processado e adicionado com sucesso",
+                "chunks_criados": resultado["chunks_criados"],
+                "total_chunks": resultado["total_chunks"]
+            }
+        else:
+            raise HTTPException(status_code=500, detail=resultado["erro"])
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"API: Erro ao processar arquivo: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao processar arquivo: {str(e)}")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
 
 @router.post("/{rag_id}/resetar")

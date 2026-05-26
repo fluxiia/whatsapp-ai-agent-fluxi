@@ -1,0 +1,74 @@
+{% extends "auth/_base_auth.html" %}
+
+{% block card %}
+<div class="auth-header">
+    <div class="auth-logo"><i class="fas fa-bolt"></i></div>
+    <h1 class="auth-title">Entrar no Fluxi</h1>
+    <p class="auth-subtitle">Acesse seu painel de agentes e conversas.</p>
+</div>
+
+<div class="auth-body">
+    {% if erro %}
+    <div class="alert alert-danger" role="alert">
+        <i class="fas fa-exclamation-circle" style="margin-top: 2px;"></i>
+        <span>{{ erro }}</span>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/login" novalidate>
+        <input type="hidden" name="next" value="{{ next }}">
+
+        <div class="form-group">
+            <label class="form-label" for="email">
+                E-mail <span class="req">*</span>
+            </label>
+            <input type="email" id="email" name="email" class="form-input"
+                placeholder="voce@exemplo.com" autocomplete="email" required autofocus>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="senha">
+                Senha <span class="req">*</span>
+            </label>
+            <div class="password-wrapper">
+                <input type="password" id="senha" name="senha" class="form-input"
+                    autocomplete="current-password" required>
+                <button type="button" class="toggle-password" aria-label="Mostrar senha"
+                    onclick="togglePassword('senha', this)">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-primary">
+            <i class="fas fa-sign-in-alt"></i> Entrar
+        </button>
+    </form>
+</div>
+
+<div class="auth-footer">
+    {% if signup_aberto %}
+    Não tem conta? <a href="/signup">Criar uma agora</a>
+    {% else %}
+    Cadastro de novos usuários está fechado. Fale com o administrador.
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function togglePassword(id, btn) {
+        const input = document.getElementById(id);
+        const icon = btn.querySelector("i");
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.replace("fa-eye", "fa-eye-slash");
+            btn.setAttribute("aria-label", "Esconder senha");
+        } else {
+            input.type = "password";
+            icon.classList.replace("fa-eye-slash", "fa-eye");
+            btn.setAttribute("aria-label", "Mostrar senha");
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,579 @@
+{% extends "base_modern.html" %}
+
+{% block title %}Sandbox Interno — Fluxi.IA{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
+<style>
+  /* ── Layout ────────────────────────────────────────────── */
+  .sb-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    height: calc(100vh - 148px);
+    min-height: 580px;
+  }
+  .sb-row-top { flex-shrink: 0; max-height: 150px; }
+  .sb-row-main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+    min-height: 0;
+  }
+
+  /* ── Dark panel (terminal / browser) ──────────────────── */
+  .sb-panel {
+    background: #1a1a2e;
+    border-radius: var(--radius-lg);
+    border: 1px solid #2d2d4a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sb-panel-header {
+    background: #16162a;
+    padding: var(--space-sm) 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    border-bottom: 1px solid #2d2d4a;
+    flex-shrink: 0;
+  }
+  .sb-panel-title {
+    color: #e2e8f0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+  .sb-panel-body {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Traffic-light dots ────────────────────────────────── */
+  .tl-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .tl-red    { background: #f38ba8; }
+  .tl-yellow { background: #f9e2af; }
+  .tl-green  { background: #a6e3a1; }
+
+  /* ── Session list ──────────────────────────────────────── */
+  .sb-session-list { overflow-y: auto; height: 100%; }
+  .sb-session-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.35rem 0.8rem;
+    border-bottom: 1px solid #2d2d4a;
+    cursor: pointer; transition: background 0.12s;
+    font-size: 0.78rem;
+  }
+  .sb-session-item:hover { background: #252542; }
+  .sb-session-item.active { background: #312e5a; }
+  .sb-session-empty { padding: 0.5rem 0.8rem; color: #6b7280; font-style: italic; font-size: 0.8rem; }
+
+  /* status tags */
+  .sb-tag { font-size: 0.62rem; padding: 2px 7px; border-radius: 4px; font-weight: 700; flex-shrink: 0; }
+  .sb-tag-running  { background: #a6e3a1; color: #0d1117; }
+  .sb-tag-done     { background: #45475a; color: #cdd6f4; }
+  .sb-tag-error    { background: #f38ba8; color: #0d1117; }
+  .sb-tag-killed   { background: #fab387; color: #0d1117; }
+
+  /* ── Toolbar (inside dark panel) ──────────────────────── */
+  .sb-toolbar {
+    display: flex; gap: 0.35rem; align-items: center;
+    padding: 0.4rem 0.8rem;
+    background: #16162a;
+    border-bottom: 1px solid #2d2d4a;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+  .sb-input {
+    background: #252542; border: 1px solid #3d3d6b; color: #e2e8f0;
+    border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.78rem; flex: 1; min-width: 100px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+  }
+  .sb-input:focus { outline: none; border-color: #7c5cbf; }
+  .sb-input::placeholder { color: #4a4a6a; }
+
+  .sb-btn {
+    padding: 0.3rem 0.65rem; font-size: 0.75rem; border-radius: 6px;
+    border: none; cursor: pointer; font-weight: 600; white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .sb-btn:hover { opacity: 0.85; }
+  .sb-btn-run    { background: linear-gradient(135deg, #C75B9B, #5B4E9B); color: white; }
+  .sb-btn-danger { background: #f38ba8; color: #0d1117; }
+  .sb-btn-muted  { background: #313244; color: #cdd6f4; }
+  .sb-btn-stream { background: #a6e3a1; color: #0d1117; }
+  .sb-btn-stop   { background: #f38ba8; color: #0d1117; }
+
+  /* ── Terminal ──────────────────────────────────────────── */
+  #terminal-container { width: 100%; height: 100%; padding: 4px; }
+  .xterm { height: 100% !important; }
+  .xterm-viewport { overflow-y: auto !important; }
+
+  /* ── Browser viewer ────────────────────────────────────── */
+  #browser-nav {
+    display: flex; gap: 0.35rem; padding: 0.4rem 0.8rem;
+    background: #16162a; border-bottom: 1px solid #2d2d4a;
+    align-items: center; flex-shrink: 0;
+  }
+  #browser-url-input {
+    background: #252542; border: 1px solid #3d3d6b; color: #e2e8f0;
+    border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.78rem; flex: 1;
+  }
+  #browser-url-input:focus { outline: none; border-color: #7c5cbf; }
+  #browser-meta {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.2rem 0.8rem;
+    background: #16162a; border-bottom: 1px solid #2d2d4a;
+    flex-shrink: 0;
+  }
+  #browser-title { color: #7a7a9a; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  #browser-status { color: #7a7a9a; font-size: 0.68rem; white-space: nowrap; margin-left: 0.5rem; }
+  #browser-canvas {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    cursor: crosshair; display: none;
+  }
+  #browser-placeholder {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; flex-direction: column; gap: 0.75rem;
+    color: #4a4a6a;
+  }
+
+  /* ── Modern select override ────────────────────────────── */
+  .sb-agent-select {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-primary);
+    min-width: 200px;
+    cursor: pointer;
+    transition: border-color var(--transition-fast);
+  }
+  .sb-agent-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1400px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-terminal" style="color: var(--color-text-secondary); margin-right: 4px;"></i> Sandbox Interno
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <span style="color: var(--color-text-secondary);">Dev</span> /
+                <span style="color: var(--color-text-primary);">Terminal · Browser · Arquivos</span>
+            </p>
+        </div>
+        <div class="flex items-center" style="gap: var(--space-sm);">
+            <span style="font-size: 0.8125rem; color: var(--color-text-secondary); font-weight: 600;">
+                <i class="fas fa-robot" style="margin-right: 2px;"></i> Agente:
+            </span>
+            <select id="agente-select" class="sb-agent-select">
+                <option value="0">— selecionar —</option>
+            </select>
+            <span id="agente-status-badge" style="display: none; font-size: 0.75rem; padding: 2px 8px; border-radius: var(--radius-sm); background: var(--color-success-light); color: var(--color-success); font-weight: 600;">
+                <i class="fas fa-circle" style="font-size: 0.4rem; vertical-align: middle; margin-right: 3px;"></i> Ativo
+            </span>
+        </div>
+    </div>
+
+    <!-- Main layout -->
+    <div class="sb-layout">
+
+      <!-- Sessions row (top) -->
+      <div class="sb-row-top">
+        <div class="sb-panel" style="height:100%;">
+          <div class="sb-panel-header">
+            <span class="tl-dot tl-yellow"></span>
+            <span class="sb-panel-title"><i class="fas fa-list-ul" style="margin-right:0.4rem; color:#f9e2af;"></i>Sessões Ativas</span>
+            <button class="sb-btn sb-btn-muted" style="margin-left:auto; font-size:0.7rem; padding:0.2rem 0.5rem;" onclick="refreshSessions()">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+          <div class="sb-panel-body" style="overflow-y:auto;">
+            <div id="sessions-list">
+              <div class="sb-session-empty">Nenhuma sessão ativa</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal + Browser row (main) -->
+      <div class="sb-row-main">
+
+        <!-- Terminal Panel -->
+        <div class="sb-panel">
+          <div class="sb-panel-header">
+            <span class="tl-dot tl-red"></span>
+            <span class="tl-dot tl-yellow"></span>
+            <span class="tl-dot tl-green"></span>
+            <span class="sb-panel-title" style="margin-left:0.5rem;">
+              <i class="fas fa-terminal" style="margin-right:0.4rem; color:#89b4fa;"></i>Terminal
+            </span>
+            <span id="term-session-id" style="margin-left:auto; font-size:0.68rem; color:#6c7086; font-family:monospace;"></span>
+          </div>
+          <div class="sb-toolbar">
+            <input type="text" id="cmd-input" class="sb-input" placeholder="ex: python3 script.py" onkeydown="if(event.key==='Enter') runCommand()"/>
+            <input type="text" id="cwd-input" class="sb-input" placeholder="dir" style="max-width:140px;"/>
+            <button class="sb-btn sb-btn-run" onclick="runCommand()">
+              <i class="fas fa-play"></i> Executar
+            </button>
+            <button class="sb-btn sb-btn-danger" onclick="killCurrent()">
+              <i class="fas fa-stop"></i>
+            </button>
+            <button class="sb-btn sb-btn-muted" onclick="clearTerminal()">
+              <i class="fas fa-eraser"></i>
+            </button>
+          </div>
+          <div class="sb-panel-body">
+            <div id="terminal-container"></div>
+          </div>
+        </div>
+
+        <!-- Browser Panel -->
+        <div class="sb-panel">
+          <div class="sb-panel-header">
+            <span class="tl-dot tl-red"></span>
+            <span class="tl-dot tl-yellow"></span>
+            <span class="tl-dot tl-green"></span>
+            <span class="sb-panel-title" style="margin-left:0.5rem;">
+              <i class="fas fa-globe" style="margin-right:0.4rem; color:#a6e3a1;"></i>Browser
+            </span>
+            <span id="browser-ws-status" style="margin-left:auto; font-size:0.68rem; color:#6c7086;">desconectado</span>
+          </div>
+          <div id="browser-nav">
+            <button class="sb-btn sb-btn-muted" onclick="browserBack()" title="Voltar"><i class="fas fa-arrow-left"></i></button>
+            <button class="sb-btn sb-btn-muted" onclick="browserForward()" title="Avançar"><i class="fas fa-arrow-right"></i></button>
+            <button class="sb-btn sb-btn-muted" onclick="browserReload()" title="Recarregar"><i class="fas fa-redo"></i></button>
+            <input type="text" id="browser-url-input" placeholder="https://..." onkeydown="if(event.key==='Enter') browserNavigate()"/>
+            <button class="sb-btn sb-btn-run" onclick="browserNavigate()"><i class="fas fa-arrow-right"></i> Ir</button>
+            <button id="btn-browser-stream" class="sb-btn sb-btn-stream" onclick="toggleBrowserStream()">
+              <i class="fas fa-play"></i> Conectar
+            </button>
+          </div>
+          <div id="browser-meta">
+            <span id="browser-title">—</span>
+            <span id="browser-status">Clique em Conectar para iniciar</span>
+          </div>
+          <div class="sb-panel-body" style="background:#0d0d1a;">
+            <canvas id="browser-canvas"></canvas>
+            <div id="browser-placeholder">
+              <i class="fas fa-globe" style="font-size:2.5rem; color:#2d2d4a;"></i>
+              <span style="font-size:0.9rem;">Selecione um agente e clique em <strong style="color:#a6e3a1;">Conectar</strong></span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /sb-row-main -->
+    </div><!-- /sb-layout -->
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+<script>
+// ── Estado global ─────────────────────────────────────────────────
+let term = null, fitAddon = null;
+let termWs = null;
+let browserWs = null;
+let currentSessionId = null;
+let currentAgenteId = 0;
+let browserStreaming = false;
+let browserCanvas = null;
+let browserCtx = null;
+let browserNativeW = 1280, browserNativeH = 1024;
+
+// ── Terminal (xterm.js) ───────────────────────────────────────────
+function initTerminal() {
+  term = new Terminal({
+    theme: {
+      background: '#0d0d1a', foreground: '#cdd6f4',
+      cursor: '#C75B9B', selectionBackground: '#312e5a',
+      black: '#45475a', red: '#f38ba8', green: '#a6e3a1',
+      yellow: '#f9e2af', blue: '#89b4fa', magenta: '#cba6f7',
+      cyan: '#89dceb', white: '#bac2de',
+      brightBlack: '#585b70', brightRed: '#f38ba8', brightGreen: '#a6e3a1',
+    },
+    fontSize: 13, fontFamily: '"Cascadia Code", "Fira Code", "Consolas", monospace',
+    cursorBlink: true, scrollback: 5000,
+  });
+  fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(document.getElementById('terminal-container'));
+  fitAddon.fit();
+  term.writeln('\x1b[1;35m╔══════════════════════════════════════╗\x1b[0m');
+  term.writeln('\x1b[1;35m║   Fluxi — Sandbox Interno            ║\x1b[0m');
+  term.writeln('\x1b[1;35m╚══════════════════════════════════════╝\x1b[0m');
+  term.writeln('\x1b[2mDigite um comando e pressione ▶ Executar\x1b[0m\r\n');
+
+  term.onData(data => {
+    if (termWs && termWs.readyState === WebSocket.OPEN) {
+      termWs.send(JSON.stringify({type: 'input', data}));
+    }
+  });
+
+  window.addEventListener('resize', () => { if (fitAddon) fitAddon.fit(); });
+}
+
+function connectTerminalWs(sessionId) {
+  if (termWs) { termWs.close(); termWs = null; }
+  currentSessionId = sessionId;
+  document.getElementById('term-session-id').textContent = `[${sessionId}]`;
+
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  termWs = new WebSocket(`${proto}://${location.host}/ws/internal-sandbox/terminal/${sessionId}`);
+
+  termWs.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'output') {
+      term.write(msg.data);
+    } else if (msg.type === 'exit') {
+      term.writeln(`\r\n\x1b[2m[Processo encerrado. exit_code=${msg.exit_code}]\x1b[0m`);
+      currentSessionId = null;
+      document.getElementById('term-session-id').textContent = '';
+      refreshSessions();
+    } else if (msg.type === 'error') {
+      term.writeln(`\r\n\x1b[31m[Erro: ${msg.data}]\x1b[0m`);
+    }
+  };
+
+  termWs.onclose = () => {
+    term.writeln('\r\n\x1b[2m[WebSocket desconectado]\x1b[0m');
+  };
+}
+
+async function runCommand() {
+  const cmd = document.getElementById('cmd-input').value.trim();
+  if (!cmd) return;
+  const cwd = document.getElementById('cwd-input').value.trim() || null;
+
+  term.writeln(`\r\n\x1b[1;35m$ ${cmd}\x1b[0m`);
+
+  const resp = await fetch('/internal-sandbox/api/shell/exec', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({command: cmd, exec_dir: cwd, background: true}),
+  });
+  const data = await resp.json();
+  if (data.session_id) {
+    connectTerminalWs(data.session_id);
+    refreshSessions();
+  } else if (data.output) {
+    term.write(data.output);
+  }
+  document.getElementById('cmd-input').value = '';
+}
+
+async function killCurrent() {
+  if (!currentSessionId) { term.writeln('\r\n\x1b[33m[Nenhuma sessão ativa]\x1b[0m'); return; }
+  if (termWs) { termWs.send(JSON.stringify({type: 'kill'})); }
+  else {
+    await fetch(`/internal-sandbox/api/shell/${currentSessionId}`, {method: 'DELETE'});
+    refreshSessions();
+  }
+}
+
+function clearTerminal() { if (term) term.clear(); }
+
+// ── Sessões ───────────────────────────────────────────────────────
+async function refreshSessions() {
+  const resp = await fetch('/internal-sandbox/api/sessions');
+  const data = await resp.json();
+  const list = document.getElementById('sessions-list');
+
+  if (!data.sessions || data.sessions.length === 0) {
+    list.innerHTML = '<div class="sb-session-empty">Nenhuma sessão ativa</div>';
+    return;
+  }
+
+  list.innerHTML = data.sessions.map(s => {
+    const active = s.id === currentSessionId ? 'active' : '';
+    const tagCls = {running: 'sb-tag-running', done: 'sb-tag-done', error: 'sb-tag-error', killed: 'sb-tag-killed'}[s.status] || 'sb-tag-done';
+    return `
+      <div class="sb-session-item ${active}" onclick="attachSession('${s.id}')">
+        <span class="sb-tag ${tagCls}">${s.status}</span>
+        <code style="color:#cdd6f4;font-size:0.76rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;">${s.command}</code>
+        <span style="color:#6c7086;font-size:0.68rem;">${s.age_s}s</span>
+        <button class="sb-btn sb-btn-danger" style="padding:0.15rem 0.4rem;font-size:0.65rem;" onclick="event.stopPropagation();killSession('${s.id}')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>`;
+  }).join('');
+}
+
+function attachSession(sessionId) {
+  term.writeln(`\r\n\x1b[2m[Conectando à sessão ${sessionId}]\x1b[0m`);
+  connectTerminalWs(sessionId);
+}
+
+async function killSession(sessionId) {
+  await fetch(`/internal-sandbox/api/shell/${sessionId}`, {method: 'DELETE'});
+  if (sessionId === currentSessionId) { currentSessionId = null; }
+  refreshSessions();
+}
+
+// ── Browser ───────────────────────────────────────────────────────
+function initBrowser() {
+  browserCanvas = document.getElementById('browser-canvas');
+  browserCtx = browserCanvas.getContext('2d');
+
+  browserCanvas.addEventListener('click', e => {
+    if (!browserWs || !browserStreaming) return;
+    const rect = browserCanvas.getBoundingClientRect();
+    const scaleX = browserNativeW / rect.width;
+    const scaleY = browserNativeH / rect.height;
+    const x = Math.round((e.clientX - rect.left) * scaleX);
+    const y = Math.round((e.clientY - rect.top) * scaleY);
+    browserWs.send(JSON.stringify({type: 'click', x, y}));
+  });
+
+  browserCanvas.addEventListener('wheel', e => {
+    if (!browserWs) return;
+    browserWs.send(JSON.stringify({type: 'scroll', direction: e.deltaY > 0 ? 'down' : 'up'}));
+  });
+
+  document.getElementById('browser-url-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') browserNavigate();
+  });
+}
+
+function toggleBrowserStream() {
+  if (browserStreaming) {
+    disconnectBrowser();
+  } else {
+    connectBrowser();
+  }
+}
+
+function connectBrowser() {
+  const agenteId = parseInt(document.getElementById('agente-select').value || '0');
+  if (agenteId === 0) {
+    alert('Selecione um agente primeiro');
+    return;
+  }
+  currentAgenteId = agenteId;
+
+  if (browserWs) { browserWs.close(); }
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  browserWs = new WebSocket(`${proto}://${location.host}/ws/internal-sandbox/browser/${agenteId}`);
+
+  browserWs.onopen = () => {
+    browserStreaming = true;
+    document.getElementById('browser-ws-status').innerHTML = '<span style="color:#a6e3a1;">● conectado</span>';
+    const btn = document.getElementById('btn-browser-stream');
+    btn.className = 'sb-btn sb-btn-stop';
+    btn.innerHTML = '<i class="fas fa-stop"></i> Desconectar';
+    document.getElementById('browser-placeholder').style.display = 'none';
+    document.getElementById('browser-canvas').style.display = 'block';
+    document.getElementById('browser-status').textContent = 'Streaming ativo...';
+  };
+
+  browserWs.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'screenshot') {
+      drawScreenshot(msg.data);
+      if (msg.url) document.getElementById('browser-url-input').value = msg.url;
+      if (msg.title) document.getElementById('browser-title').textContent = msg.title;
+    } else if (msg.type === 'action_result') {
+      if (msg.result && msg.result.url) {
+        document.getElementById('browser-url-input').value = msg.result.url;
+      }
+    } else if (msg.type === 'error') {
+      document.getElementById('browser-status').textContent = '⚠ ' + msg.data;
+    }
+  };
+
+  browserWs.onclose = () => {
+    browserStreaming = false;
+    document.getElementById('browser-ws-status').textContent = 'desconectado';
+    const btn = document.getElementById('btn-browser-stream');
+    btn.className = 'sb-btn sb-btn-stream';
+    btn.innerHTML = '<i class="fas fa-play"></i> Conectar';
+  };
+}
+
+function disconnectBrowser() {
+  if (browserWs) { browserWs.close(); browserWs = null; }
+}
+
+function drawScreenshot(b64) {
+  const img = new Image();
+  img.onload = () => {
+    browserNativeW = img.naturalWidth;
+    browserNativeH = img.naturalHeight;
+    const container = browserCanvas.parentElement.getBoundingClientRect();
+    browserCanvas.width = container.width;
+    browserCanvas.height = container.height;
+    const scale = Math.min(container.width / img.naturalWidth, container.height / img.naturalHeight);
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    const x = (container.width - w) / 2;
+    const y = (container.height - h) / 2;
+    browserCtx.fillStyle = '#0d0d1a';
+    browserCtx.fillRect(0, 0, browserCanvas.width, browserCanvas.height);
+    browserCtx.drawImage(img, x, y, w, h);
+  };
+  img.src = 'data:image/png;base64,' + b64;
+}
+
+function browserNavigate() {
+  let url = document.getElementById('browser-url-input').value.trim();
+  if (!url) return;
+  if (!url.startsWith('http')) url = 'https://' + url;
+  if (browserWs && browserStreaming) {
+    browserWs.send(JSON.stringify({type: 'navigate', url}));
+  } else {
+    fetch(`/internal-sandbox/api/browser/${currentAgenteId}/navigate`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url}),
+    });
+  }
+}
+
+function browserBack() {
+  if (browserWs) browserWs.send(JSON.stringify({type: 'keypress', key: 'Alt+ArrowLeft'}));
+}
+function browserForward() {
+  if (browserWs) browserWs.send(JSON.stringify({type: 'keypress', key: 'Alt+ArrowRight'}));
+}
+function browserReload() {
+  if (browserWs) browserWs.send(JSON.stringify({type: 'keypress', key: 'F5'}));
+}
+
+// ── Agentes ───────────────────────────────────────────────────────
+async function loadAgentes() {
+  try {
+    const resp = await fetch('/api/agentes');
+    const data = await resp.json();
+    const sel = document.getElementById('agente-select');
+    (data.agentes || data || []).forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `[${a.codigo}] ${a.nome}`;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initTerminal();
+  initBrowser();
+  loadAgentes();
+  refreshSessions();
+  setInterval(refreshSessions, 5000);
+});
+</script>
+{% endblock %}

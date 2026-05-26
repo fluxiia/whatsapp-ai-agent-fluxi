@@ -1,165 +1,179 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ 'Editar' if mcp_client else 'Novo' }} Servidor MCP - Fluxi.IA{% endblock %}
+{% block title %}{{ 'Painel do Node' if mcp_client else 'Setup de Node MCP' }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-        <div style="width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i class="fas fa-{% if mcp_client %}edit{% else %}plus-circle{% endif %}" style="color: white; font-size: 1.5rem;"></i>
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
-                {{ 'Editar' if mcp_client else 'Novo' }} Servidor MCP
+<div class="container" style="max-width: 1200px;">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-{% if mcp_client %}server{% else %}plus-circle{% endif %} text-primary mb-xs" style="color: #6366f1;"></i> 
+                {{ 'Reconfiguração do Node' if mcp_client else 'Acoplamento de Node (MCP)' }}
             </h1>
-            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-                Configure a conexão com o servidor MCP
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/mcp/agente/{{ agente.id }}/clients" style="color: var(--color-text-secondary); text-decoration: none;">MCP Mesh Topology</a> / 
+                <span style="color: var(--color-text-primary);">Configuração de Transporte</span>
             </p>
         </div>
     </div>
-</div>
 
-<form method="POST" id="mcpForm">
-    
-<!-- Informações Básicas -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-info-circle" style="color: #3b82f6;"></i> Informações Básicas
-    </h2>
-    
-    <div class="field">
-        <label class="label">Nome do Servidor *</label>
-        <div class="control">
-            <input class="input" type="text" name="nome" value="{{ mcp_client.nome if mcp_client else '' }}" required placeholder="Ex: GitHub Tools, Slack MCP, Meu Sistema">
-        </div>
-        <p class="help">Nome para identificar este servidor MCP</p>
-    </div>
-
-    <div class="field">
-        <label class="label">Descrição</label>
-        <div class="control">
-            <textarea class="textarea" name="descricao" rows="2" placeholder="Descreva as funcionalidades deste servidor">{{ mcp_client.descricao if mcp_client else '' }}</textarea>
-        </div>
-        <p class="help">Informações sobre as tools disponíveis neste servidor</p>
-    </div>
-    
-    <div class="field">
-        <label class="checkbox">
-            <input type="checkbox" name="ativo" {% if not mcp_client or mcp_client.ativo %}checked{% endif %}>
-            Servidor Ativo
-        </label>
-    </div>
-</div>
-
-<!-- Configuração de Transporte -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-network-wired" style="color: #8b5cf6;"></i> Configuração de Transporte
-    </h2>
-    
-    <div class="field">
-        <label class="label">Tipo de Transporte *</label>
-        <div class="control">
-            <div class="select is-fullwidth">
-                <select name="transport_type" id="transport_select" onchange="updateTransportFields()" {% if mcp_client %}disabled{% endif %}>
-                    <option value="stdio" {% if not mcp_client or mcp_client.transport_type.value == 'stdio' %}selected{% endif %}>STDIO - Comando Local</option>
-                    <option value="streamable-http" {% if mcp_client and mcp_client.transport_type.value == 'streamable-http' %}selected{% endif %}>Streamable HTTP - Servidor Remoto</option>
-                </select>
-            </div>
-        </div>
-        <p class="help">
-            <strong>STDIO:</strong> Executa comando local (Python, Node.js, etc.)<br>
-            <strong>HTTP:</strong> Conecta a servidor remoto via HTTP
-        </p>
-    </div>
-    
-    <!-- Campos STDIO -->
-    <div id="stdio-fields" style="{% if mcp_client and mcp_client.transport_type.value != 'stdio' %}display: none;{% endif %}">
-        <div class="field">
-            <label class="label">Comando *</label>
-            <div class="control">
-                <input class="input" type="text" name="command" id="command_input" value="{{ mcp_client.command if mcp_client else '' }}" placeholder="python, npx, uv, node, etc.">
-            </div>
-            <p class="help">Comando para executar o servidor MCP (ex: python, npx, uv)</p>
-        </div>
+    <form method="POST" id="mcpForm">
         
-        <div class="field">
-            <label class="label">Argumentos</label>
-            <div class="control">
-                <input class="input" type="text" name="args" id="args_input" value="{{ mcp_client.args|join(' ') if mcp_client and mcp_client.args else '' }}" placeholder="server.py --port 8000">
-            </div>
-            <p class="help">Argumentos do comando (separados por espaço). Ex: <code>server.py</code> ou <code>-y @modelcontextprotocol/server-github</code></p>
-        </div>
-        
-        <div class="field">
-            <label class="label">Variáveis de Ambiente (JSON)</label>
-            <div class="control">
-                <textarea class="textarea" name="env_vars" id="env_input" rows="3" placeholder='{"API_KEY": "seu_token", "GITHUB_TOKEN": "ghp_xxx"}'>{{ mcp_client.env_vars|tojson if mcp_client and mcp_client.env_vars else '' }}</textarea>
-            </div>
-            <p class="help">Variáveis de ambiente em formato JSON. Ex: <code>{"API_KEY": "valor"}</code></p>
-        </div>
-    </div>
-    
-    <!-- Campos HTTP -->
-    <div id="http-fields" style="{% if not mcp_client or mcp_client.transport_type.value == 'stdio' %}display: none;{% endif %}">
-        <div class="field">
-            <label class="label">URL do Servidor *</label>
-            <div class="control">
-                <input class="input" type="url" name="url" id="url_input" value="{{ mcp_client.url if mcp_client else '' }}" placeholder="http://localhost:8000/mcp">
-            </div>
-            <p class="help">URL completa do servidor MCP (incluindo /mcp no final)</p>
-        </div>
-    </div>
-</div>
+        <div class="grid grid-cols-3 gap-lg">
+            
+            <!-- Formulário Principal (2/3) -->
+            <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+                
+                <!-- Box Metadados Basicos -->
+                <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                    <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <i class="fas fa-microchip text-primary"></i>
+                        <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Parâmetros Básicos</h2>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label text-secondary" style="font-size: 0.75rem; text-transform: uppercase;">Identidade do Node (Nome) *</label>
+                        <div class="control">
+                            <input class="input" type="text" name="nome" value="{{ mcp_client.nome if mcp_client else '' }}" required placeholder="Ex: Servidor Github, Filesystem Node, Postgres DB" style="background: var(--color-surface); font-family: monospace;">
+                        </div>
+                    </div>
 
-<!-- Exemplos -->
-<div class="box" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 2px solid #fbbf24; margin-bottom: 2rem;">
-    <h3 style="font-size: 1.25rem; font-weight: 700; color: #78350f; margin-bottom: 1rem;">
-        <i class="fas fa-lightbulb"></i> Exemplos de Configuração
-    </h3>
-    
-    <div style="display: grid; gap: 1rem;">
-        <div style="background: white; border-radius: 8px; padding: 1rem; border-left: 4px solid #f59e0b;">
-            <strong style="color: #92400e; display: block; margin-bottom: 0.5rem;">🐍 Servidor Python Local</strong>
-            <code style="display: block; background: #fef3c7; padding: 0.5rem; border-radius: 4px; font-size: 0.875rem; color: #78350f;">
-                Transport: STDIO<br>
-                Command: python<br>
-                Args: meu_servidor_mcp.py
-            </code>
-        </div>
-        
-        <div style="background: white; border-radius: 8px; padding: 1rem; border-left: 4px solid #f59e0b;">
-            <strong style="color: #92400e; display: block; margin-bottom: 0.5rem;">📦 GitHub MCP (NPM)</strong>
-            <code style="display: block; background: #fef3c7; padding: 0.5rem; border-radius: 4px; font-size: 0.875rem; color: #78350f;">
-                Transport: STDIO<br>
-                Command: npx<br>
-                Args: -y @modelcontextprotocol/server-github<br>
-                Env: {"GITHUB_TOKEN": "seu_token"}
-            </code>
-        </div>
-        
-        <div style="background: white; border-radius: 8px; padding: 1rem; border-left: 4px solid #f59e0b;">
-            <strong style="color: #92400e; display: block; margin-bottom: 0.5rem;">🌐 Servidor HTTP Remoto</strong>
-            <code style="display: block; background: #fef3c7; padding: 0.5rem; border-radius: 4px; font-size: 0.875rem; color: #78350f;">
-                Transport: Streamable HTTP<br>
-                URL: https://meu-servidor.com/mcp
-            </code>
-        </div>
-    </div>
-</div>
+                    <div class="field">
+                        <label class="label text-secondary" style="font-size: 0.75rem; text-transform: uppercase;">Finalidade / Documentação</label>
+                        <div class="control">
+                            <textarea class="textarea" name="descricao" rows="2" placeholder="O que este conjunto de provedores (node) fará?" style="background: var(--color-surface);">{{ mcp_client.descricao if mcp_client else '' }}</textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="field" style="margin-top: var(--space-md); padding: var(--space-sm); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-secondary);">
+                        <label class="checkbox flex items-center justify-between" style="width: 100%; font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary); margin: 0;">
+                            <span>Permitir Inicialização Automática deste Node na engine</span>
+                            <div style="position: relative;">
+                                <input type="checkbox" name="ativo" {% if not mcp_client or mcp_client.ativo %}checked{% endif %} style="width: 18px; height: 18px; accent-color: #6366f1;">
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-<!-- Botões -->
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
-    <button type="button" onclick="submitForm()" class="button is-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; font-weight: 600; border-radius: 8px; padding: 0.75rem 2rem;">
-        <span class="icon"><i class="fas fa-plug"></i></span>
-        <span>{{ 'Atualizar' if mcp_client else 'Conectar Servidor' }}</span>
-    </button>
-    <a href="/mcp/agente/{{ agente.id }}/clients" class="button is-medium" style="border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
-        <span class="icon"><i class="fas fa-times"></i></span>
-        <span>Cancelar</span>
-    </a>
+                <!-- Box Configuração de Transporte -->
+                <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                    <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                        <i class="fas fa-network-wired text-info"></i>
+                        <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Configurações de Transporte MCP</h2>
+                    </div>
+                    
+                    <div class="field">
+                        <label class="label text-secondary" style="font-size: 0.75rem; text-transform: uppercase;">Protocolo (Layer) *</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select name="transport_type" id="transport_select" onchange="updateTransportFields()" {% if mcp_client %}disabled{% endif %} style="background: var(--color-surface); border: 1px solid var(--color-border);">
+                                    <option value="stdio" {% if not mcp_client or mcp_client.transport_type.value == 'stdio' %}selected{% endif %}>Local Executable (STDIO)</option>
+                                    <option value="streamable-http" {% if mcp_client and mcp_client.transport_type.value == 'streamable-http' %}selected{% endif %}>Remote Endpoint (Streamable HTTP)</option>
+                                </select>
+                            </div>
+                        </div>
+                        {% if mcp_client %}
+                        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 4px;"><i class="fas fa-lock"></i> O protocolo não pode ser alterado após o registro do node.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Campos STDIO -->
+                    <div id="stdio-fields" style="background: var(--color-bg-secondary); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--color-border); border-left: 3px solid #38bdf8; {% if mcp_client and mcp_client.transport_type.value != 'stdio' %}display: none;{% endif %}">
+                        
+                        <div class="grid grid-cols-2 gap-md">
+                            <div class="field">
+                                <label class="label" style="font-size: 0.75rem; color: var(--color-text-primary); font-family: monospace;">$ BINÁRIO/COMANDO *</label>
+                                <div class="control">
+                                    <input class="input" type="text" name="command" id="command_input" value="{{ mcp_client.command if mcp_client else '' }}" placeholder="Ex: docker, npx, uvx, python" style="font-family: monospace; font-size: 0.8125rem;">
+                                </div>
+                            </div>
+                            
+                            <div class="field">
+                                <label class="label" style="font-size: 0.75rem; color: var(--color-text-primary); font-family: monospace;">ARGUMENTOS DE EXECUÇÃO</label>
+                                <div class="control">
+                                    <input class="input" type="text" name="args" id="args_input" value="{{ mcp_client.args|join(' ') if mcp_client and mcp_client.args else '' }}" placeholder="Ex: run -i --rm mcp/brave-search" style="font-family: monospace; font-size: 0.8125rem;">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="field mt-md">
+                            <label class="label flex items-center justify-between" style="font-size: 0.75rem; color: var(--color-text-primary); font-family: monospace;">
+                                <span>ENVIRONMENT VARIABLES (.ENV) PAYLOAD (JSON)</span>
+                            </label>
+                            <div class="control">
+                                <textarea class="textarea" name="env_vars" id="env_input" rows="4" placeholder='{
+  "CHAVE_API": "token_123",
+  "TEMA": "dark"
+}' style="font-family: monospace; font-size: 0.8125rem; background: #0f172a; color: #38bdf8; border: 1px solid #1e293b;">{{ mcp_client.env_vars|tojson if mcp_client and mcp_client.env_vars else '' }}</textarea>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <!-- Campos HTTP -->
+                    <div id="http-fields" style="background: var(--color-bg-secondary); padding: var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--color-border); border-left: 3px solid #f59e0b; {% if not mcp_client or mcp_client.transport_type.value == 'stdio' %}display: none;{% endif %}">
+                        <div class="field">
+                            <label class="label" style="font-size: 0.75rem; color: var(--color-text-primary); font-family: monospace;">URL DE INGRESSO *</label>
+                            <div class="control">
+                                <input class="input" type="url" name="url" id="url_input" value="{{ mcp_client.url if mcp_client else '' }}" placeholder="https://api.empresa.com/mcp" style="font-family: monospace; font-size: 0.8125rem; color: #f59e0b;">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Painel de Execução -->
+                <div class="flex items-center gap-md" style="margin-top: var(--space-sm);">
+                    <button type="button" onclick="submitForm()" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;">
+                        <i class="fas fa-satellite-dish" style="margin-right: 6px;"></i>
+                        {{ 'Update/Deploy Node Configuration' if mcp_client else 'Acoplar Node' }}
+                    </button>
+                    <a href="/mcp/agente/{{ agente.id }}/clients" class="button is-outline">
+                        Cancelar
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Painel Informativo Lateral (1/3) -->
+            <div style="grid-column: span 1;" class="flex flex-col gap-md">
+                
+                <div class="box" style="padding: var(--space-lg); border: 1px solid var(--color-border); box-shadow: none; background: var(--color-bg-secondary);">
+                    <h3 style="font-size: 0.875rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-md); border-bottom: 2px solid var(--color-border); padding-bottom: 4px;">Modos de Operação (Manuais)</h3>
+                    
+                    <div style="margin-bottom: var(--space-lg);">
+                        <strong style="color: #38bdf8; font-size: 0.8125rem; font-family: monospace; display: block; margin-bottom: 4px;">STDIO (DOCKER)</strong>
+                        <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: 4px;">Ideal para rodar containers via subprocess sem expor portas.</p>
+                        <code style="display: block; background: #0f172a; border-radius: 4px; padding: 6px; font-size: 0.65rem; color: #a5b4fc;">
+                            Comando: docker<br>
+                            Args: run -i --rm -e KEY mcp/nome
+                        </code>
+                    </div>
+
+                    <div style="margin-bottom: var(--space-lg);">
+                        <strong style="color: #6366f1; font-size: 0.8125rem; font-family: monospace; display: block; margin-bottom: 4px;">STDIO (NPX)</strong>
+                        <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: 4px;">O mais comum para nodes criados com SDK Javascript.</p>
+                        <code style="display: block; background: #0f172a; border-radius: 4px; padding: 6px; font-size: 0.65rem; color: #a5b4fc;">
+                            Comando: npx<br>
+                            Args: -y @modelcontextprotocol/server...
+                        </code>
+                    </div>
+
+                    <div>
+                        <strong style="color: #f59e0b; font-size: 0.8125rem; font-family: monospace; display: block; margin-bottom: 4px;">STREAMABLE-HTTP</strong>
+                        <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5; margin-bottom: 4px;">Quando você conectará com um provedor API externo ou sistema em outra VM.</p>
+                        <code style="display: block; background: #0f172a; border-radius: 4px; padding: 6px; font-size: 0.65rem; color: #fde68a;">
+                            URL: http://internal-server:3000/sse
+                        </code>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </form>
 </div>
-</form>
 
 <script>
 function updateTransportFields() {
@@ -182,6 +196,13 @@ function updateTransportFields() {
 
 async function submitForm() {
     const form = document.getElementById('mcpForm');
+    
+    // Verificação de Formulário HTML5
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
     const formData = new FormData(form);
     
     // Processar args (string para array)
@@ -198,7 +219,7 @@ async function submitForm() {
         try {
             envObj = JSON.parse(envStr);
         } catch (e) {
-            alert('❌ Erro: Variáveis de ambiente devem estar em formato JSON válido.\nEx: {"KEY": "value"}');
+            alert('❌ Erro JSON Parse: As variáveis devem estar no padrão {"KEY":"VAL"}');
             return;
         }
     }
@@ -216,8 +237,6 @@ async function submitForm() {
         url: formData.get('url') || null
     };
     
-    console.log('Enviando:', payload);
-    
     try {
         const url = {% if mcp_client %}'/api/mcp/clients/{{ mcp_client.id }}'{% else %}'/api/mcp/agente/{{ agente.id }}/clients'{% endif %};
         const method = {% if mcp_client %}'PUT'{% else %}'POST'{% endif %};
@@ -233,20 +252,16 @@ async function submitForm() {
         const data = await response.json();
         
         if (response.ok) {
-            alert('✅ Servidor MCP {{ "atualizado" if mcp_client else "criado e conectado" }} com sucesso!');
+            alert('✅ MCP Acoplado e validado. Aguardando sync loop do Daemon.');
             window.location.href = '/mcp/agente/{{ agente.id }}/clients';
         } else {
-            alert(`❌ Erro: ${data.detail || 'Erro desconhecido'}`);
+            alert(`❌ Falha na Validação do Setup: ${data.detail || 'Erro desconhecido'}`);
         }
     } catch (error) {
-        alert(`❌ Erro ao {{ "atualizar" if mcp_client else "criar" }}: ${error.message}`);
+        alert(`❌ Erro no Transporte da Camada de API: ${error.message}`);
     }
 }
 
-// Inicializar campos corretos
-document.addEventListener('DOMContentLoaded', () => {
-    updateTransportFields();
-});
+document.addEventListener('DOMContentLoaded', updateTransportFields);
 </script>
-
 {% endblock %}

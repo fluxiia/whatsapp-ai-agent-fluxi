@@ -1,6 +1,7 @@
 """
 Serviço de lógica de negócio para provedores LLM.
 """
+import logging
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
 import httpx
@@ -18,6 +19,8 @@ from llm_providers.llm_providers_schema import (
     ConfiguracaoProvedor,
     EstatisticasProvedor as EstatisticasProvedorSchema
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ProvedorLLMService:
@@ -134,7 +137,7 @@ class ProvedorLLMService:
                 return modelos
                 
         except Exception as e:
-            print(f"Erro ao buscar modelos: {e}")
+            logger.warning("Erro ao buscar modelos: %s", e)
             return []
 
     @staticmethod
@@ -314,7 +317,7 @@ class ProvedorLLMService:
         inicio_requisicao = time.time()
         
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=300.0) as client:
                 base_url = str(provedor.base_url).rstrip('/')
                 headers = {"Content-Type": "application/json"}
                 if provedor.api_key:
@@ -335,11 +338,15 @@ class ProvedorLLMService:
                     "messages": requisicao.mensagens,
                     "stream": requisicao.stream
                 }
+
                 
                 # Adicionar tools se disponíveis
                 if requisicao.tools:
                     payload_openai["tools"] = requisicao.tools
-                    print(f"🔧 [PROVEDOR_LOCAL] Enviando {len(requisicao.tools)} tools para API OpenAI-compatível")
+                    logger.info(
+                        "[PROVEDOR_LOCAL] Enviando %d tools para API OpenAI-compatível",
+                        len(requisicao.tools),
+                    )
                 
                 if requisicao.configuracao:
                     payload_openai.update({
@@ -348,13 +355,17 @@ class ProvedorLLMService:
                         "top_p": requisicao.configuracao.top_p,
                         "stop": requisicao.configuracao.stop
                     })
-                
+             
                 try:
                     response = await client.post(url_openai, json=payload_openai, headers=headers)
                     if response.status_code == 200:
                         tipo_detectado = "openai"
-                except:
-                    pass
+                except Exception as _openai_err:
+                    logger.warning(
+                        "[PROVEDOR_LOCAL] OpenAI endpoint falhou: %s: %s",
+                        type(_openai_err).__name__,
+                        _openai_err,
+                    )
                 
                 # Se falhou, tenta endpoint Ollama
                 if not response or response.status_code != 200:
@@ -368,7 +379,10 @@ class ProvedorLLMService:
                     # Adicionar tools para Ollama
                     if requisicao.tools:
                         payload_ollama["tools"] = requisicao.tools
-                        print(f"🔧 [PROVEDOR_LOCAL] Enviando {len(requisicao.tools)} tools para API Ollama")
+                        logger.info(
+                            "[PROVEDOR_LOCAL] Enviando %d tools para API Ollama",
+                            len(requisicao.tools),
+                        )
                     
                     if requisicao.configuracao:
                         payload_ollama["options"] = {
@@ -384,8 +398,12 @@ class ProvedorLLMService:
                         response = await client.post(url_ollama, json=payload_ollama, headers=headers)
                         if response.status_code == 200:
                             tipo_detectado = "ollama"
-                    except:
-                        pass
+                    except Exception as _ollama_err:
+                        logger.warning(
+                            "[PROVEDOR_LOCAL] Ollama endpoint falhou: %s: %s",
+                            type(_ollama_err).__name__,
+                            _ollama_err,
+                        )
 
                 tempo_geracao = (time.time() - inicio_requisicao) * 1000
 
@@ -395,7 +413,7 @@ class ProvedorLLMService:
                     # Extrair resposta baseado no tipo
                     tool_calls = None
                     finish_reason = None
-                    
+                    print(data)
                     if tipo_detectado == "ollama":
                         message = data.get("message", {})
                         conteudo = message.get("content", "")
@@ -412,7 +430,10 @@ class ProvedorLLMService:
                         finish_reason = choice.get("finish_reason")
                     
                     if tool_calls:
-                        print(f"🔧 [PROVEDOR_LOCAL] Resposta contém {len(tool_calls)} tool_calls")
+                        logger.info(
+                            "[PROVEDOR_LOCAL] Resposta contém %d tool_calls",
+                            len(tool_calls),
+                        )
 
                     # Atualizar estatísticas
                     ProvedorLLMService._atualizar_estatisticas(db, provedor_id, True, tempo_geracao)

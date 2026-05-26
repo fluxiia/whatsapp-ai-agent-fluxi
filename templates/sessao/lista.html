@@ -1,180 +1,388 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Sessões WhatsApp - Fluxi.IA{% endblock %}
+{% block title %}Conectores & Agentes - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div class="box" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; margin-bottom: 2rem; padding: 2rem;">
-    <h1 class="title is-3" style="color: white; margin-bottom: 0.75rem !important; line-height: 1.2;">
-        <i class="fab fa-whatsapp"></i> Sessões WhatsApp
-    </h1>
-    <p class="subtitle is-6" style="color: rgba(255,255,255,0.95); margin-bottom: 0 !important; line-height: 1.4;">
-        Gerencie suas conexões WhatsApp e agentes
-    </p>
-</div>
-
-<!-- Stats & Actions -->
-<div class="level" style="background: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid #e5e7eb;">
-    <div class="level-left">
-        <div class="level-item">
-            <div>
-                <p class="heading" style="color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Total de Sessões</p>
-                <p class="title is-4" style="margin-bottom: 0;">
-                    <span style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                        {{ sessoes|length }}
-                    </span>
-                </p>
-            </div>
+<div class="container">
+    <!-- Cabeçalho de Página -->
+    <div class="flex items-center justify-between mb-lg"
+        style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">Gestão de Conectores & Agentes</h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">Configuração de gateways (WhatsApp e Telegram) e repositório
+                de personas inteligentes.</p>
         </div>
-        <div class="level-item" style="margin-left: 3rem;">
-            <div>
-                <p class="heading" style="color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Conectadas</p>
-                <p class="title is-4" style="margin-bottom: 0; color: #10b981;">
-                    {{ sessoes|selectattr("status", "equalto", "conectado")|list|length }}
-                </p>
-            </div>
-        </div>
-    </div>
-    <div class="level-right">
-        <div class="level-item">
-            <a href="/sessoes/nova" class="button is-primary is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600;">
-                <span class="icon"><i class="fas fa-plus-circle"></i></span>
-                <span>Nova Sessão</span>
+        <div class="flex items-center gap-sm">
+            <a href="/sessoes/nova" class="button is-primary is-small">
+                <i class="fas fa-plus"></i> Novo Conector Base
             </a>
         </div>
     </div>
-</div>
 
-<!-- Sessões Grid -->
-{% if sessoes %}
-<div class="columns is-multiline">
-    {% for sessao in sessoes %}
-    <div class="column is-12-mobile is-6-tablet is-4-desktop">
-        <div class="card" style="height: 100%; display: flex; flex-direction: column;">
-            <!-- Card Header -->
-            <div class="card-content" style="flex: 1;">
-                <div class="media" style="margin-bottom: 1rem;">
-                    <div class="media-left">
-                        <div style="width: 56px; height: 56px; border-radius: 12px; background: {% if sessao.status == 'conectado' %}linear-gradient(135deg, #10b981 0%, #059669 100%){% else %}linear-gradient(135deg, #6b7280 0%, #4b5563 100%){% endif %}; display: flex; align-items: center; justify-content: center;">
-                            <i class="fab fa-whatsapp" style="font-size: 1.75rem; color: white;"></i>
+    <!-- Grid de Layout 2/3 - 1/3 -->
+    <div class="grid grid-cols-3">
+
+        <!-- COLUNA PRINCIPAL (2/3): Tabela de Conectores com Agentes Aninhados -->
+        <div style="grid-column: span 2;" class="flex flex-col gap-xl">
+            {% if sessoes %}
+            {% for sessao in sessoes %}
+            <div class="connector-group">
+                <!-- CABEÇALHO DO CONECTOR (Camada de Rede) -->
+                <div class="connector-header">
+                    <div class="flex items-center gap-md">
+                        <div class="status-dot {% if sessao.status == 'conectado' %}is-online{% endif %}"></div>
+                        <div class="flex flex-col">
+                            <h2 class="connector-title">{{ sessao.nome }}</h2>
+                            <span class="connector-subtitle">
+                                {% if sessao.plataforma == 'telegram' %}
+                                <i class="fab fa-telegram" style="color: #229ED9;"></i>
+                                {{ sessao.identificador or 'Aguardando ligar bot' }}
+                                <span style="margin-left: 6px; font-size: 0.65rem; background: #229ED9; color: white;
+                                    padding: 1px 6px; border-radius: 3px;">TELEGRAM</span>
+                                {% elif sessao.plataforma == 'webchat' %}
+                                <i class="fas fa-globe" style="color: #6366f1;"></i>
+                                <a href="/chat/{{ sessao.id }}" target="_blank"
+                                    style="color: var(--color-text-primary); text-decoration: none; font-family: monospace;">/chat/{{ sessao.id }}</a>
+                                <span style="margin-left: 6px; font-size: 0.65rem; background: #6366f1; color: white;
+                                    padding: 1px 6px; border-radius: 3px;">WEB CHAT</span>
+                                {% else %}
+                                <i class="fab fa-whatsapp" style="color: #25D366;"></i>
+                                {{ sessao.telefone or 'QR Code Pendente' }}
+                                <span style="margin-left: 6px; font-size: 0.65rem; background: #25D366; color: white;
+                                    padding: 1px 6px; border-radius: 3px;">WHATSAPP</span>
+                                {% endif %}
+                                {% if sessao.ultima_conexao %}
+                                <span style="margin-left: 8px; opacity: 0.7;">• Visto em: {{
+                                    sessao.ultima_conexao.strftime('%d/%m %H:%M') }}</span>
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
-                    <div class="media-content">
-                        <p class="title is-5" style="margin-bottom: 0.25rem; font-weight: 700;">{{ sessao.nome }}</p>
+
+                    <div class="flex items-center gap-sm">
+                        <a href="/sessoes/{{ sessao.id }}/detalhes"
+                            class="button is-outline is-small technical-btn">CONFIGURAR CANAL</a>
+                        <a href="/agentes/sessao/{{ sessao.id }}/novo" class="button is-primary is-small main-btn">
+                            <i class="fas fa-plus"></i> NOVO AGENTE
+                        </a>
                     </div>
                 </div>
 
-                <!-- Status Badges -->
-                <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <span class="status-badge status-{{ sessao.status }}">
-                        {% if sessao.status == 'conectado' %}
-                            <i class="fas fa-check-circle"></i>
-                        {% elif sessao.status == 'conectando' %}
-                            <i class="fas fa-spinner fa-pulse"></i>
-                        {% else %}
-                            <i class="fas fa-times-circle"></i>
-                        {% endif %}
-                        {{ sessao.status }}
-                    </span>
-                    {% if sessao.auto_responder %}
-                    <span class="tag" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 50px; font-size: 0.75rem; font-weight: 600;">
-                        <i class="fas fa-robot"></i>&nbsp; Auto-responder
-                    </span>
-                    {% endif %}
-                </div>
-
-                <!-- Info -->
-                <div style="font-size: 0.875rem; color: #6b7280; line-height: 1.8;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                        <i class="fas fa-brain" style="width: 16px;"></i>
-                        <span><strong>Modelo:</strong> {{ sessao.modelo_llm or 'Padrão' }}</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-clock" style="width: 16px;"></i>
-                        <span>
-                            {% if sessao.ultima_conexao %}
-                                {{ sessao.ultima_conexao.strftime('%d/%m/%Y %H:%M') }}
+                <!-- REPOSITÓRIO DE AGENTES (Camada de Inteligência) -->
+                <div class="connector-body">
+                    <table class="agent-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">CÓD.</th>
+                                <th>PERSONA / AGENTE</th>
+                                <th>STATUS DE VÍNCULO</th>
+                                <th style="text-align: right;">AÇÕES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if sessao.agentes %}
+                            {% for agente in sessao.agentes %}
+                            <tr class="{% if agente.id == sessao.agente_ativo_id %}active-agent-row{% endif %}">
+                                <td class="font-mono">{{ agente.codigo }}</td>
+                                <td>
+                                    <div class="flex flex-col">
+                                        <span class="agent-name-small">{{ agente.nome }}</span>
+                                        <span class="agent-role-mini">{{ agente.agente_papel|truncate(60) or 'Sem papel
+                                            definido' }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if agente.id == sessao.agente_ativo_id %}
+                                    <div class="status-pill active">
+                                        <i class="fas fa-check-circle"></i> ACOPLADO AGORA
+                                    </div>
+                                    {% else %}
+                                    <div class="status-pill standby">
+                                        STANDBY
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: right;">
+                                    <div class="flex items-center justify-end gap-xs">
+                                        {% if agente.id != sessao.agente_ativo_id %}
+                                        <form action="/agentes/{{ agente.id }}/ativar" method="POST" style="margin: 0;">
+                                            <button type="submit" class="button is-ghost is-small op-btn"
+                                                title="Ativar este Agente neste Número">LIGAR</button>
+                                        </form>
+                                        {% endif %}
+                                        <div class="divider-v"></div>
+                                        <a href="/agentes/{{ agente.id }}"
+                                            class="button is-ghost is-small op-btn" title="Editar Persona"><i
+                                                class="fas fa-edit"></i></a>
+                                        <a href="/agentes/{{ agente.id }}?tab=ferramentas"
+                                            class="button is-ghost is-small op-btn" title="Gerenciar Ferramentas"><i
+                                                class="fas fa-wrench"></i></a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
                             {% else %}
-                                <span style="color: #9ca3af;">Nunca conectado</span>
+                            <tr>
+                                <td colspan="4" class="empty-agent-msg">
+                                    Nenhum agente cadastrado. Use o botão acima para criar uma inteligência para este
+                                    conector.
+                                </td>
+                            </tr>
                             {% endif %}
-                        </span>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="box p-2xl text-center"
+                style="border: 2px dashed var(--color-border); background: var(--color-surface);">
+                <i class="fab fa-whatsapp fa-4x mb-md" style="color: var(--color-text-muted); opacity: 0.3;"></i>
+                <h3 style="font-size: 1.125rem;">Nenhum Conector Disponível</h3>
+                <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: var(--space-lg);">
+                    Você precisa de um conector base para gerenciar agentes.</p>
+                <a href="/sessoes/nova" class="button is-primary">Criar Conector Base</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- COLUNA LATERAL (1/3): Documentação e Contexto -->
+        <div class="flex flex-col gap-lg">
+
+            <div class="box"
+                style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-tertiary); border: none;">
+                <div class="flex items-center gap-sm mb-md">
+                    <i class="fas fa-book-open" style="color: var(--color-text-tertiary);"></i>
+                    <strong style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Manual do
+                        Operador</strong>
+                </div>
+                <div class="protocol-list">
+                    <div class="protocol-item">
+                        <span class="num">01</span>
+                        <div class="flex flex-col">
+                            <strong>Conector Base</strong>
+                            <p>É o seu canal de comunicação físico (WhatsApp). Ele define as regras de entrada e saída
+                                (media/comandos).</p>
+                        </div>
+                    </div>
+                    <div class="protocol-item">
+                        <span class="num">02</span>
+                        <div class="flex flex-col">
+                            <strong>Personas de Agente</strong>
+                            <p>São as identidades da IA. Você pode ter várias, mas apenas uma pode estar **Acoplada**
+                                por vez em cada conector.</p>
+                        </div>
+                    </div>
+                    <div class="protocol-item">
+                        <span class="num">03</span>
+                        <div class="flex flex-col">
+                            <strong>Troca Dinâmica</strong>
+                            <p>Ao ativar um novo agente, o histórico é preservado mas a lógica de resposta muda
+                                instantaneamente.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Card Actions -->
-            <footer class="card-footer" style="border-top: 1px solid #e5e7eb;">
-                <a href="/sessoes/{{ sessao.id }}/detalhes" class="card-footer-item" style="font-weight: 600; color: #5B4E9B;">
-                    <span class="icon"><i class="fas fa-eye"></i></span>
-                    <span>Detalhes</span>
-                </a>
-                
-                <a href="/mensagens/sessao/{{ sessao.id }}" class="card-footer-item" style="font-weight: 600; color: #25D366;">
-                    <span class="icon"><i class="fas fa-comments"></i></span>
-                    <span>Histórico</span>
-                </a>
-                
-                {% if sessao.status == 'conectado' %}
-                <form method="POST" action="/sessoes/{{ sessao.id }}/desconectar" style="flex: 1;">
-                    <button type="submit" class="card-footer-item" style="border: none; background: none; cursor: pointer; font-weight: 600; color: #ef4444; width: 100%;">
-                        <span class="icon"><i class="fas fa-power-off"></i></span>
-                        <span>Desconectar</span>
-                    </button>
-                </form>
-                {% else %}
-                <a href="/sessoes/{{ sessao.id }}/conectar" class="card-footer-item" style="font-weight: 600; color: #10b981;">
-                    <span class="icon"><i class="fas fa-plug"></i></span>
-                    <span>Conectar</span>
-                </a>
-                {% endif %}
-            </footer>
-        </div>
-    </div>
-    {% endfor %}
-</div>
-{% else %}
-<!-- Empty State -->
-<div class="box" style="text-align: center; padding: 4rem 2rem; background: white; border: 2px dashed #e5e7eb;">
-    <div style="margin-bottom: 1.5rem;">
-        <span style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: inline-flex; align-items: center; justify-content: center;">
-            <i class="fab fa-whatsapp" style="font-size: 2.5rem; background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
-        </span>
-    </div>
-    <h3 class="title is-4" style="margin-bottom: 0.75rem;">Nenhuma sessão cadastrada</h3>
-    <p style="color: #6b7280; margin-bottom: 2rem; max-width: 400px; margin-left: auto; margin-right: auto;">
-        Crie sua primeira sessão WhatsApp para começar a usar o Fluxi.IA e automatizar suas conversas com IA.
-    </p>
-    <a href="/sessoes/nova" class="button is-primary is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600;">
-        <span class="icon"><i class="fas fa-plus-circle"></i></span>
-        <span>Criar Primeira Sessão</span>
-    </a>
-</div>
-{% endif %}
 
-<!-- Footer de Documentação -->
-<div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; margin-top: 3rem;">
-    <div style="display: flex; gap: 2rem; align-items: start; flex-wrap: wrap;">
-        <div style="flex-shrink: 0;">
-            <div style="width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-book-open" style="font-size: 1.75rem; color: #C75B9B;"></i>
-            </div>
-        </div>
-        <div style="flex: 1; min-width: 300px;">
-            <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 0.75rem;">
-                <i class="fas fa-lightbulb"></i> Entenda o conceito de Sessão
-            </h3>
-            <div style="color: #4b5563; line-height: 1.7; font-size: 0.9375rem;">
-                <p style="margin-bottom: 1rem;">
-                    <strong style="color: #1f2937;">Uma Sessão é o seu canal WhatsApp conectado.</strong> É por onde as mensagens entram e saem. Pense na sessão como a "linha telefônica" do seu bot.
+            <div class="box" style="padding: var(--space-md) var(--space-lg); border-color: var(--color-border);">
+                <span
+                    style="font-size: 0.6rem; font-weight: 800; color: var(--color-text-tertiary); text-transform: uppercase;">Estado
+                    dos Gatilhos</span>
+                <p style="font-size: 0.75rem; color: var(--color-text-primary); line-height: 1.6; margin-top: 8px;">
+                    Os comandos automatizados (gatilhos) são configurados por **Conector**, garantindo que as regras de
+                    operação sejam consistentes para aquele número, independente da Persona ativa.
                 </p>
-                <div style="background: white; border-radius: 8px; padding: 1.25rem; border-left: 4px solid #C75B9B;">
-                    <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong style="color: #1f2937;">📱 1 Sessão</strong> = 1 número WhatsApp conectado</p>
-                    <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong style="color: #1f2937;">🤖 Múltiplos Agentes</strong> = Diferentes personalidades IA respondendo na mesma sessão</p>
-                    <p style="font-size: 0.875rem; margin-bottom: 0;"><strong style="color: #1f2937;">💬 Mensagens</strong> = Conversas que fluem através da sessão</p>
-                </div>
             </div>
+
         </div>
     </div>
 </div>
 
+<style>
+    /* Connector Group Styling */
+    .connector-group {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-xl);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .connector-header {
+        background: var(--color-bg-secondary);
+        border-bottom: 1px solid var(--color-border);
+        padding: var(--space-md) var(--space-lg);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .connector-title {
+        font-size: 1.125rem;
+        font-weight: 800;
+        color: var(--color-text-primary);
+        margin: 0;
+    }
+
+    .connector-subtitle {
+        font-size: 0.75rem;
+        color: var(--color-text-secondary);
+        font-weight: 600;
+    }
+
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--color-text-muted);
+    }
+
+    .status-dot.is-online {
+        background: var(--color-success);
+        box-shadow: 0 0 10px var(--color-success);
+    }
+
+    .technical-btn {
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        background: var(--color-surface);
+    }
+
+    .main-btn {
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+    }
+
+    /* Agent Table Styling */
+    .connector-body {
+        padding: 0;
+    }
+
+    .agent-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8125rem;
+    }
+
+    .agent-table th {
+        background: var(--color-surface);
+        padding: 10px var(--space-lg);
+        text-align: left;
+        font-size: 0.65rem;
+        color: var(--color-text-tertiary);
+        font-weight: 800;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .agent-table td {
+        padding: var(--space-md) var(--space-lg);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .agent-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .active-agent-row {
+        background: rgba(59, 130, 246, 0.03);
+    }
+
+    .agent-name-small {
+        font-weight: 800;
+        font-size: 0.875rem;
+        color: var(--color-text-primary);
+    }
+
+    .agent-role-mini {
+        font-size: 0.7rem;
+        color: var(--color-text-secondary);
+        margin-top: 2px;
+    }
+
+    .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    .status-pill.active {
+        background: var(--color-success-light);
+        color: var(--color-success);
+        border: 1px solid var(--color-success);
+    }
+
+    .status-pill.standby {
+        background: var(--color-bg-tertiary);
+        color: var(--color-text-muted);
+        border: 1px solid var(--color-border);
+    }
+
+    .op-btn {
+        font-weight: 800;
+        font-size: 0.7rem;
+        color: var(--color-text-secondary);
+    }
+
+    .op-btn:hover {
+        color: var(--color-primary);
+    }
+
+    .divider-v {
+        width: 1px;
+        height: 12px;
+        background: var(--color-border);
+    }
+
+    .empty-agent-msg {
+        padding: var(--space-xl) !important;
+        text-align: center;
+        color: var(--color-text-muted);
+        font-size: 0.8125rem;
+    }
+
+    /* Documentation Items */
+    .protocol-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-lg);
+    }
+
+    .protocol-item {
+        display: flex;
+        gap: var(--space-md);
+    }
+
+    .protocol-item .num {
+        font-weight: 900;
+        font-size: 0.875rem;
+        color: var(--color-primary);
+        background: var(--color-primary-light);
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+
+    .protocol-item strong {
+        font-size: 0.8125rem;
+        color: var(--color-text-primary);
+        margin-bottom: 2px;
+    }
+
+    .protocol-item p {
+        font-size: 0.75rem;
+        line-height: 1.5;
+        color: var(--color-text-secondary);
+    }
+</style>
 {% endblock %}

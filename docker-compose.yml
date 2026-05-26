@@ -2,22 +2,26 @@ services:
   fluxi:
     build: .
     ports:
-      - "${PORT:-8000}:8000"
+      - "${HOST_PORT:-10000}:8000"
     volumes:
-      - "./data:/app/data"
-      - "./uploads:/app/uploads"
-      - "./sessoes:/app/sessoes"
-      - "./rags:/app/rags"
-      - "./agent_data:/app/agent_data"
+      - "fluxi_data:/app/data"
+      - "fluxi_uploads:/app/uploads"
+      - "fluxi_sessoes:/app/sessoes"
+      - "fluxi_rags:/app/rags"
+      - "fluxi_agent_data:/app/agent_data"
+      - "fluxi_sandbox:/app/fluxi_sandbox"
     environment:
       - HOST=${HOST:-0.0.0.0}
-      - PORT=${PORT:-8000}
+      - PORT=8000
       - DEBUG=${DEBUG:-True}
       - DATABASE_URL=${DATABASE_URL:-sqlite:////app/data/fluxi.db}
       - UPLOAD_DIR=${UPLOAD_DIR:-./uploads}
-    depends_on:
-      sandbox:
-        condition: service_started
+      - INTERNAL_SANDBOX_ROOT=/app/fluxi_sandbox
+      - FLUXI_SECRET_KEY=${FLUXI_SECRET_KEY}
+      - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
+      - FLUXI_ALLOW_SIGNUP=${FLUXI_ALLOW_SIGNUP:-false}
+      - FLUXI_ADMIN_RESET_EMAIL=${FLUXI_ADMIN_RESET_EMAIL:-}
+      - FLUXI_ADMIN_RESET_PASSWORD=${FLUXI_ADMIN_RESET_PASSWORD:-}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -26,16 +30,10 @@ services:
       retries: 3
       start_period: 40s
 
-  sandbox:
-    image: ghcr.io/agent-infra/sandbox:latest
-    container_name: fluxi-sandbox
-    privileged: true
-    shm_size: "2gb"
-    ports:
-      - "${SANDBOX_PORT:-8080}:8080"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      - WORKSPACE=/home/gem
-      - TZ=${TZ:-America/Sao_Paulo}
-    restart: unless-stopped
+volumes:
+  fluxi_data:
+  fluxi_uploads:
+  fluxi_sessoes:
+  fluxi_rags:
+  fluxi_agent_data:
+  fluxi_sandbox:

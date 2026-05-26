@@ -1,7 +1,7 @@
 """
 Modelo de dados para agentes.
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, Table, Float
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
@@ -43,27 +43,30 @@ class Agente(Base):
     agente_restricoes = Column(Text, nullable=False)
     
     # Configurações LLM específicas do agente
+    provedor_llm_id = Column(Integer, ForeignKey("provedores_llm.id", ondelete='SET NULL'), nullable=True)
     modelo_llm = Column(String(100), nullable=True)
-    temperatura = Column(String(10), nullable=True)
-    max_tokens = Column(String(10), nullable=True)
-    top_p = Column(String(10), nullable=True)
-    frequency_penalty = Column(String(10), nullable=True)  # -2.0 a 2.0 (evita repetição)
-    presence_penalty = Column(String(10), nullable=True)   # -2.0 a 2.0 (novos tópicos)
+    temperatura = Column(Float, nullable=True)
+    max_tokens = Column(Integer, nullable=True)
+    top_p = Column(Float, nullable=True)
+    frequency_penalty = Column(Float, nullable=True)  # -2.0 a 2.0 (evita repetição)
+    presence_penalty = Column(Float, nullable=True)   # -2.0 a 2.0 (novos tópicos)
     
     # RAG (Base de Conhecimento)
     rag_id = Column(Integer, ForeignKey("rags.id", ondelete='SET NULL'), nullable=True, index=True)
     
-    # Modo Autônomo (AIO Sandbox)
-    sandbox_ativo = Column(Boolean, default=False)
-    sandbox_url = Column(String(255), nullable=True)  # URL do sandbox (default: http://fluxi-sandbox:8080)
-    
+    # Modo Autônomo (Sandbox Interno)
+    internal_sandbox_ativo = Column(Boolean, default=False)
+
+    # Coding Agent — quando True, este agente é um agente de coding independente
+    is_coding_agent = Column(Boolean, default=False)
+
     # Status
     ativo = Column(Boolean, default=True)
-    
+
     # Timestamps
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
     atualizado_em = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relacionamentos
     sessao = relationship("Sessao", back_populates="agentes", foreign_keys=[sessao_id])
     ferramentas = relationship(
@@ -74,6 +77,18 @@ class Agente(Base):
     )
     rag = relationship("RAG", back_populates="agentes", foreign_keys=[rag_id])
     mcp_clients = relationship("MCPClient", back_populates="agente", cascade="all, delete-orphan")
+    skills = relationship(
+        "Skill",
+        secondary="agente_skill",
+        back_populates="agentes",
+        lazy="dynamic"
+    )
+    coding_session = relationship(
+        "CodingSession",
+        back_populates="agente",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self):
         return f"<Agente(codigo='{self.codigo}', nome='{self.nome}', sessao_id={self.sessao_id})>"

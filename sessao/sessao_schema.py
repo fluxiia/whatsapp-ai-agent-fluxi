@@ -9,13 +9,20 @@ from datetime import datetime
 class SessaoBase(BaseModel):
     """Schema base para sessão."""
     nome: str = Field(..., description="Nome identificador da sessão")
+    plataforma: str = Field(default="whatsapp", description="Canal: 'whatsapp' ou 'telegram'")
     auto_responder: bool = Field(default=True, description="Auto responder mensagens")
     salvar_historico: bool = Field(default=True, description="Salvar histórico de mensagens")
 
 
 class SessaoCriar(SessaoBase):
-    """Schema para criar nova sessão."""
-    pass
+    """Schema para criar nova sessão.
+
+    Para Telegram, `telegram_bot_token` é obrigatório e será criptografado
+    antes de gravar em `Sessao.credenciais`.
+    """
+    telegram_bot_token: Optional[str] = Field(
+        default=None, description="Bot token do Telegram (apenas plataforma=telegram)"
+    )
 
 
 class SessaoAtualizar(BaseModel):
@@ -31,6 +38,7 @@ class SessaoResposta(SessaoBase):
     """Schema de resposta com dados completos."""
     id: int
     telefone: Optional[str] = None
+    identificador: Optional[str] = None
     status: str
     qr_code: Optional[str] = None
     ativa: bool

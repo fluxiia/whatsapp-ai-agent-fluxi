@@ -1,0 +1,160 @@
+{% extends "base_modern.html" %}
+
+{% block title %}Skills de {{ agente.nome }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-brain text-primary"></i> Skills da Persona
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/agentes/{{ agente.id }}" style="color: var(--color-text-secondary); text-decoration: none;">{{ agente.nome }}</a> /
+                <span style="color: var(--color-text-primary);">Skills</span>
+            </p>
+        </div>
+        <div class="flex items-center gap-sm">
+            <a href="/agentes/{{ agente.id }}" class="button is-small is-outline">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    {% if request.query_params.get('sucesso') %}
+    <div style="background: var(--color-success); color: white; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
+        ✅ {{ request.query_params.get('sucesso') }}
+    </div>
+    {% endif %}
+    {% if request.query_params.get('erro') %}
+    <div style="background: #e53e3e; color: white; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
+        ❌ {{ request.query_params.get('erro') }}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-3">
+        <div style="grid-column: span 2;">
+            <form method="POST" action="/agentes/{{ agente.id }}/skills/atualizar" id="form-skills">
+                <input type="hidden" name="skill_ids" id="skill_ids_input" value="{{ skills_agente|map(attribute='id')|join(',') }}">
+
+                <div class="box" style="padding: var(--space-lg);">
+                    <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+                        Skills Ativas nesta Persona
+                    </h2>
+
+                    <div id="lista-skills-ativas" style="min-height: 60px; border: 2px dashed var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-md); background: var(--color-bg-secondary);">
+                        {% if skills_agente %}
+                        {% for skill in skills_agente %}
+                        <div class="skill-item-ativa flex items-center justify-between"
+                             data-id="{{ skill.id }}"
+                             style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 6px;">
+                            <div class="flex items-center gap-sm">
+                                <span style="color: var(--color-text-muted); cursor: grab; font-size: 0.75rem;">⠿</span>
+                                <span style="font-size: 1rem;">{{ skill.icone or '🔧' }}</span>
+                                <div>
+                                    <span style="font-weight: 600; font-size: 0.875rem;">{{ skill.nome }}</span>
+                                    <p style="font-size: 0.7rem; color: var(--color-text-secondary); margin: 0;">{{ skill.descricao[:80] }}...</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="removerSkill({{ skill.id }})" style="background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 1rem; padding: 4px;">✕</button>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p id="msg-vazio" style="font-size: 0.8rem; color: var(--color-text-muted); text-align: center; padding: var(--space-md);">Nenhuma skill ativa. Adicione skills abaixo.</p>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="button is-primary">
+                        <i class="fas fa-save" style="margin-right: 6px;"></i> Salvar Skills
+                    </button>
+                </div>
+            </form>
+
+            <!-- Todas as skills disponíveis -->
+            <div class="box" style="padding: var(--space-lg); margin-top: var(--space-md);">
+                <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+                    Todas as Skills Disponíveis
+                </h2>
+
+                {% if todas_skills %}
+                {% for skill in todas_skills %}
+                <div class="flex items-center justify-between" style="padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: 6px; background: var(--color-surface);">
+                    <div class="flex items-center gap-sm">
+                        <span>{{ skill.icone or '🔧' }}</span>
+                        <div>
+                            <span style="font-weight: 600; font-size: 0.875rem;">{{ skill.nome }}</span>
+                            <p style="font-size: 0.7rem; color: var(--color-text-secondary); margin: 0;">{{ skill.descricao[:100] }}</p>
+                        </div>
+                    </div>
+                    {% if skill.id in ids_agente %}
+                    <span style="font-size: 0.75rem; color: var(--color-success); font-weight: 600;">✅ Ativa</span>
+                    {% else %}
+                    <button type="button" onclick="adicionarSkill({{ skill.id }}, '{{ skill.icone or '🔧' }}', '{{ skill.nome }}', '{{ skill.descricao[:60]|replace("'", "\\'") }}')"
+                        class="button is-small is-outline" style="border-color: var(--color-primary); color: var(--color-primary);">
+                        + Adicionar
+                    </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <p style="font-size: 0.875rem; color: var(--color-text-muted);">Nenhuma skill cadastrada. <a href="/skills/novo">Crie uma skill</a>.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-md" style="padding-left: var(--space-lg);">
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-sm);">Como funciona</h3>
+                <p style="font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.5;">As skills selecionadas são listadas no <strong>system prompt</strong> do agente (só nome + descrição). Quando o LLM identifica que uma skill é relevante, ele a invoca via <code>invocar_skill</code> e recebe as instruções completas.</p>
+            </div>
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-sm);">Dica</h3>
+                <p style="font-size: 0.8rem; color: var(--color-text-secondary); line-height: 1.5;">Evite adicionar muitas skills com descrições similares — o LLM pode ter dificuldade de escolher. Prefira descrições únicas e específicas.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const idsAtivos = new Set([{{ skills_agente|map(attribute='id')|join(',') }}]);
+
+function atualizarInput() {
+    document.getElementById('skill_ids_input').value = Array.from(idsAtivos).join(',');
+    const msgVazio = document.getElementById('msg-vazio');
+    if (msgVazio) msgVazio.style.display = idsAtivos.size > 0 ? 'none' : 'block';
+}
+
+function removerSkill(id) {
+    idsAtivos.delete(id);
+    const el = document.querySelector(`.skill-item-ativa[data-id="${id}"]`);
+    if (el) el.remove();
+    atualizarInput();
+}
+
+function adicionarSkill(id, icone, nome, descricao) {
+    if (idsAtivos.has(id)) return;
+    idsAtivos.add(id);
+
+    const lista = document.getElementById('lista-skills-ativas');
+    const div = document.createElement('div');
+    div.className = 'skill-item-ativa flex items-center justify-between';
+    div.dataset.id = id;
+    div.style = 'background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 6px;';
+    div.innerHTML = `
+        <div class="flex items-center gap-sm">
+            <span style="color: var(--color-text-muted); font-size: 0.75rem;">⠿</span>
+            <span style="font-size: 1rem;">${icone}</span>
+            <div>
+                <span style="font-weight: 600; font-size: 0.875rem;">${nome}</span>
+                <p style="font-size: 0.7rem; color: var(--color-text-secondary); margin: 0;">${descricao}...</p>
+            </div>
+        </div>
+        <button type="button" onclick="removerSkill(${id})" style="background: none; border: none; color: var(--color-text-muted); cursor: pointer; font-size: 1rem; padding: 4px;">✕</button>
+    `;
+    lista.appendChild(div);
+    atualizarInput();
+}
+</script>
+{% endblock %}

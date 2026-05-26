@@ -179,9 +179,9 @@ from config.config_service import ConfiguracaoService
 modelo = ConfiguracaoService.obter_valor(
     db, 
     "openrouter_modelo_padrao", 
-    "google/gemini-2.0-flash-001"  # Valor padrão se não encontrar
+    "google/gemini-3.1-flash-lite-preview"  # Valor padrão se não encontrar
 )
-# Retorna: "google/gemini-2.0-flash-001" (string)
+# Retorna: "google/gemini-3.1-flash-lite-preview" (string)
 
 # Exemplo: Obter temperatura (float)
 temperatura = ConfiguracaoService.obter_valor(
@@ -246,7 +246,7 @@ Configurações de provedores LLM:
 ### 🟢 **Categoria: openrouter**
 Configurações do OpenRouter:
 - `openrouter_api_key` - Chave de API
-- `openrouter_modelo_padrao` - Modelo padrão (ex: google/gemini-2.0-flash-001)
+- `openrouter_modelo_padrao` - Modelo padrão (ex: google/gemini-3.1-flash-lite-preview)
 - `openrouter_temperatura` - Temperatura (0.0 a 2.0)
 - `openrouter_max_tokens` - Máximo de tokens (ex: 2000)
 - `openrouter_top_p` - Top P (0.0 a 1.0)

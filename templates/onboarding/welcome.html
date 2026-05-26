@@ -1,0 +1,123 @@
+{% extends "onboarding/base.html" %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+    .ob-hero {
+        text-align: center;
+        padding: var(--space-2xl) var(--space-lg);
+        background: linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(99,102,241,0.06) 100%);
+        border-radius: 18px;
+        border: 1px solid var(--color-border);
+        margin-bottom: var(--space-xl);
+    }
+    .ob-hero .ob-mark {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+        border-radius: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin-bottom: var(--space-md);
+        box-shadow: 0 10px 30px rgba(59,130,246,0.25);
+    }
+    .ob-hero h1 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: var(--color-text-primary);
+        margin: 0 0 0.5rem;
+    }
+    .ob-hero p {
+        color: var(--color-text-secondary);
+        font-size: 1rem;
+        max-width: 540px;
+        margin: 0 auto;
+    }
+
+    .ob-timeline {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--space-md);
+        margin-top: var(--space-xl);
+    }
+    @media (max-width: 720px) { .ob-timeline { grid-template-columns: repeat(2, 1fr); } }
+    .ob-tl-item {
+        text-align: center;
+        padding: var(--space-md);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+    }
+    .ob-tl-item .ob-tl-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        background: var(--color-info-light);
+        color: var(--color-primary);
+        font-weight: 800;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+    .ob-tl-item .ob-tl-title {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--color-text-primary);
+        margin-bottom: 0.2rem;
+    }
+    .ob-tl-item .ob-tl-desc {
+        font-size: 0.75rem;
+        color: var(--color-text-tertiary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ob-shell">
+    <div class="ob-hero">
+        <div class="ob-mark">F</div>
+        <h1>Vamos colocar seu agente para responder</h1>
+        <p>Em 4 passos rapidos voce configura o cerebro, conecta um canal e cria seu primeiro agente. De 3 a 5 minutos.</p>
+
+        <div style="margin-top: var(--space-xl); display: flex; justify-content: center; gap: var(--space-md); flex-wrap: wrap;">
+            <a href="/onboarding/llm" class="ob-btn ob-btn-primary">
+                <i class="fas fa-rocket"></i> Comecar agora
+            </a>
+            {% if ja_configurado %}
+            <a href="/" class="ob-btn ob-btn-secondary">
+                <i class="fas fa-arrow-right"></i> Ja sei o que estou fazendo, ir ao painel
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="ob-timeline">
+        <div class="ob-tl-item">
+            <div class="ob-tl-num">1</div>
+            <div class="ob-tl-title">Cerebro (LLM)</div>
+            <div class="ob-tl-desc">LM Studio, Ollama ou OpenRouter</div>
+        </div>
+        <div class="ob-tl-item">
+            <div class="ob-tl-num">2</div>
+            <div class="ob-tl-title">Canal</div>
+            <div class="ob-tl-desc">WhatsApp, Telegram ou Webchat</div>
+        </div>
+        <div class="ob-tl-item">
+            <div class="ob-tl-num">3</div>
+            <div class="ob-tl-title">Agente</div>
+            <div class="ob-tl-desc">Escolha um perfil e personalize</div>
+        </div>
+        <div class="ob-tl-item">
+            <div class="ob-tl-num">4</div>
+            <div class="ob-tl-title">Testar</div>
+            <div class="ob-tl-desc">Mande uma mensagem e veja a resposta</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

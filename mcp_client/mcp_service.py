@@ -4,9 +4,15 @@ Serviço para gerenciar clientes MCP e executar tools.
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
 import asyncio
+import os
+import shutil
+import sys
 import time
 import json
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
@@ -311,11 +317,13 @@ class MCPService:
         try:
                 # Conectar baseado no tipo de transporte
                 if db_mcp.transport_type == TransportType.STDIO:
-                    # Conexão STDIO
+                    # Resolve o caminho completo do comando (ex: npx → npx.cmd no Windows)
+                    merged_env = {**os.environ, **(db_mcp.env_vars or {})}
+                    resolved_cmd = shutil.which(db_mcp.command, path=merged_env.get("PATH")) or db_mcp.command
                     server_params = StdioServerParameters(
-                        command=db_mcp.command,
+                        command=resolved_cmd,
                         args=db_mcp.args or [],
-                        env=db_mcp.env_vars or {}
+                        env=merged_env
                     )
                     
                     context = stdio_client(server_params)
@@ -323,15 +331,43 @@ class MCPService:
                     read_stream, write_stream = streams
                     
                 elif db_mcp.transport_type == TransportType.STREAMABLE_HTTP:
-                    # Conexão HTTP
-                    context = streamablehttp_client(db_mcp.url)
+                    # Pré-verificação HTTP antes de tentar conexão MCP
+                    try:
+                        async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as hc:
+                            pre = await hc.get(db_mcp.url, headers=db_mcp.headers or {})
+                            if pre.status_code == 404:
+                                return {
+                                    "sucesso": False,
+                                    "mensagem": (
+                                        "Servidor não encontrado (404). "
+                                        "Para servidores Smithery: acesse smithery.ai → faça login → "
+                                        "abra o servidor → clique em 'Deploy' para provisioná-lo na sua conta. "
+                                        "Só então a URL estará disponível."
+                                    )
+                                }
+                            elif pre.status_code in (401, 403):
+                                return {
+                                    "sucesso": False,
+                                    "mensagem": f"Acesso negado ({pre.status_code}). Verifique se a API Key está correta."
+                                }
+                    except httpx.RequestError:
+                        pass  # Servidor pode não responder a GET — segue tentativa MCP
+
+                    # Conexão HTTP (passa headers para autenticação Bearer, etc.)
+                    context = streamablehttp_client(
+                        db_mcp.url,
+                        headers=db_mcp.headers or {}
+                    )
                     streams = await context.__aenter__()
                     read_stream, write_stream, _ = streams
                 
                 elif db_mcp.transport_type == TransportType.SSE:
-                    # Conexão SSE
+                    # Conexão SSE (passa headers para autenticação Bearer, etc.)
                     from mcp.client.sse import sse_client
-                    context = sse_client(db_mcp.url)
+                    context = sse_client(
+                        db_mcp.url,
+                        headers=db_mcp.headers or {}
+                    )
                     streams = await context.__aenter__()
                     read_stream, write_stream = streams
                 
@@ -378,15 +414,28 @@ class MCPService:
                 }
         
         except Exception as e:
-            # Registrar erro
+            # Desempacotar ExceptionGroup (Python 3.11+/anyio TaskGroup)
+            erro_real = e
+            if hasattr(e, 'exceptions') and e.exceptions:
+                erro_real = e.exceptions[0]
+                # Desempacotar mais um nível se necessário
+                if hasattr(erro_real, 'exceptions') and erro_real.exceptions:
+                    erro_real = erro_real.exceptions[0]
+            
+            tipo = type(erro_real).__name__
+            msg = str(erro_real)
+            erro_str = f"{tipo}: {msg}" if tipo != "Exception" else msg
+            
+            logger.error("[MCP %s] Falha ao conectar (%s): %s", mcp_client_id, tipo, msg, exc_info=True)
+            
             db_mcp.conectado = False
-            db_mcp.ultimo_erro = str(e)
+            db_mcp.ultimo_erro = erro_str[:500]
             db.commit()
             
             return {
                 "sucesso": False,
-                "mensagem": f"Erro ao conectar: {str(e)}",
-                "erro": str(e)
+                "mensagem": f"Erro ao conectar: {erro_str}",
+                "erro": erro_str
             }
     
     @staticmethod
@@ -431,7 +480,7 @@ class MCPService:
                     await context.__aexit__(None, None, None)
                 
             except Exception as e:
-                print(f"Erro ao desconectar cliente MCP {mcp_client_id}: {e}")
+                logger.warning("Erro ao desconectar cliente MCP %s: %s", mcp_client_id, e)
             finally:
                 # Remover da memória
                 del MCPService._active_sessions[mcp_client_id]
@@ -522,7 +571,7 @@ class MCPService:
             return len(tools_names_novas)
         
         except Exception as e:
-            print(f"Erro ao sincronizar tools do MCP {mcp_client_id}: {e}")
+            logger.error("Erro ao sincronizar tools do MCP %s: %s", mcp_client_id, e, exc_info=True)
             raise
     
     @staticmethod
@@ -571,16 +620,10 @@ class MCPService:
         inicio = time.time()
         
         lock = MCPService._get_lock(mcp_client_id)
-        print(f"🔒 [MCP] Aguardando lock para client {mcp_client_id}...")
-        # Usar lock para evitar chamadas concorrentes na mesma sessão
         async with lock:
-            print(f"🔓 [MCP] Lock adquirido para client {mcp_client_id}")
-            # Obter sessão ativa
             session = MCPService._active_sessions.get(mcp_client_id)
-            print(f"📡 [MCP] Sessão obtida: {session is not None}")
             if not session:
-                # Tentar reconectar usando função interna (já estamos dentro do lock)
-                print(f"⚠️  [MCP] Sessão não existe. Tentando reconectar...")
+                logger.warning("[MCP %s] Sessão não existe. Tentando reconectar...", mcp_client_id)
                 db_mcp = MCPService.obter_por_id(db, mcp_client_id)
                 if not db_mcp:
                     return {
@@ -592,7 +635,7 @@ class MCPService:
                 # Reconectar (já estamos dentro do lock, então usamos função interna)
                 resultado_conexao = await MCPService._conectar_cliente_interno(db, mcp_client_id, db_mcp)
                 if not resultado_conexao.get("sucesso"):
-                    print(f"❌ [MCP] Falha ao reconectar: {resultado_conexao.get('mensagem')}")
+                    logger.error("[MCP %s] Falha ao reconectar: %s", mcp_client_id, resultado_conexao.get('mensagem'))
                     return {
                         "resultado": {"erro": f"Erro ao reconectar MCP: {resultado_conexao.get('mensagem')}"},
                         "output": "llm",
@@ -607,10 +650,9 @@ class MCPService:
                         "output": "llm",
                         "enviado_usuario": False
                     }
-                print(f"✅ [MCP] Reconectado com sucesso!")
+                logger.debug("[MCP %s] Reconectado com sucesso", mcp_client_id)
             
             try:
-                # Timeout inteligente: sandbox usa timeout maior
                 db_mcp_info = MCPService.obter_por_id(db, mcp_client_id)
                 is_sandbox = db_mcp_info and db_mcp_info.preset_key == "aio-sandbox"
                 if is_sandbox:
@@ -618,12 +660,12 @@ class MCPService:
                 else:
                     timeout_mcp = float(ConfiguracaoService.obter_valor(db, "mcp_timeout_execucao", 120))
                 
-                print(f"🚀 [MCP] Chamando '{tool_name}' (timeout={timeout_mcp}s)...")
+                logger.debug("[MCP %s] Chamando '%s' (timeout=%ss)", mcp_client_id, tool_name, timeout_mcp)
                 result = await asyncio.wait_for(
                     session.call_tool(tool_name, arguments),
                     timeout=timeout_mcp
                 )
-                print(f"✅ [MCP] Tool '{tool_name}' concluída")
+                logger.debug("[MCP %s] Tool '%s' concluída", mcp_client_id, tool_name)
                 
                 # Parse resultado
                 content_list = []
@@ -654,9 +696,8 @@ class MCPService:
                 if hasattr(result, 'structuredContent') and result.structuredContent:
                     structured_content = result.structuredContent
                 
-                # Calcular tempo
                 tempo_ms = int((time.time() - inicio) * 1000)
-                print(f"⏱️  [MCP] Tempo de execução: {tempo_ms}ms")
+                logger.debug("[MCP %s] Tempo de execução: %dms", mcp_client_id, tempo_ms)
                 
                 # Formatar resultado
                 if structured_content:
@@ -678,11 +719,9 @@ class MCPService:
                 }
             
             except asyncio.TimeoutError:
-                print(f"⏱️  [MCP] TIMEOUT: Tool '{tool_name}' demorou mais de {timeout_mcp}s")
-                # Sessão fica corrompida após timeout (call_tool pendente no wire)
-                # Forçar desconexão para que próxima chamada reconecte com sessão limpa
+                logger.error("[MCP %s] TIMEOUT: Tool '%s' demorou mais de %ss", mcp_client_id, tool_name, timeout_mcp)
+                # Sessão fica corrompida após timeout — forçar desconexão
                 try:
-                    print(f"🔄 [MCP] Forçando desconexão do client {mcp_client_id} após timeout...")
                     if mcp_client_id in MCPService._active_sessions:
                         old_session = MCPService._active_sessions.pop(mcp_client_id)
                         old_context = MCPService._session_contexts.pop(mcp_client_id, None)
@@ -695,9 +734,9 @@ class MCPService:
                                 await old_context.__aexit__(None, None, None)
                         except Exception:
                             pass
-                    print(f"✅ [MCP] Sessão limpa após timeout. Próxima chamada vai reconectar.")
+                    logger.debug("[MCP %s] Sessão limpa após timeout.", mcp_client_id)
                 except Exception as cleanup_err:
-                    print(f"⚠️  [MCP] Erro ao limpar sessão após timeout: {cleanup_err}")
+                    logger.warning("[MCP %s] Erro ao limpar sessão após timeout: %s", mcp_client_id, cleanup_err)
                 
                 tempo_ms = int((time.time() - inicio) * 1000)
                 return {
@@ -707,9 +746,7 @@ class MCPService:
                     "tempo_ms": tempo_ms
                 }
             except Exception as e:
-                print(f"❌ [MCP] EXCEÇÃO durante execução: {type(e).__name__}: {str(e)}")
-                import traceback
-                traceback.print_exc()
+                logger.exception("[MCP %s] Exceção durante execução de '%s': %s", mcp_client_id, tool_name, e)
                 tempo_ms = int((time.time() - inicio) * 1000)
                 return {
                     "resultado": {"erro": f"Erro ao executar tool MCP: {str(e)}"},
@@ -717,3 +754,55 @@ class MCPService:
                     "enviado_usuario": False,
                     "tempo_ms": tempo_ms
                 }
+
+    @staticmethod
+    async def buscar_no_registry(
+        q: str = "",
+        page: int = 1,
+        page_size: int = 20
+    ) -> Dict[str, Any]:
+        """
+        Busca servidores MCP no registry público Smithery.
+        Retorna lista paginada de servidores com config para one-click install.
+        """
+        import httpx
+        url = "https://registry.smithery.ai/servers"
+        params = {"q": q, "page": page, "pageSize": page_size}
+        
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(url, params=params)
+                resp.raise_for_status()
+                data = resp.json()
+            
+            servers = []
+            for s in data.get("servers", []):
+                qualified = s.get("qualifiedName", "")
+                is_remote = s.get("remote", False)
+                deployment_url = f"https://server.smithery.ai/@{qualified}/mcp" if is_remote else ""
+                entry = {
+                    "qualifiedName": qualified,
+                    "displayName": s.get("displayName") or qualified,
+                    "description": s.get("description", ""),
+                    "homepage": s.get("homepage", ""),
+                    "iconUrl": s.get("iconUrl", ""),
+                    "useCount": s.get("useCount", 0),
+                    "isDeployed": s.get("isDeployed", False),
+                    "remote": is_remote,
+                    "deploymentUrl": deployment_url,
+                    "tools": s.get("tools", []),
+                }
+                servers.append(entry)
+            
+            return {
+                "servers": servers,
+                "pagination": data.get("pagination", {}),
+                "total": data.get("pagination", {}).get("totalCount", len(servers)),
+            }
+        
+        except httpx.TimeoutException:
+            logger.warning("Timeout ao buscar no registry Smithery")
+            return {"servers": [], "pagination": {}, "total": 0, "erro": "Timeout ao acessar o registry"}
+        except Exception as e:
+            logger.error("Erro ao buscar no registry Smithery: %s", e, exc_info=True)
+            return {"servers": [], "pagination": {}, "total": 0, "erro": str(e)}

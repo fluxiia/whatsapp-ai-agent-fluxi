@@ -2,148 +2,125 @@
 
 {% block wizard_content %}
 <form method="POST" action="/ferramentas/wizard/step5" id="mapping_form">
-    <div class="box">
-        <h2 class="title is-4">
-            <i class="fas fa-map"></i> Mapeamento de Resposta
-        </h2>
-        <p class="subtitle is-6">Selecione e renomeie os campos que deseja usar</p>
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin: 0;"><i class="fas fa-map text-warning mr-xs"></i> O que vamos usar da resposta?</h2>
+            <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin: 2px 0 0 0;">As vezes a ferramenta traz muitos dados. Escolha só o que importa e dê um nome fácil.</p>
+        </div>
+    </div>
 
-        {% if wizard_data.test_result %}
+    {% if wizard_data.test_result %}
         <!-- Resultado Original -->
-        <div class="mb-5">
-            <h3 class="subtitle is-5">Resposta Original:</h3>
-            <div class="box" style="background: #f5f5f5;">
-                <pre class="code-editor" style="max-height: 300px; overflow-y: auto;">{{ wizard_data.test_result | tojson(indent=2) }}</pre>
+        <div class="mb-lg">
+            <h3 style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); text-transform: uppercase; margin-bottom: 8px;">Tudo que recebemos no teste:</h3>
+            <div class="box p-md" style="background: #0f172a; border: none; overflow-y: auto; max-height: 200px;">
+                <pre style="margin: 0; background: transparent; font-family: 'Consolas', monospace; font-size: 0.75rem; color: #94a3b8;">{{ wizard_data.test_result | tojson(indent=2) }}</pre>
             </div>
         </div>
 
-        <!-- Mapeamento de Campos -->
-        <h3 class="subtitle is-5">Selecione os Campos:</h3>
-        <p class="help mb-4">Clique para selecionar e edite o nome de saída</p>
+        <div class="grid grid-cols-1 gap-lg">
+            
+            <!-- Mapeamento de Campos -->
+            <div>
+                <h3 style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); text-transform: uppercase; margin-bottom: 4px;">Clique nas informações importantes:</h3>
+                <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: 16px;">Vá marcando a caixinha do lado e, se quiser, mude o "Nome Fácil" para ser usado pela IA ou para escrever frases.</p>
 
-        <div id="fields_list">
-            <!-- Campos serão renderizados aqui -->
+                <div id="fields_list" class="flex flex-col gap-sm">
+                    <!-- Campos serão renderizados aqui via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Preview do Resultado Mapeado -->
+            <div class="box mt-lg p-md" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md);">
+                <p style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: 12px; display: flex; align-items: center;">
+                    <i class="fas fa-eye text-success mr-sm"></i> Como vai ficar:
+                </p>
+                <div style="background: #0f172a; padding: 12px; border-radius: var(--radius-sm);">
+                    <pre class="code-editor" id="preview_result" style="background: transparent; color: #34d399; font-family: 'Consolas', monospace; font-size: 0.75rem; margin: 0; padding: 0;">Selecione algum campo acima para ver como ficará.</pre>
+                </div>
+            </div>
         </div>
 
-        <!-- Preview do Resultado Mapeado -->
-        <div class="box mt-5" style="background: #e8f5e9;">
-            <p class="has-text-weight-bold mb-3">
-                <span class="icon has-text-success"><i class="fas fa-check-circle"></i></span>
-                Preview do Resultado Mapeado:
-            </p>
-            <pre class="code-editor" id="preview_result" style="background: white; padding: 1rem;">Selecione campos acima</pre>
+    {% else %}
+        <div class="p-md" style="background: #fffbeb; border: 1px solid #fef08a; border-radius: var(--radius-md);">
+            <p style="font-weight: 600; color: #92400e; font-size: 0.875rem;"><i class="fas fa-exclamation-triangle mr-sm"></i> Você não fez o teste!</p>
+            <p style="font-size: 0.8125rem; color: #b45309; margin-top: 4px;">Volte ao passo anterior e faça um teste para conseguirmos ver a resposta e permitir essa escolha.</p>
         </div>
-
-        {% else %}
-        <div class="notification is-warning">
-            <p class="has-text-weight-bold">Nenhum teste foi executado</p>
-            <p>Volte ao passo anterior e execute um teste para poder mapear os campos</p>
-        </div>
-        {% endif %}
-    </div>
+    {% endif %}
 
     <!-- Hidden input para response_map -->
     <input type="hidden" name="response_map" id="response_map_hidden" value="">
 
     <!-- Botões -->
-    <div class="field is-grouped is-grouped-right">
-        <div class="control">
-            <button type="submit" name="voltar" value="true" class="button is-light is-medium">
-                <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                <span>Voltar</span>
-            </button>
-        </div>
-        <div class="control">
-            <button type="submit" name="pular" value="true" class="button is-light is-medium">
-                <span>Pular Mapeamento</span>
-            </button>
-        </div>
-        <div class="control">
-            <button type="submit" name="continuar" value="true" class="button is-primary is-medium" onclick="saveMapping()">
-                <span>Próximo</span>
-                <span class="icon"><i class="fas fa-arrow-right"></i></span>
-            </button>
-        </div>
+    <div class="flex items-center justify-end gap-md" style="margin-top: var(--space-xl); padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+        <button type="submit" name="voltar" value="true" class="button is-outline text-muted" style="border: none;">
+            <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Voltar ao Teste
+        </button>
+        <button type="submit" name="pular" value="true" class="button is-light" style="background: var(--color-surface); border: 1px solid var(--color-border); font-size: 0.8125rem;">
+            Pular essa etapa
+        </button>
+        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;" onclick="saveMapping()">
+            Avançar <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
+        </button>
     </div>
 </form>
 
 <script>
-// Dados do teste
 const testResult = {{ wizard_data.test_result | tojson | safe }};
 const existingMap = {};
 
-// Extrair todos os campos (incluindo aninhados)
 function extractFields(obj, prefix = '') {
     const fields = [];
-    
-    if (typeof obj !== 'object' || obj === null) {
-        return fields;
-    }
+    if (typeof obj !== 'object' || obj === null) return fields;
     
     for (const key in obj) {
         const fullKey = prefix ? `${prefix}.${key}` : key;
         const value = obj[key];
         
-        // Adicionar o campo atual
         fields.push({
             path: fullKey,
             value: value,
             type: Array.isArray(value) ? 'array' : typeof value
         });
         
-        // Se for objeto, extrair campos aninhados
         if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
             fields.push(...extractFields(value, fullKey));
         }
     }
-    
     return fields;
 }
 
-// Renderizar campos
 function renderFields() {
     const container = document.getElementById('fields_list');
+    if(!container) return;
+
     const fields = extractFields(testResult);
-    
     container.innerHTML = '';
     
     fields.forEach(field => {
-        // Pular objetos aninhados (só mostrar valores finais)
         if (field.type === 'object') return;
         
         const div = document.createElement('div');
-        div.className = 'box field-item mb-2';
-        div.style.cursor = 'pointer';
-        div.style.transition = 'all 0.2s';
+        div.className = 'field-item flex items-center justify-between p-sm';
+        div.style.cssText = 'background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: all 0.2s; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px;';
         
         const outputName = field.path.split('.').pop();
         
         div.innerHTML = `
-            <div class="columns is-mobile is-vcentered">
-                <div class="column is-1">
-                    <input type="checkbox" class="field-checkbox" data-path="${field.path}" 
-                           onchange="toggleField(this)" 
-                           style="width: 20px; height: 20px; cursor: pointer;">
+            <div class="flex items-center gap-sm">
+                <input type="checkbox" class="field-checkbox" data-path="${field.path}" onchange="toggleField(this)" style="accent-color: #6366f1; transform: scale(1.2);">
+                <div>
+                    <span style="font-family: monospace; font-size: 0.75rem; color: #6366f1; font-weight: 600;">${field.path}</span>
+                    <p style="font-size: 0.65rem; color: var(--color-text-secondary); margin: 0;">${JSON.stringify(field.value).substring(0, 40)}</p>
                 </div>
-                <div class="column is-5">
-                    <span class="tag is-info is-light">${field.path}</span>
-                    <br>
-                    <small class="has-text-grey">${JSON.stringify(field.value).substring(0, 50)}</small>
-                </div>
-                <div class="column is-1 has-text-centered">
-                    <span class="icon"><i class="fas fa-arrow-right"></i></span>
-                </div>
-                <div class="column is-5">
-                    <input type="text" class="input output-name" data-path="${field.path}" 
-                           value="${outputName}" 
-                           placeholder="Nome de saída" 
-                           onkeyup="updateMapping()"
-                           disabled>
-                </div>
+            </div>
+            
+            <div class="flex items-center gap-sm">
+                <i class="fas fa-arrow-right text-muted" style="font-size: 0.75rem;"></i>
+                <input type="text" class="input is-small output-name" data-path="${field.path}" value="${outputName}" placeholder="Nome Fácil" onkeyup="updateMapping()" disabled style="font-family: monospace; font-size: 0.75rem; min-width: 150px; background: var(--color-bg-secondary);">
             </div>
         `;
         
-        // Click no box também seleciona
         div.addEventListener('click', function(e) {
             if (e.target.tagName !== 'INPUT') {
                 const checkbox = div.querySelector('.field-checkbox');
@@ -158,65 +135,61 @@ function renderFields() {
     updatePreview();
 }
 
-// Toggle field selection
 function toggleField(checkbox) {
     const path = checkbox.dataset.path;
     const box = checkbox.closest('.field-item');
     const input = box.querySelector('.output-name');
     
     if (checkbox.checked) {
-        box.style.background = '#e3f2fd';
-        box.style.borderLeft = '4px solid #2196f3';
+        box.style.borderColor = '#6366f1';
+        box.style.background = 'rgba(99, 102, 241, 0.05)';
         input.disabled = false;
         existingMap[path] = input.value;
     } else {
-        box.style.background = '';
-        box.style.borderLeft = '';
+        box.style.borderColor = 'var(--color-border)';
+        box.style.background = 'var(--color-surface)';
         input.disabled = true;
         delete existingMap[path];
     }
-    
     updatePreview();
 }
 
-// Update mapping
 function updateMapping() {
     document.querySelectorAll('.field-checkbox:checked').forEach(checkbox => {
         const path = checkbox.dataset.path;
         const input = document.querySelector(`.output-name[data-path="${path}"]`);
         existingMap[path] = input.value;
     });
-    
     updatePreview();
 }
 
-// Update preview
 function updatePreview() {
     const preview = {};
-    
     for (const [sourcePath, outputName] of Object.entries(existingMap)) {
-        // Navegar pelo objeto para pegar o valor
         const parts = sourcePath.split('.');
         let value = testResult;
-        
         for (const part of parts) {
             if (value && typeof value === 'object') {
                 value = value[part];
             }
         }
-        
         preview[outputName] = value;
     }
     
-    document.getElementById('preview_result').textContent = JSON.stringify(preview, null, 2);
+    const previewEl = document.getElementById('preview_result');
+    if(Object.keys(preview).length === 0) {
+         previewEl.textContent = "Nenhum campo selecionado.";
+         previewEl.style.color = '#94a3b8';
+    } else {
+        previewEl.textContent = JSON.stringify(preview, null, 2);
+        previewEl.style.color = '#34d399';
+    }
 }
 
-// Save mapping
 function saveMapping() {
     document.getElementById('response_map_hidden').value = JSON.stringify(existingMap);
 }
 
-// Initialize
 if (testResult) {
     renderFields();
 }

@@ -14,6 +14,11 @@ RUN apt-get update && apt-get install -y \
     libmagic-dev \
     file \
     ffmpeg \
+    git \
+    curl \
+    zip \
+    unzip \
+    procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -22,6 +27,9 @@ COPY requirements.txt .
 # Upgrade pip to fix CVE-2025-8869 and install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip>=25.3 && \
     pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright browser binaries (Chromium + system deps)
+RUN playwright install chromium --with-deps
 
 # Copy application code
 COPY . .

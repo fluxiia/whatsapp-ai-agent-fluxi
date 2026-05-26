@@ -1,191 +1,141 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+{% block title %}Sandbox de Testes - {{ provedor.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Header -->
-    <div class="level">
-        <div class="level-left">
-            <div class="level-item">
-                <h1 class="title is-3">
-                    <i class="fas fa-play"></i>
-                    {{ titulo }}
-                </h1>
-            </div>
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-play text-primary mb-xs" style="color: #6366f1;"></i> {{ titulo }}
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/provedores-llm/{{ provedor.id }}/detalhes" style="color: var(--color-text-secondary); text-decoration: none;">{{ provedor.nome }}</a> / 
+                <span style="color: var(--color-text-primary);">Sandbox Local de API</span>
+            </p>
         </div>
-        <div class="level-right">
-            <div class="level-item">
-                <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                    <span>Voltar</span>
-                </a>
-            </div>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-small is-outline">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Voltar para Painel
+            </a>
         </div>
     </div>
 
-    <div class="columns">
-        <!-- Formulário de Teste -->
-        <div class="column is-two-thirds">
-            <div class="box">
-                <h3 class="title is-5">
-                    <i class="fas fa-flask"></i>
-                    Teste de Conexão
-                </h3>
-                
+    <!-- Layout Dividido 2/3 Sandbox e 1/3 Props -->
+    <div class="grid grid-cols-3 gap-lg">
+        
+        <!-- Formulário (2/3) -->
+        <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+            <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-flask" style="color: var(--color-primary);"></i>
+                    <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Emitir Carga de Teste RAW</h2>
+                </div>
+
                 <form method="POST" action="/provedores-llm/{{ provedor.id }}/enviar-teste">
-                    <div class="field">
-                        <label class="label">Modelo</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select name="modelo" required>
-                                    <option value="">Selecione um modelo</option>
-                                    {% for modelo in modelos %}
-                                    <option value="{{ modelo.modelo_id }}">{{ modelo.nome }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
+                    <div class="form-group mb-md">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Seletor de Modelo Indexado</label>
+                        <select class="input" name="modelo" style="width: 100%;" required>
+                            <option value="">Selecione pelo ID cacheado...</option>
+                            {% for modelo in modelos %}
+                            <option value="{{ modelo.modelo_id }}">{{ modelo.nome }}</option>
+                            {% endfor %}
+                        </select>
                         {% if not modelos %}
-                        <p class="help has-text-warning">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            Nenhum modelo disponível. Teste a conexão primeiro.
+                        <p style="font-size: 0.75rem; color: var(--color-warning); margin-top: 4px;">
+                            <i class="fas fa-exclamation-triangle"></i> Node desconectado ou vazio. O Teste via painel central serve para sincronizar o Array de modelos do endpoint. Use o painel primeiro.
                         </p>
                         {% endif %}
                     </div>
 
-                    <div class="field">
-                        <label class="label">Mensagem de Teste</label>
-                        <div class="control">
-                            <textarea class="textarea" name="mensagem" 
-                                      placeholder="Digite uma mensagem para testar o provedor..." 
-                                      rows="4" required>Olá! Como você está?</textarea>
+                    <div class="form-group mb-md">
+                        <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Message Context Body (User)</label>
+                        <textarea class="textarea" name="mensagem" rows="4" style="width: 100%;" required placeholder="Digite uma requisição...">Olá! Como você está?</textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-md mb-lg">
+                        <div class="form-group">
+                            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Sampling Temperature</label>
+                            <input class="input" type="number" name="temperatura" value="0.7" min="0" max="2" step="0.1" style="width: 100%;">
+                            <span class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px; display: block;">Controla heurística randômica da LLM (0.0 até 2.0).</span>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Max Completion Tokens</label>
+                            <input class="input" type="number" name="max_tokens" value="2000" min="1" max="100000" style="width: 100%;">
+                            <span class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px; display: block;">Teto de emissão para a IA.</span>
                         </div>
                     </div>
 
-                    <div class="columns">
-                        <div class="column is-half">
-                            <div class="field">
-                                <label class="label">Temperatura</label>
-                                <div class="control">
-                                    <input class="input" type="number" name="temperatura" 
-                                           value="0.7" min="0" max="2" step="0.1">
-                                </div>
-                                <p class="help">Controla a criatividade da resposta (0.0 a 2.0)</p>
-                            </div>
-                        </div>
-                        <div class="column is-half">
-                            <div class="field">
-                                <label class="label">Máximo de Tokens</label>
-                                <div class="control">
-                                    <input class="input" type="number" name="max_tokens" 
-                                           value="2000" min="1" max="100000">
-                                </div>
-                                <p class="help">Limite de tokens na resposta</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="field is-grouped">
-                        <div class="control">
-                            <button type="submit" class="button is-primary" 
-                                    {% if not modelos %}disabled{% endif %}>
-                                <span class="icon">
-                                    <i class="fas fa-paper-plane"></i>
-                                </span>
-                                <span>Enviar Teste</span>
-                            </button>
-                        </div>
-                        <div class="control">
-                            <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-light">
-                                Cancelar
-                            </a>
-                        </div>
+                    <div class="flex justify-start gap-md">
+                        <button type="submit" class="button is-primary" style="background: #6366f1; border: none;" {% if not modelos %}disabled{% endif %}>
+                            <i class="fas fa-paper-plane" style="margin-right: 6px;"></i> Fazer Request e Aguardar Response
+                        </button>
+                        <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-outline">Desistir e Cancelar</a>
                     </div>
                 </form>
             </div>
         </div>
-        
-        <!-- Informações do Provedor -->
-        <div class="column is-one-third">
-            <div class="box">
-                <h3 class="title is-5">
-                    <i class="fas fa-info-circle"></i>
-                    Informações do Provedor
-                </h3>
-                
-                <div class="content">
-                    <div class="media">
-                        <div class="media-left">
-                            <span class="icon has-text-primary">
-                                <i class="fas fa-server fa-2x"></i>
-                            </span>
-                        </div>
-                        <div class="media-content">
-                            <p class="title is-6">{{ provedor.nome }}</p>
-                            <p class="subtitle is-6">
-                                <span class="tag is-light">{{ provedor.base_url }}</span>
-                                {% if provedor.ativo %}
-                                    <span class="tag is-success">Ativo</span>
-                                {% else %}
-                                    <span class="tag is-danger">Inativo</span>
-                                {% endif %}
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="content">
-                        <p><strong>URL:</strong> <code>{{ provedor.base_url }}</code></p>
-                        <p><strong>Porta:</strong> {{ provedor.porta }}</p>
-                        
-                        {% if provedor.ultimo_teste %}
-                        <p><strong>Último teste:</strong> {{ provedor.ultimo_teste.strftime('%d/%m/%Y %H:%M') }}</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
+
+        <!-- Sidebar Propriedades Locais -->
+        <div class="flex flex-col gap-lg pl-lg" style="grid-column: span 1;">
             
-            <!-- Modelos Disponíveis -->
-            <div class="box">
-                <h3 class="title is-5">
-                    <i class="fas fa-cube"></i>
-                    Modelos ({{ modelos|length }})
-                </h3>
-                
-                {% if modelos %}
-                <div class="content">
-                    {% for modelo in modelos %}
-                    <div class="media">
-                        <div class="media-content">
-                            <p class="title is-6">{{ modelo.nome }}</p>
-                            <div class="tags">
-                                {% if modelo.suporta_imagens %}
-                                    <span class="tag is-success is-small">Imagens</span>
-                                {% endif %}
-                                {% if modelo.suporta_ferramentas %}
-                                    <span class="tag is-info is-small">Ferramentas</span>
-                                {% endif %}
-                                {% if modelo.contexto %}
-                                    <span class="tag is-light is-small">{{ modelo.contexto }} tokens</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% if not loop.last %}<hr>{% endif %}
-                    {% endfor %}
+            <div class="box" style="padding: var(--space-lg); border: none; background: var(--color-bg-secondary);">
+                <div class="flex items-center gap-sm mb-md" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-server text-info"></i>
+                    <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Network Meta</h2>
                 </div>
-                {% else %}
-                <div class="content has-text-centered">
-                    <span class="icon is-large has-text-grey">
-                        <i class="fas fa-cube fa-2x"></i>
-                    </span>
-                    <p class="has-text-grey">Nenhum modelo carregado</p>
-                    <p class="has-text-grey is-size-7">Teste a conexão para carregar os modelos</p>
+                
+                <h3 style="font-size: 0.8125rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px;">{{ provedor.nome }}</h3>
+                <div style="font-size: 0.75rem; font-family: monospace; color: var(--color-text-secondary); margin-bottom: var(--space-sm);">{{ provedor.base_url }}</div>
+                
+                <div class="flex items-center gap-xs mb-md">
+                    {% if provedor.ativo %}
+                        <span class="tag" style="background: var(--color-success-light); color: var(--color-success); font-size: 0.65rem;">MÓDULO ATIVO NA REDE</span>
+                    {% else %}
+                        <span class="tag" style="background: var(--color-error-light); color: var(--color-error); font-size: 0.65rem;">MÓDULO BLOQUEADO</span>
+                    {% endif %}
+                </div>
+
+                {% if provedor.ultimo_teste %}
+                <div style="font-size: 0.75rem; color: var(--color-text-muted); border-top: 1px dashed var(--color-border); padding-top: var(--space-sm);">
+                    <strong>Ultimo ACK:</strong> <br> {{ provedor.ultimo_teste.strftime('%d/%m/%Y às %H:%M') }}
                 </div>
                 {% endif %}
             </div>
+
+            <!-- Previews -->
+            <div class="box" style="padding: var(--space-lg); border: none; box-shadow: var(--shadow-sm);">
+                <div class="flex items-center gap-sm mb-md" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-cubes text-primary"></i>
+                    <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Cache Local (Top 3 Modelos)</h2>
+                </div>
+                
+                {% if modelos %}
+                <div class="flex flex-col gap-sm">
+                    {% for modelo in modelos[:3] %}
+                    <div style="background: var(--color-bg-secondary); padding: 8px; border-radius: 6px; border: 1px solid var(--color-border);">
+                        <div style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: 2px;">{{ modelo.nome }}</div>
+                        <div class="flex gap-xs mt-xs">
+                            {% if modelo.suporta_imagens %}<span style="background: #dcfce7; color: #166534; padding: 1px 4px; border-radius: 4px; font-size: 0.6rem;">Visão</span>{% endif %}
+                            {% if modelo.suporta_ferramentas %}<span style="background: #e0e7ff; color: #3730a3; padding: 1px 4px; border-radius: 4px; font-size: 0.6rem;">Tools</span>{% endif %}
+                            {% if modelo.contexto %}<span style="background: #f1f5f9; color: #475569; padding: 1px 4px; border-radius: 4px; font-size: 0.6rem;">{{ modelo.contexto }}kCTX</span>{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if modelos|length > 3 %}
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted); text-align: center; margin-top: 4px;">... e mais {{ modelos|length - 3 }}</div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="text-center" style="padding: var(--space-md) 0;">
+                    <i class="fas fa-cube fa-2x" style="color: var(--color-text-muted); margin-bottom: 8px;"></i>
+                    <p style="font-size: 0.75rem; color: var(--color-text-muted);">A tabela de indexação deste backend está vazia e requer handshake prévio via Painel Central.</p>
+                </div>
+                {% endif %}
+            </div>
+            
         </div>
     </div>
 </div>

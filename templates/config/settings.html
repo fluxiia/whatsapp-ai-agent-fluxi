@@ -1,765 +1,718 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
 {% block title %}Configurações - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
-        <i class="fas fa-cog" style="color: #8b5cf6;"></i> Configurações do Sistema
-    </h1>
-    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-        Configure API, parâmetros de IA e preferências do sistema
-    </p>
-</div>
-<!-- Provedores LLM -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-server" style="color: #8b5cf6;"></i> Provedores LLM
-    </h2>
-    
-    <form method="POST" action="/configuracoes/salvar-provedores-llm">
-        <div class="field">
-            <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                <i class="fas fa-cog"></i> Provedor Padrão
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-cog" style="color: var(--color-text-secondary); margin-right: 4px;"></i> Configurações do Sistema
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <span style="color: var(--color-text-secondary);">Plataforma</span> /
+                <span style="color: var(--color-text-primary);">Configurações Globais</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Provedores LLM -->
+    <form method="POST" action="/configuracoes/salvar-provedores-llm" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-server" style="margin-right: 4px;"></i> Provedores LLM
+        </h3>
+
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                Provedor Padrão
             </label>
-            <div class="control">
-                <div class="select is-fullwidth">
-                    <select name="provedor_padrao" id="provedor_padrao" style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;" onchange="atualizarProvedorLocal()">
-                        <option value="auto" {% if (config_llm|selectattr('chave', 'equalto', 'llm_provedor_padrao')|map(attribute='valor')|first or 'auto') == 'auto' %}selected{% endif %}>
-                            Automático (usa primeiro disponível)
-                        </option>
-                        <option value="local" {% if (config_llm|selectattr('chave', 'equalto', 'llm_provedor_padrao')|map(attribute='valor')|first) == 'local' %}selected{% endif %}>
-                            Provedor Local Específico
-                        </option>
-                        <option value="openrouter" {% if (config_llm|selectattr('chave', 'equalto', 'llm_provedor_padrao')|map(attribute='valor')|first) == 'openrouter' %}selected{% endif %}>
-                            OpenRouter (Nuvem)
-                        </option>
-                    </select>
-                </div>
-            </div>
-            <p class="help" style="color: #6b7280; margin-top: 0.5rem;">
-                <strong>Automático:</strong> Usa provedores locais primeiro, depois OpenRouter se disponível<br>
-                <strong>Local:</strong> Usa apenas o provedor local selecionado<br>
+            <select name="provedor_padrao" id="provedor_padrao" class="input" style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;" onchange="atualizarProvedorLocal()">
+                <option value="auto" {% if (config_llm|selectattr('chave', 'equalto', 'llm_provedor_padrao')|map(attribute='valor')|first or 'auto') == 'auto' %}selected{% endif %}>
+                    Automático (usa primeiro disponível)
+                </option>
+                <option value="local" {% if (config_llm|selectattr('chave', 'equalto', 'llm_provedor_padrao')|map(attribute='valor')|first) == 'local' %}selected{% endif %}>
+                    Provedor Local Específico
+                </option>
+                <option value="openrouter" {% if (config_llm|selectattr('chave', 'equalto', 'llm_provedor_padrao')|map(attribute='valor')|first) == 'openrouter' %}selected{% endif %}>
+                    OpenRouter (Nuvem)
+                </option>
+            </select>
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">
+                <strong>Automático:</strong> Usa provedores locais primeiro, depois OpenRouter se disponível &middot;
+                <strong>Local:</strong> Usa apenas o provedor local selecionado &middot;
                 <strong>OpenRouter:</strong> Usa apenas OpenRouter (requer API Key)
-            </p>
-        </div>
-        
-        <div class="field" id="provedor_local_field" style="display: none;">
-            <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                <i class="fas fa-server"></i> Provedor Local
-            </label>
-            <div class="control">
-                <div class="select is-fullwidth">
-                    <select name="provedor_local_id" style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">
-                        <option value="">-- Selecione um provedor --</option>
-                        {% for provedor in provedores_locais %}
-                        <option value="{{ provedor.id }}" {% if (config_llm|selectattr('chave', 'equalto', 'llm_provedor_local_id')|map(attribute='valor')|first) == provedor.id|string %}selected{% endif %}>
-                            {{ provedor.nome }} ({{ provedor.base_url }})
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
             </div>
-            <p class="help" style="color: #6b7280; margin-top: 0.5rem;">
-                Selecione qual provedor local usar. <a href="/provedores-llm/novo" style="color: #C75B9B;">Criar novo provedor</a>
-            </p>
         </div>
-        
-        <div class="field">
-            <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                <i class="fas fa-shield-alt"></i> Fallback para OpenRouter
+
+        <div class="form-group" id="provedor_local_field" style="margin-bottom: var(--space-lg); display: none;">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                Provedor Local
             </label>
-            <div class="control">
-                <label class="checkbox">
-                    <input type="checkbox" name="fallback_openrouter" value="true" 
-                           {% if (config_llm|selectattr('chave', 'equalto', 'llm_fallback_openrouter')|map(attribute='valor')|first or 'true') == 'true' %}checked{% endif %}>
-                    Usar OpenRouter como fallback quando provedor local falhar
+            <select name="provedor_local_id" class="input" style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <option value="">-- Selecione um provedor --</option>
+                {% for provedor in provedores_locais %}
+                <option value="{{ provedor.id }}" {% if (config_llm|selectattr('chave', 'equalto', 'llm_provedor_local_id')|map(attribute='valor')|first) == provedor.id|string %}selected{% endif %}>
+                    {{ provedor.nome }} ({{ provedor.base_url }})
+                </option>
+                {% endfor %}
+            </select>
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">
+                Selecione qual provedor local usar. <a href="/provedores-llm/novo" style="color: var(--color-primary); text-decoration: none; font-weight: 600;">Criar novo provedor</a>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: flex; align-items: center; gap: var(--space-sm); font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); cursor: pointer;">
+                <input type="checkbox" name="fallback_openrouter" value="true"
+                       {% if (config_llm|selectattr('chave', 'equalto', 'llm_fallback_openrouter')|map(attribute='valor')|first or 'true') == 'true' %}checked{% endif %}>
+                Fallback para OpenRouter quando provedor local falhar
+            </label>
+        </div>
+
+        <div class="flex items-center justify-end gap-sm" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <a href="/provedores-llm" class="button is-outline is-small">
+                <i class="fas fa-server" style="margin-right: 4px;"></i> Gerenciar Provedores
+            </a>
+            <button type="submit" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar
+            </button>
+        </div>
+    </form>
+
+    <!-- OpenRouter API -->
+    <form method="POST" action="/configuracoes/salvar-openrouter" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-key" style="margin-right: 4px;"></i> OpenRouter API
+        </h3>
+
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                API Key <span style="color: var(--color-error);">*</span>
+            </label>
+            <input class="input" type="password" name="api_key" placeholder="sk-or-v1-..."
+                   value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_api_key')|map(attribute='valor')|first or '' }}"
+                   style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; font-family: monospace;">
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">
+                Obtenha em <a href="https://openrouter.ai/keys" target="_blank" style="color: var(--color-primary); text-decoration: none; font-weight: 600;">openrouter.ai/keys</a>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                Modelo Padrão
+            </label>
+            <input class="input" type="text" name="modelo_padrao" placeholder="google/gemini-3.1-flash-lite-preview"
+                   value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_modelo_padrao')|map(attribute='valor')|first or '' }}"
+                   style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; font-family: monospace;">
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">
+                Ex: google/gemini-3.1-flash-lite-preview, openai/gpt-4, anthropic/claude-3.5-sonnet
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-sm" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <button type="submit" name="acao" value="testar" class="button is-outline is-small">
+                <i class="fas fa-plug" style="margin-right: 4px;"></i> Testar Conexão
+            </button>
+            <button type="submit" name="acao" value="salvar" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar
+            </button>
+        </div>
+    </form>
+
+    <!-- Parâmetros IA Padrão -->
+    <form method="POST" action="/configuracoes/salvar-parametros-llm" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-sliders-h" style="margin-right: 4px;"></i> Parâmetros IA Padrão
+        </h3>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Temperatura (0.0 - 2.0)
                 </label>
+                <input class="input" type="number" step="0.1" min="0" max="2" name="temperatura"
+                       value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_temperatura')|map(attribute='valor')|first or '0.7' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Controla a criatividade</div>
             </div>
-        </div>
-        
-        <div class="field is-grouped">
-            <div class="control">
-                <button type="submit" class="button is-primary">
-                    <span class="icon">
-                        <i class="fas fa-save"></i>
-                    </span>
-                    <span>Salvar Configurações</span>
-                </button>
-            </div>
-            <div class="control">
-                <a href="/provedores-llm" class="button is-light">
-                    <span class="icon">
-                        <i class="fas fa-server"></i>
-                    </span>
-                    <span>Gerenciar Provedores</span>
-                </a>
-            </div>
-        </div>
-    </form>
-</div>
 
-<!-- OpenRouter API -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-key" style="color: #f59e0b;"></i> OpenRouter API
-    </h2>
-        
-        <form method="POST" action="/configuracoes/salvar-openrouter">
-        <div class="field">
-            <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                <i class="fas fa-key"></i> API Key *
-            </label>
-            <div class="control has-icons-left">
-                <input class="input" type="password" name="api_key" placeholder="sk-or-v1-..." 
-                       value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_api_key')|map(attribute='valor')|first or '' }}"
-                       style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem; font-family: monospace;">
-                <span class="icon is-small is-left" style="color: #f59e0b;">
-                    <i class="fas fa-key"></i>
-                </span>
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Max Tokens
+                </label>
+                <input class="input" type="number" step="100" min="100" max="8001" name="max_tokens"
+                       value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_max_tokens')|map(attribute='valor')|first or '2000' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Tamanho máximo da resposta</div>
             </div>
-            <p class="help" style="color: #6b7280; margin-top: 0.5rem;">
-                🔗 Obtenha em <a href="https://openrouter.ai/keys" target="_blank" style="color: #C75B9B; font-weight: 600;">openrouter.ai/keys</a>
-            </p>
-        </div>
-            
-        <div class="field">
-            <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                <i class="fas fa-brain"></i> Modelo Padrão
-            </label>
-            <div class="control">
-                <input class="input" type="text" name="modelo_padrao" placeholder="google/gemini-2.0-flash-001"
-                       value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_modelo_padrao')|map(attribute='valor')|first or '' }}"
-                       style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem; font-family: monospace;">
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Top P (0.0 - 1.0)
+                </label>
+                <input class="input" type="number" step="0.1" min="0" max="1" name="top_p"
+                       value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_top_p')|map(attribute='valor')|first or '1.0' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Controla a diversidade</div>
             </div>
-            <p class="help" style="color: #6b7280; margin-top: 0.5rem;">
-                Ex: google/gemini-2.0-flash-001, openai/gpt-4, anthropic/claude-3.5-sonnet
-            </p>
         </div>
-            
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <button type="submit" name="acao" value="testar" class="button is-medium" style="border: 2px solid #3b82f6; color: #3b82f6; font-weight: 600; border-radius: 8px;">
-                <span class="icon"><i class="fas fa-plug"></i></span>
-                <span>Testar Conexão</span>
-            </button>
-            <button type="submit" name="acao" value="salvar" class="button is-medium" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                <span class="icon"><i class="fas fa-save"></i></span>
-                <span>Salvar</span>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Frequency Penalty (-2.0 a 2.0)
+                </label>
+                <input class="input" type="number" step="0.1" min="-2" max="2" name="frequency_penalty"
+                       value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_frequency_penalty')|map(attribute='valor')|first or '0.0' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Evita repetição de palavras frequentes</div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Presence Penalty (-2.0 a 2.0)
+                </label>
+                <input class="input" type="number" step="0.1" min="-2" max="2" name="presence_penalty"
+                       value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_presence_penalty')|map(attribute='valor')|first or '0.0' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Incentiva novos tópicos na conversa</div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <button type="submit" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar Parâmetros
             </button>
         </div>
-        </form>
-    </div>
+    </form>
 
-<!-- Parâmetros LLM -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-sliders-h" style="color: #8b5cf6;"></i> Parâmetros IA Padrão
-    </h2>
-        
-        <form method="POST" action="/configuracoes/salvar-parametros-llm">
-            <div class="columns">
-                <div class="column">
-                    <div class="field">
-                        <label class="label">Temperatura (0.0 - 2.0)</label>
-                        <div class="control">
-                            <input class="input" type="number" step="0.1" min="0" max="2" 
-                                   name="temperatura"
-                                   value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_temperatura')|map(attribute='valor')|first or '0.7' }}">
-                        </div>
-                        <p class="help">Controla a criatividade das respostas</p>
-                    </div>
-                </div>
-                
-                <div class="column">
-                    <div class="field">
-                        <label class="label">Max Tokens</label>
-                        <div class="control">
-                            <input class="input" type="number" step="100" min="100" max="8001" 
-                                   name="max_tokens"
-                                   value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_max_tokens')|map(attribute='valor')|first or '2000' }}">
-                        </div>
-                        <p class="help">Tamanho máximo da resposta</p>
-                    </div>
-                </div>
-                
-                <div class="column">
-                    <div class="field">
-                        <label class="label">Top P (0.0 - 1.0)</label>
-                        <div class="control">
-                            <input class="input" type="number" step="0.1" min="0" max="1" 
-                                   name="top_p"
-                                   value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_top_p')|map(attribute='valor')|first or '1.0' }}">
-                        </div>
-                        <p class="help">Controla a diversidade</p>
-                    </div>
-                </div>
+    <!-- Agente Padrão (Template) -->
+    <form method="POST" action="/configuracoes/salvar-agente" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-robot" style="margin-right: 4px;"></i> Agente Padrão (Template)
+        </h3>
+
+        <div class="box" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-tertiary); border: none; margin-bottom: var(--space-lg);">
+            <div class="flex items-center gap-sm mb-sm text-left">
+                <i class="fas fa-lightbulb" style="color: var(--color-text-secondary);"></i>
+                <strong style="font-size: 0.8125rem;">Valores de Template</strong>
             </div>
-            
-            <div class="columns">
-                <div class="column">
-                    <div class="field">
-                        <label class="label">Frequency Penalty (-2.0 a 2.0)</label>
-                        <div class="control">
-                            <input class="input" type="number" step="0.1" min="-2" max="2" 
-                                   name="frequency_penalty"
-                                   value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_frequency_penalty')|map(attribute='valor')|first or '0.0' }}">
-                        </div>
-                        <p class="help">Evita repetição de palavras frequentes</p>
-                    </div>
-                </div>
-                
-                <div class="column">
-                    <div class="field">
-                        <label class="label">Presence Penalty (-2.0 a 2.0)</label>
-                        <div class="control">
-                            <input class="input" type="number" step="0.1" min="-2" max="2" 
-                                   name="presence_penalty"
-                                   value="{{ config_openrouter|selectattr('chave', 'equalto', 'openrouter_presence_penalty')|map(attribute='valor')|first or '0.0' }}">
-                        </div>
-                        <p class="help">Incentiva novos tópicos na conversa</p>
-                    </div>
-                </div>
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5;">
+                Estes valores serão usados como padrão ao criar novos agentes.
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Papel
+                </label>
+                <input class="input" type="text" name="papel"
+                       value="{{ config_agente|selectattr('chave', 'equalto', 'agente_papel_padrao')|map(attribute='valor')|first or 'assistente pessoal' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Quem o agente é (ex: "consultor de vendas")</div>
             </div>
-            
-        <div class="field">
-            <div class="control">
-                <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>Salvar Parâmetros</span>
-                </button>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Público-Alvo
+                </label>
+                <input class="input" type="text" name="publico"
+                       value="{{ config_agente|selectattr('chave', 'equalto', 'agente_publico_padrao')|map(attribute='valor')|first or 'usuários em geral' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Para quem está falando</div>
             </div>
         </div>
-        </form>
-    </div>
 
-<!-- Configurações do Agente Padrão -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-robot" style="color: #5B4E9B;"></i> Agente Padrão (Template)
-    </h2>
-    <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.7;">
-        <i class="fas fa-info-circle"></i> Estes valores serão usados ao criar novos agentes
-    </p>
-        
-        <form method="POST" action="/configuracoes/salvar-agente">
-            <div class="field">
-                <label class="label">Papel</label>
-                <div class="control">
-                    <input class="input" type="text" name="papel" 
-                           value="{{ config_agente|selectattr('chave', 'equalto', 'agente_papel_padrao')|map(attribute='valor')|first or 'assistente pessoal' }}">
-                </div>
-                <p class="help">Quem o agente é (ex: "consultor de vendas", "assistente pessoal")</p>
-            </div>
-            
-            <div class="field">
-                <label class="label">Objetivo</label>
-                <div class="control">
-                    <textarea class="textarea" name="objetivo" rows="2">{{ config_agente|selectattr('chave', 'equalto', 'agente_objetivo_padrao')|map(attribute='valor')|first or 'ajudar o usuário com suas dúvidas e tarefas' }}</textarea>
-                </div>
-                <p class="help">Missão principal do agente</p>
-            </div>
-            
-            <div class="field">
-                <label class="label">Políticas</label>
-                <div class="control">
-                    <textarea class="textarea" name="politicas" rows="2">{{ config_agente|selectattr('chave', 'equalto', 'agente_politicas_padrao')|map(attribute='valor')|first or 'ser educado, respeitoso e prestativo' }}</textarea>
-                </div>
-                <p class="help">O que evitar ou respeitar</p>
-            </div>
-            
-            <div class="field">
-                <label class="label">Tarefa</label>
-                <div class="control">
-                    <textarea class="textarea" name="tarefa" rows="2">{{ config_agente|selectattr('chave', 'equalto', 'agente_tarefa_padrao')|map(attribute='valor')|first or 'responder perguntas de forma clara e objetiva' }}</textarea>
-                </div>
-                <p class="help">O que deve fazer na prática</p>
-            </div>
-            
-            <div class="field">
-                <label class="label">Objetivo Explícito</label>
-                <div class="control">
-                    <textarea class="textarea" name="objetivo_explicito" rows="2">{{ config_agente|selectattr('chave', 'equalto', 'agente_objetivo_explicito_padrao')|map(attribute='valor')|first or 'fornecer informações úteis e precisas' }}</textarea>
-                </div>
-                <p class="help">Como deve entregar valor</p>
-            </div>
-            
-            <div class="field">
-                <label class="label">Público-Alvo</label>
-                <div class="control">
-                    <input class="input" type="text" name="publico" 
-                           value="{{ config_agente|selectattr('chave', 'equalto', 'agente_publico_padrao')|map(attribute='valor')|first or 'usuários em geral' }}">
-                </div>
-                <p class="help">Para quem está falando</p>
-            </div>
-            
-            <div class="field">
-                <label class="label">Restrições</label>
-                <div class="control">
-                    <textarea class="textarea" name="restricoes" rows="2">{{ config_agente|selectattr('chave', 'equalto', 'agente_restricoes_padrao')|map(attribute='valor')|first or 'responder em português brasileiro, ser conciso' }}</textarea>
-                </div>
-                <p class="help">Limites técnicos e de estilo</p>
-            </div>
-            
-        <div class="field">
-            <div class="control">
-                <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>Salvar Configurações</span>
-                </button>
-            </div>
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                Objetivo
+            </label>
+            <textarea class="textarea" name="objetivo" rows="2" style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; resize: vertical;">{{ config_agente|selectattr('chave', 'equalto', 'agente_objetivo_padrao')|map(attribute='valor')|first or 'ajudar o usuário com suas dúvidas e tarefas' }}</textarea>
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Missão principal do agente</div>
         </div>
-        </form>
-    </div>
 
-<!-- Configurações Gerais -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-cogs" style="color: #6b7280;"></i> Configurações Gerais
-    </h2>
-        
-        <form method="POST" action="/configuracoes/salvar-geral">
-            <div class="field">
-                <label class="label">Diretório de Uploads</label>
-                <div class="control">
-                    <input class="input" type="text" name="diretorio_uploads" 
-                           value="{{ config_geral|selectattr('chave', 'equalto', 'sistema_diretorio_uploads')|map(attribute='valor')|first or './uploads' }}">
-                </div>
-            </div>
-            
-            <div class="field">
-                <label class="label">Tamanho Máximo de Imagem (MB)</label>
-                <div class="control">
-                    <input class="input" type="number" name="max_tamanho_imagem_mb" 
-                           value="{{ config_geral|selectattr('chave', 'equalto', 'sistema_max_tamanho_imagem_mb')|map(attribute='valor')|first or '10' }}">
-                </div>
-            </div>
-            
-            <div class="field">
-                <label class="label">Qualidade JPEG (1-100)</label>
-                <div class="control">
-                    <input class="input" type="number" min="1" max="100" name="qualidade_jpeg" 
-                           value="{{ config_geral|selectattr('chave', 'equalto', 'sistema_qualidade_jpeg')|map(attribute='valor')|first or '85' }}">
-                </div>
-                <p class="help">Qualidade das imagens salvas. Maior = melhor qualidade, maior tamanho</p>
-            </div>
-            
-        <div class="field">
-            <div class="control">
-                <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>Salvar Configurações</span>
-                </button>
-            </div>
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                Políticas
+            </label>
+            <textarea class="textarea" name="politicas" rows="2" style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; resize: vertical;">{{ config_agente|selectattr('chave', 'equalto', 'agente_politicas_padrao')|map(attribute='valor')|first or 'ser educado, respeitoso e prestativo' }}</textarea>
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">O que evitar ou respeitar</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                Tarefa
+            </label>
+            <textarea class="textarea" name="tarefa" rows="2" style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; resize: vertical;">{{ config_agente|selectattr('chave', 'equalto', 'agente_tarefa_padrao')|map(attribute='valor')|first or 'responder perguntas de forma clara e objetiva' }}</textarea>
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">O que deve fazer na prática</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                Objetivo Explícito
+            </label>
+            <textarea class="textarea" name="objetivo_explicito" rows="2" style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; resize: vertical;">{{ config_agente|selectattr('chave', 'equalto', 'agente_objetivo_explicito_padrao')|map(attribute='valor')|first or 'fornecer informações úteis e precisas' }}</textarea>
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Como deve entregar valor</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                Restrições
+            </label>
+            <textarea class="textarea" name="restricoes" rows="2" style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; resize: vertical;">{{ config_agente|selectattr('chave', 'equalto', 'agente_restricoes_padrao')|map(attribute='valor')|first or 'responder em português brasileiro, ser conciso' }}</textarea>
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Limites técnicos e de estilo</div>
+        </div>
+
+        <div class="flex items-center justify-end" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <button type="submit" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar Configurações
+            </button>
         </div>
     </form>
-</div>
 
-<!-- Configurações de Sessão WhatsApp -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fab fa-whatsapp" style="color: #25D366;"></i> Sessão WhatsApp
-    </h2>
-    <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.7;">
-        <i class="fas fa-info-circle"></i> Configurações relacionadas às conexões WhatsApp
-    </p>
-        
-    <form method="POST" action="/configuracoes/salvar-sessao">
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Diretório de Sessões</label>
-                    <div class="control">
-                        <input class="input" type="text" name="sessao_diretorio" 
-                               value="{{ config_sessao|selectattr('chave', 'equalto', 'sessao_diretorio')|map(attribute='valor')|first or './sessoes' }}">
-                    </div>
-                    <p class="help">Onde os dados das sessões WhatsApp são armazenados</p>
-                </div>
+    <!-- Configurações Gerais -->
+    <form method="POST" action="/configuracoes/salvar-geral" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-cogs" style="margin-right: 4px;"></i> Configurações Gerais
+        </h3>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Diretório de Uploads
+                </label>
+                <input class="input" type="text" name="diretorio_uploads"
+                       value="{{ config_geral|selectattr('chave', 'equalto', 'sistema_diretorio_uploads')|map(attribute='valor')|first or './uploads' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; font-family: monospace;">
             </div>
-            
-            <div class="column">
-                <div class="field">
-                    <label class="label">Delay History Sync (segundos)</label>
-                    <div class="control">
-                        <input class="input" type="number" min="1" max="60" name="history_sync_delay" 
-                               value="{{ config_sessao|selectattr('chave', 'equalto', 'sessao_history_sync_delay')|map(attribute='valor')|first or '5' }}">
-                    </div>
-                    <p class="help">Segundos para ignorar mensagens antigas ao conectar</p>
-                </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Tamanho Máx. Imagem (MB)
+                </label>
+                <input class="input" type="number" name="max_tamanho_imagem_mb"
+                       value="{{ config_geral|selectattr('chave', 'equalto', 'sistema_max_tamanho_imagem_mb')|map(attribute='valor')|first or '10' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Qualidade JPEG (1-100)
+                </label>
+                <input class="input" type="number" min="1" max="100" name="qualidade_jpeg"
+                       value="{{ config_geral|selectattr('chave', 'equalto', 'sistema_qualidade_jpeg')|map(attribute='valor')|first or '85' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Maior = melhor qualidade, maior tamanho</div>
             </div>
         </div>
-        
-        <div class="field">
-            <div class="control">
-                <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>Salvar Configurações</span>
-                </button>
-            </div>
+
+        <div class="flex items-center justify-end" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <button type="submit" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar
+            </button>
         </div>
     </form>
-</div>
 
-<!-- Configurações Avançadas do Agente -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-sliders-h" style="color: #C75B9B;"></i> Agente - Configurações Avançadas
-    </h2>
-    <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.7;">
-        <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Configurações avançadas que afetam o comportamento dos agentes. Altere com cuidado.
-    </p>
-        
-    <form method="POST" action="/configuracoes/salvar-agente-avancado">
-        <div class="columns">
-            <div class="column is-6">
-                <div class="field">
-                    <label class="label">Máximo de Ferramentas por Agente</label>
-                    <div class="control">
-                        <input class="input" type="number" min="1" max="50" name="max_ferramentas" 
-                               value="{{ config_agente|selectattr('chave', 'equalto', 'agente_max_ferramentas')|map(attribute='valor')|first or '20' }}">
-                    </div>
-                    <p class="help">Limite de ferramentas que cada agente pode ter</p>
-                </div>
+    <!-- Sessão WhatsApp -->
+    <form method="POST" action="/configuracoes/salvar-sessao" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fab fa-whatsapp" style="margin-right: 4px;"></i> Sessão WhatsApp
+        </h3>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Diretório de Sessões
+                </label>
+                <input class="input" type="text" name="sessao_diretorio"
+                       value="{{ config_sessao|selectattr('chave', 'equalto', 'sessao_diretorio')|map(attribute='valor')|first or './sessoes' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; font-family: monospace;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Onde os dados das sessões WhatsApp são armazenados</div>
             </div>
-            
-            <div class="column is-6">
-                <div class="field">
-                    <label class="label">Máximo de Iterações (Loop)</label>
-                    <div class="control">
-                        <input class="input" type="number" min="1" max="30" name="max_iteracoes" 
-                               value="{{ config_agente|selectattr('chave', 'equalto', 'agente_max_iteracoes_loop')|map(attribute='valor')|first or '10' }}">
-                    </div>
-                    <p class="help">Limite de chamadas de ferramentas por mensagem</p>
-                </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Delay History Sync (seg)
+                </label>
+                <input class="input" type="number" min="1" max="60" name="history_sync_delay"
+                       value="{{ config_sessao|selectattr('chave', 'equalto', 'sessao_history_sync_delay')|map(attribute='valor')|first or '5' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Segundos para ignorar mensagens antigas ao conectar</div>
             </div>
         </div>
-        
-        <div class="columns">
-            <div class="column is-6">
-                <div class="field">
-                    <label class="label">Histórico de Mensagens</label>
-                    <div class="control">
-                        <input class="input" type="number" min="1" max="50" name="historico_mensagens" 
-                               value="{{ config_agente|selectattr('chave', 'equalto', 'agente_historico_mensagens')|map(attribute='valor')|first or '10' }}">
-                    </div>
-                    <p class="help">Mensagens anteriores enviadas ao LLM como contexto</p>
-                </div>
-            </div>
-            
-            <div class="column is-6">
-                <div class="field">
-                    <label class="label">Resultados RAG Padrão</label>
-                    <div class="control">
-                        <input class="input" type="number" min="1" max="20" name="rag_resultados" 
-                               value="{{ config_agente|selectattr('chave', 'equalto', 'agente_rag_resultados_padrao')|map(attribute='valor')|first or '3' }}">
-                    </div>
-                    <p class="help">Número de resultados na busca de base de conhecimento</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="field">
-            <div class="control">
-                <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>Salvar Configurações Avançadas</span>
-                </button>
-            </div>
+
+        <div class="flex items-center justify-end" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <button type="submit" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar
+            </button>
         </div>
     </form>
-</div>
 
-<!-- Configurações de Áudio/Transcrição -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-microphone" style="color: #ec4899;"></i> Áudio - Transcrição (Whisper)
-    </h2>
-    <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.7;">
-        <i class="fas fa-info-circle"></i> Configurações para transcrição de mensagens de áudio usando Whisper (Groq ou OpenAI)
-    </p>
-        
-    <form method="POST" action="/configuracoes/salvar-audio">
-        <div class="columns">
-            <div class="column is-6">
-                <div class="field">
-                    <label class="label">
-                        <input type="checkbox" name="transcricao_habilitado" value="true"
-                               {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_habilitado')|map(attribute='valor')|first != 'false' %}checked{% endif %}>
-                        Habilitar Transcrição de Áudio
-                    </label>
-                    <p class="help">Transcreve automaticamente mensagens de áudio recebidas</p>
-                </div>
+    <!-- Agente - Configurações Avançadas -->
+    <form method="POST" action="/configuracoes/salvar-agente-avancado" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-sliders-h" style="margin-right: 4px;"></i> Agente - Configurações Avançadas
+        </h3>
+
+        <div class="box" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-tertiary); border: none; margin-bottom: var(--space-lg);">
+            <div class="flex items-center gap-sm mb-sm text-left">
+                <i class="fas fa-exclamation-triangle" style="color: var(--color-warning);"></i>
+                <strong style="font-size: 0.8125rem;">Altere com cuidado</strong>
             </div>
-            <div class="column is-6">
-                <div class="field">
-                    <label class="label">
-                        <input type="checkbox" name="responder_habilitado" value="true"
-                               {% if config_audio|selectattr('chave', 'equalto', 'audio_responder_habilitado')|map(attribute='valor')|first != 'false' %}checked{% endif %}>
-                        Responder Mensagens de Áudio
-                    </label>
-                    <p class="help">Processa o áudio transcrito com o agente e responde</p>
-                </div>
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5;">
+                Configurações avançadas que afetam o comportamento de todos os agentes.
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Máximo de Ferramentas por Agente
+                </label>
+                <input class="input" type="number" min="1" max="50" name="max_ferramentas"
+                       value="{{ config_agente|selectattr('chave', 'equalto', 'agente_max_ferramentas')|map(attribute='valor')|first or '20' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Limite de ferramentas que cada agente pode ter</div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Máximo de Iterações (Loop)
+                </label>
+                <input class="input" type="number" min="1" max="30" name="max_iteracoes"
+                       value="{{ config_agente|selectattr('chave', 'equalto', 'agente_max_iteracoes_loop')|map(attribute='valor')|first or '10' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Limite de chamadas de ferramentas por mensagem</div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Histórico de Mensagens
+                </label>
+                <input class="input" type="number" min="1" max="50" name="historico_mensagens"
+                       value="{{ config_agente|selectattr('chave', 'equalto', 'agente_historico_mensagens')|map(attribute='valor')|first or '10' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Mensagens anteriores enviadas ao LLM como contexto</div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Resultados RAG Padrão
+                </label>
+                <input class="input" type="number" min="1" max="20" name="rag_resultados"
+                       value="{{ config_agente|selectattr('chave', 'equalto', 'agente_rag_resultados_padrao')|map(attribute='valor')|first or '3' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Número de resultados na busca de conhecimento</div>
             </div>
         </div>
-        
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Provedor</label>
-                    <div class="control">
-                        <div class="select is-fullwidth">
-                            <select name="provedor" id="audio_provedor" onchange="atualizarModelosAudio()">
-                                <option value="groq" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_provedor')|map(attribute='valor')|first == 'groq' %}selected{% endif %}>Groq (Rápido e Barato)</option>
-                                <option value="openai" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_provedor')|map(attribute='valor')|first == 'openai' %}selected{% endif %}>OpenAI</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="field">
-                    <label class="label">Modelo</label>
-                    <div class="control">
-                        <div class="select is-fullwidth">
-                            <select name="modelo" id="audio_modelo">
-                                <!-- Groq -->
-                                <option value="whisper-large-v3-turbo" data-provedor="groq" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'whisper-large-v3-turbo' %}selected{% endif %}>whisper-large-v3-turbo ($0.04/h)</option>
-                                <option value="whisper-large-v3" data-provedor="groq" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'whisper-large-v3' %}selected{% endif %}>whisper-large-v3 ($0.11/h)</option>
-                                <!-- OpenAI -->
-                                <option value="whisper-1" data-provedor="openai" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'whisper-1' %}selected{% endif %}>whisper-1</option>
-                                <option value="gpt-4o-transcribe" data-provedor="openai" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'gpt-4o-transcribe' %}selected{% endif %}>gpt-4o-transcribe</option>
-                                <option value="gpt-4o-mini-transcribe" data-provedor="openai" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'gpt-4o-mini-transcribe' %}selected{% endif %}>gpt-4o-mini-transcribe</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="field">
-                    <label class="label">Idioma (ISO 639-1)</label>
-                    <div class="control">
-                        <input class="input" type="text" name="idioma" placeholder="pt, en, es..."
-                               value="{{ config_audio|selectattr('chave', 'equalto', 'audio_transcricao_idioma')|map(attribute='valor')|first or 'pt' }}">
-                    </div>
-                    <p class="help">pt = Português, en = Inglês, es = Espanhol</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Temperatura</label>
-                    <div class="control">
-                        <input class="input" type="number" step="0.1" min="0" max="1" name="temperatura"
-                               value="{{ config_audio|selectattr('chave', 'equalto', 'audio_transcricao_temperatura')|map(attribute='valor')|first or '0.0' }}">
-                    </div>
-                    <p class="help">0.0 recomendado para melhor precisão</p>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="field">
-                    <label class="label">Timeout (segundos)</label>
-                    <div class="control">
-                        <input class="input" type="number" min="10" max="300" name="timeout"
-                               value="{{ config_audio|selectattr('chave', 'equalto', 'audio_transcricao_timeout')|map(attribute='valor')|first or '60' }}">
-                    </div>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="field" id="groq_key_field">
-                    <label class="label">Groq API Key</label>
-                    <div class="control">
-                        <input class="input" type="password" name="groq_api_key" placeholder="gsk_...">
-                    </div>
-                    <p class="help">Deixe vazio para manter a atual</p>
-                </div>
-                <div class="field" id="openai_key_field" style="display: none;">
-                    <label class="label">OpenAI API Key</label>
-                    <div class="control">
-                        <input class="input" type="password" name="openai_api_key" placeholder="sk-...">
-                    </div>
-                    <p class="help">Deixe vazio para manter a atual</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="field">
-            <label class="label">Prompt de Contexto (opcional)</label>
-            <div class="control">
-                <textarea class="textarea" name="prompt" rows="2" placeholder="Nomes próprios, siglas, termos técnicos...">{{ config_audio|selectattr('chave', 'equalto', 'audio_transcricao_prompt')|map(attribute='valor')|first or '' }}</textarea>
-            </div>
-            <p class="help">Ajuda o modelo a reconhecer palavras específicas</p>
-        </div>
-        
-        <div class="field">
-            <div class="control">
-                <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>Salvar Configurações</span>
-                </button>
-            </div>
+
+        <div class="flex items-center justify-end" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <button type="submit" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar Avançadas
+            </button>
         </div>
     </form>
+
+    <!-- Áudio - Transcrição (Whisper) -->
+    <form method="POST" action="/configuracoes/salvar-audio" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-microphone" style="margin-right: 4px;"></i> Áudio - Transcrição (Whisper)
+        </h3>
+
+        <div class="box" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-tertiary); border: none; margin-bottom: var(--space-lg);">
+            <div class="flex items-center gap-sm mb-sm text-left">
+                <i class="fas fa-lightbulb" style="color: var(--color-text-secondary);"></i>
+                <strong style="font-size: 0.8125rem;">Transcrição de Áudio</strong>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5;">
+                Configurações para transcrição de mensagens de áudio. Groq/OpenAI usam Whisper nativo. OpenRouter usa Chat Completions com input_audio (usa a API Key do OpenRouter configurada acima).
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <label style="display: flex; align-items: center; gap: var(--space-sm); font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); cursor: pointer; padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface);">
+                <input type="checkbox" name="transcricao_habilitado" value="true"
+                       {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_habilitado')|map(attribute='valor')|first != 'false' %}checked{% endif %}>
+                Habilitar Transcrição
+            </label>
+
+            <label style="display: flex; align-items: center; gap: var(--space-sm); font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); cursor: pointer; padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface);">
+                <input type="checkbox" name="responder_habilitado" value="true"
+                       {% if config_audio|selectattr('chave', 'equalto', 'audio_responder_habilitado')|map(attribute='valor')|first != 'false' %}checked{% endif %}>
+                Responder Mensagens de Áudio
+            </label>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Provedor
+                </label>
+                <select name="provedor" id="audio_provedor" class="input" style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;" onchange="atualizarModelosAudio()">
+                    <option value="groq" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_provedor')|map(attribute='valor')|first == 'groq' %}selected{% endif %}>Groq (Rápido e Barato)</option>
+                    <option value="openai" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_provedor')|map(attribute='valor')|first == 'openai' %}selected{% endif %}>OpenAI</option>
+                    <option value="openrouter" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_provedor')|map(attribute='valor')|first == 'openrouter' %}selected{% endif %}>OpenRouter (via Chat Completions)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Modelo
+                </label>
+                <select name="modelo" id="audio_modelo" class="input" style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                    <option value="whisper-large-v3-turbo" data-static="true" data-provedor="groq" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'whisper-large-v3-turbo' %}selected{% endif %}>whisper-large-v3-turbo</option>
+                    <option value="whisper-large-v3" data-static="true" data-provedor="groq" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'whisper-large-v3' %}selected{% endif %}>whisper-large-v3</option>
+                    <option value="whisper-1" data-static="true" data-provedor="openai" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'whisper-1' %}selected{% endif %}>whisper-1</option>
+                    <option value="gpt-4o-transcribe" data-static="true" data-provedor="openai" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'gpt-4o-transcribe' %}selected{% endif %}>gpt-4o-transcribe</option>
+                    <option value="gpt-4o-mini-transcribe" data-static="true" data-provedor="openai" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'gpt-4o-mini-transcribe' %}selected{% endif %}>gpt-4o-mini-transcribe</option>
+                    <option value="google/gemini-3.1-flash-lite-preview" data-static="true" data-provedor="openrouter" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'google/gemini-3.1-flash-lite-preview' %}selected{% endif %}>Gemini 2.0 Flash</option>
+                    <option value="google/gemini-2.5-flash-preview" data-static="true" data-provedor="openrouter" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'google/gemini-2.5-flash-preview' %}selected{% endif %}>Gemini 2.5 Flash</option>
+                    <option value="openai/gpt-4o-mini" data-static="true" data-provedor="openrouter" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'openai/gpt-4o-mini' %}selected{% endif %}>GPT-4o Mini</option>
+                    <option value="openai/gpt-4o" data-static="true" data-provedor="openrouter" {% if config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first == 'openai/gpt-4o' %}selected{% endif %}>GPT-4o</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Idioma (ISO 639-1)
+                </label>
+                <input class="input" type="text" name="idioma" placeholder="pt, en, es..."
+                       value="{{ config_audio|selectattr('chave', 'equalto', 'audio_transcricao_idioma')|map(attribute='valor')|first or 'pt' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">pt = Português, en = Inglês, es = Espanhol</div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Temperatura
+                </label>
+                <input class="input" type="number" step="0.1" min="0" max="1" name="temperatura"
+                       value="{{ config_audio|selectattr('chave', 'equalto', 'audio_transcricao_temperatura')|map(attribute='valor')|first or '0.0' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">0.0 recomendado para melhor precisão</div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Timeout (segundos)
+                </label>
+                <input class="input" type="number" min="10" max="300" name="timeout"
+                       value="{{ config_audio|selectattr('chave', 'equalto', 'audio_transcricao_timeout')|map(attribute='valor')|first or '60' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+            </div>
+
+            <div class="form-group" id="groq_key_field">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Groq API Key
+                </label>
+                <input class="input" type="password" name="groq_api_key" placeholder="gsk_..."
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; font-family: monospace;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Deixe vazio para manter a atual</div>
+            </div>
+            <div class="form-group" id="openai_key_field" style="display: none;">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    OpenAI API Key
+                </label>
+                <input class="input" type="password" name="openai_api_key" placeholder="sk-..."
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; font-family: monospace;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Deixe vazio para manter a atual</div>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: var(--space-lg);">
+            <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                Prompt de Contexto (opcional)
+            </label>
+            <textarea class="textarea" name="prompt" rows="2" placeholder="Nomes próprios, siglas, termos técnicos..."
+                      style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%; resize: vertical;">{{ config_audio|selectattr('chave', 'equalto', 'audio_transcricao_prompt')|map(attribute='valor')|first or '' }}</textarea>
+            <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Ajuda o modelo a reconhecer palavras específicas</div>
+        </div>
+
+        <div class="flex items-center justify-end" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <button type="submit" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar Configurações
+            </button>
+        </div>
+    </form>
+
+    <!-- MCP -->
+    <form method="POST" action="/configuracoes/salvar-mcp" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-plug" style="margin-right: 4px;"></i> MCP (Model Context Protocol)
+        </h3>
+
+        <div class="box" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-tertiary); border: none; margin-bottom: var(--space-lg);">
+            <div class="flex items-center gap-sm mb-sm text-left">
+                <i class="fas fa-lightbulb" style="color: var(--color-text-secondary);"></i>
+                <strong style="font-size: 0.8125rem;">Servidores de Contexto</strong>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5;">
+                Configurações para clientes MCP (servidores de contexto externos).
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Máximo de Clientes por Agente
+                </label>
+                <input class="input" type="number" min="1" max="20" name="max_clients"
+                       value="{{ config_mcp|selectattr('chave', 'equalto', 'mcp_max_clients_por_agente')|map(attribute='valor')|first or '5' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Limite de servidores MCP por agente</div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Timeout Execução (seg)
+                </label>
+                <input class="input" type="number" min="10" max="300" name="timeout_execucao"
+                       value="{{ config_mcp|selectattr('chave', 'equalto', 'mcp_timeout_execucao')|map(attribute='valor')|first or '60' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Tempo máximo para execução de tools MCP</div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <button type="submit" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar
+            </button>
+        </div>
+    </form>
+
+    <!-- Ferramentas - Timeouts -->
+    <form method="POST" action="/configuracoes/salvar-ferramenta" class="box" style="padding: var(--space-lg); margin-bottom: var(--space-lg);">
+        <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-tools" style="margin-right: 4px;"></i> Ferramentas - Timeouts
+        </h3>
+
+        <div class="box" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-tertiary); border: none; margin-bottom: var(--space-lg);">
+            <div class="flex items-center gap-sm mb-sm text-left">
+                <i class="fas fa-lightbulb" style="color: var(--color-text-secondary);"></i>
+                <strong style="font-size: 0.8125rem;">Timeouts HTTP</strong>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.5;">
+                Configure os timeouts para requisições HTTP das ferramentas.
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg);">
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Timeout HTTP (seg)
+                </label>
+                <input class="input" type="number" min="5" max="120" name="timeout_http"
+                       value="{{ config_ferramenta|selectattr('chave', 'equalto', 'ferramenta_timeout_http')|map(attribute='valor')|first or '30' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Requisições HTTP normais</div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Timeout Download (seg)
+                </label>
+                <input class="input" type="number" min="10" max="300" name="timeout_download"
+                       value="{{ config_ferramenta|selectattr('chave', 'equalto', 'ferramenta_timeout_download')|map(attribute='valor')|first or '60' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Download de mídia</div>
+            </div>
+
+            <div class="form-group">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Timeout Teste (seg)
+                </label>
+                <input class="input" type="number" min="5" max="60" name="timeout_teste"
+                       value="{{ config_ferramenta|selectattr('chave', 'equalto', 'ferramenta_timeout_teste')|map(attribute='valor')|first or '10' }}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Testes no wizard de criação</div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end" style="padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+            <button type="submit" class="button is-primary is-small">
+                <i class="fas fa-save" style="margin-right: 4px;"></i> Salvar
+            </button>
+        </div>
+    </form>
+
 </div>
 
 <script>
-function atualizarModelosAudio() {
+async function atualizarModelosAudio() {
     const provedor = document.getElementById('audio_provedor').value;
     const modeloSelect = document.getElementById('audio_modelo');
     const opcoes = modeloSelect.querySelectorAll('option');
-    
-    // Mostrar/esconder modelos por provedor
-    opcoes.forEach(opcao => {
-        if (opcao.dataset.provedor === provedor) {
-            opcao.style.display = '';
-        } else {
-            opcao.style.display = 'none';
+
+    // Se for OpenRouter, buscar dinamicamente
+    if (provedor === 'openrouter') {
+        modeloSelect.innerHTML = '<option value="">Carregando modelos...</option>';
+        try {
+            const resp = await fetch('/api/configuracoes/openrouter/modelos-audio');
+            const modelos = await resp.json();
+            
+            if (modelos && modelos.length > 0) {
+                modeloSelect.innerHTML = '';
+                modelos.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = m.nome;
+                    opt.dataset.provedor = 'openrouter';
+                    // Marcar como selecionado se for o modelo atual salvo
+                    const modeloAtual = "{{ config_audio|selectattr('chave', 'equalto', 'audio_transcricao_modelo')|map(attribute='valor')|first }}";
+                    if (m.id === modeloAtual) opt.selected = true;
+                    modeloSelect.appendChild(opt);
+                });
+            } else {
+                modeloSelect.innerHTML = '<option value="">Nenhum modelo encontrado</option>';
+            }
+        } catch (e) {
+            console.error("Erro ao carregar modelos OpenRouter:", e);
+            modeloSelect.innerHTML = '<option value="">Erro ao carregar</option>';
         }
-    });
-    
-    // Selecionar primeiro modelo visível
-    const primeiroVisivel = Array.from(opcoes).find(o => o.dataset.provedor === provedor);
-    if (primeiroVisivel) {
-        modeloSelect.value = primeiroVisivel.value;
+    } else {
+        // Para outros provedores, usar as opções estáticas filtradas
+        opcoes.forEach(opcao => {
+            if (opcao.dataset.provedor === 'openrouter') {
+                // Remover opções dinâmicas anteriores se houver
+                if (!opcao.getAttribute('data-static')) opcao.remove();
+            }
+            opcao.style.display = opcao.dataset.provedor === provedor ? '' : 'none';
+        });
+
+        const primeiroVisivel = Array.from(modeloSelect.querySelectorAll('option')).find(o => o.dataset.provedor === provedor);
+        if (primeiroVisivel) modeloSelect.value = primeiroVisivel.value;
     }
-    
-    // Mostrar/esconder campo de API Key correto
+
     const groqField = document.getElementById('groq_key_field');
     const openaiField = document.getElementById('openai_key_field');
-    
     if (provedor === 'groq') {
         groqField.style.display = '';
         openaiField.style.display = 'none';
-    } else {
+    } else if (provedor === 'openai') {
         groqField.style.display = 'none';
         openaiField.style.display = '';
+    } else {
+        // openrouter
+        groqField.style.display = 'none';
+        openaiField.style.display = 'none';
     }
 }
-
-// Inicializar na carga da página
-document.addEventListener('DOMContentLoaded', function() {
-    atualizarModelosAudio();
-    atualizarProvedorLocal();
-});
 
 function atualizarProvedorLocal() {
     const provedorPadrao = document.getElementById('provedor_padrao');
     const provedorLocalField = document.getElementById('provedor_local_field');
-    
     if (provedorPadrao && provedorLocalField) {
-        if (provedorPadrao.value === 'local') {
-            provedorLocalField.style.display = '';
-        } else {
-            provedorLocalField.style.display = 'none';
-        }
+        provedorLocalField.style.display = provedorPadrao.value === 'local' ? '' : 'none';
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarModelosAudio();
+    atualizarProvedorLocal();
+});
 </script>
-
-<!-- Configurações MCP -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-plug" style="color: #06b6d4;"></i> MCP (Model Context Protocol)
-    </h2>
-    <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.7;">
-        <i class="fas fa-info-circle"></i> Configurações para clientes MCP (servidores de contexto externos)
-    </p>
-        
-    <form method="POST" action="/configuracoes/salvar-mcp">
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Máximo de Clientes por Agente</label>
-                    <div class="control">
-                        <input class="input" type="number" min="1" max="20" name="max_clients" 
-                               value="{{ config_mcp|selectattr('chave', 'equalto', 'mcp_max_clients_por_agente')|map(attribute='valor')|first or '5' }}">
-                    </div>
-                    <p class="help">Limite de servidores MCP que cada agente pode conectar</p>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="field">
-                    <label class="label">Timeout Execução (segundos)</label>
-                    <div class="control">
-                        <input class="input" type="number" min="10" max="300" name="timeout_execucao" 
-                               value="{{ config_mcp|selectattr('chave', 'equalto', 'mcp_timeout_execucao')|map(attribute='valor')|first or '60' }}">
-                    </div>
-                    <p class="help">Tempo máximo para execução de tools MCP</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="field">
-            <div class="control">
-                <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>Salvar Configurações</span>
-                </button>
-            </div>
-        </div>
-    </form>
-</div>
-
-<!-- Configurações de Ferramentas -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-tools" style="color: #f59e0b;"></i> Ferramentas - Timeouts
-    </h2>
-    <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.7;">
-        <i class="fas fa-info-circle"></i> Configure os timeouts para requisições HTTP das ferramentas
-    </p>
-        
-    <form method="POST" action="/configuracoes/salvar-ferramenta">
-        <div class="columns">
-            <div class="column">
-                <div class="field">
-                    <label class="label">Timeout HTTP (segundos)</label>
-                    <div class="control">
-                        <input class="input" type="number" min="5" max="120" name="timeout_http" 
-                               value="{{ config_ferramenta|selectattr('chave', 'equalto', 'ferramenta_timeout_http')|map(attribute='valor')|first or '30' }}">
-                    </div>
-                    <p class="help">Tempo máximo para requisições HTTP normais</p>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="field">
-                    <label class="label">Timeout Download (segundos)</label>
-                    <div class="control">
-                        <input class="input" type="number" min="10" max="300" name="timeout_download" 
-                               value="{{ config_ferramenta|selectattr('chave', 'equalto', 'ferramenta_timeout_download')|map(attribute='valor')|first or '60' }}">
-                    </div>
-                    <p class="help">Tempo máximo para download de mídia (vídeo/documento)</p>
-                </div>
-            </div>
-            
-            <div class="column">
-                <div class="field">
-                    <label class="label">Timeout Teste (segundos)</label>
-                    <div class="control">
-                        <input class="input" type="number" min="5" max="60" name="timeout_teste" 
-                               value="{{ config_ferramenta|selectattr('chave', 'equalto', 'ferramenta_timeout_teste')|map(attribute='valor')|first or '10' }}">
-                    </div>
-                    <p class="help">Tempo máximo para testes no wizard de criação</p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="field">
-            <div class="control">
-                <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>Salvar Configurações</span>
-                </button>
-            </div>
-        </div>
-    </form>
-</div>
-
 {% endblock %}

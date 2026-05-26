@@ -1,0 +1,146 @@
+{% extends "base_modern.html" %}
+
+{% block title %}{{ skill.nome }} - Skill - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                {{ skill.icone or '🔧' }} {{ skill.nome }}
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/skills" style="color: var(--color-text-secondary); text-decoration: none;">Skills</a> /
+                <span style="color: var(--color-text-primary);">{{ skill.nome }}</span>
+            </p>
+        </div>
+        <div class="flex items-center gap-sm">
+            {% if skill.ativa %}
+            <span style="padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; background: var(--color-success); color: white;">Ativa</span>
+            {% else %}
+            <span style="padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; background: var(--color-text-muted); color: white;">Inativa</span>
+            {% endif %}
+            <a href="/skills/{{ skill.id }}/editar" class="button is-small is-outline">
+                <i class="fas fa-edit" style="margin-right: 4px;"></i> Editar
+            </a>
+        </div>
+    </div>
+
+    {% if request.query_params.get('sucesso') %}
+    <div style="background: var(--color-success); color: white; padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-md);">
+        ✅ {{ request.query_params.get('sucesso') }}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-3">
+        <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+
+            <!-- Metadados -->
+            <div class="box" style="padding: var(--space-lg);">
+                <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">Metadados (Level 1 — sempre no system prompt)</h2>
+                <div class="grid grid-cols-2 gap-md">
+                    <div style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--space-md); border-left: 3px solid var(--color-primary);">
+                        <p style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: 4px;">Nome</p>
+                        <p style="font-size: 0.875rem; color: var(--color-text-primary); font-family: monospace;">{{ skill.nome }}</p>
+                    </div>
+                    <div style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--space-md); border-left: 3px solid var(--color-success);">
+                        <p style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: 4px;">Categoria / Versão</p>
+                        <p style="font-size: 0.875rem; color: var(--color-text-primary);">{{ skill.categoria }} · v{{ skill.versao }}</p>
+                    </div>
+                </div>
+                <div style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--space-md); border-left: 3px solid var(--color-warning); margin-top: var(--space-md);">
+                    <p style="font-size: 0.7rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: 4px;">Descrição (critério de seleção pelo LLM)</p>
+                    <p style="font-size: 0.875rem; color: var(--color-text-primary); line-height: 1.5;">{{ skill.descricao }}</p>
+                </div>
+            </div>
+
+            <!-- Instrução Completa -->
+            <div class="box" style="padding: var(--space-lg);">
+                <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">Instrução Completa (Level 2 — carregada ao invocar)</h2>
+                <pre style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--space-md); font-size: 0.8rem; color: var(--color-text-primary); white-space: pre-wrap; word-break: break-word; line-height: 1.6; font-family: monospace; max-height: 400px; overflow-y: auto;">{{ skill.instrucao_completa }}</pre>
+            </div>
+
+            <!-- Script -->
+            {% if skill.script_codigo %}
+            <div class="box" style="padding: var(--space-lg);">
+                <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">Script de Contexto (executado antes de retornar)</h2>
+                <pre style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--space-md); font-size: 0.8rem; color: var(--color-text-primary); white-space: pre-wrap; word-break: break-word; line-height: 1.6; font-family: monospace;">{{ skill.script_codigo }}</pre>
+            </div>
+            {% endif %}
+
+            <!-- Ferramentas extras -->
+            {% if ferramentas_injetadas %}
+            <div class="box" style="padding: var(--space-lg);">
+                <h2 style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--color-border);">Ferramentas Extras Injetadas (Level 3 — disponíveis ao invocar)</h2>
+                <div class="flex flex-col gap-sm">
+                    {% for f in ferramentas_injetadas %}
+                    <div style="background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); display: flex; align-items: center; gap: var(--space-md); border-left: 3px solid var(--color-primary);">
+                        <div style="min-width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--color-primary); display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-wrench" style="color: white; font-size: 0.75rem;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; gap: var(--space-sm);">
+                                <a href="/ferramentas/{{ f.id }}" style="font-size: 0.875rem; font-weight: 600; color: var(--color-primary); text-decoration: none; font-family: monospace;">{{ f.nome }}</a>
+                                <span style="font-size: 0.7rem; padding: 1px 6px; border-radius: 99px; background: var(--color-bg-primary); color: var(--color-text-secondary); border: 1px solid var(--color-border);">#{{ f.id }}</span>
+                                <span style="font-size: 0.7rem; padding: 1px 6px; border-radius: 99px; background: var(--color-bg-primary); color: var(--color-text-muted); border: 1px solid var(--color-border);">{{ f.tool_type.value if f.tool_type else 'CODE' }}</span>
+                            </div>
+                            <p style="font-size: 0.775rem; color: var(--color-text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ f.descricao }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Zona de perigo -->
+            <div class="box" style="padding: var(--space-lg); border: 1px solid #e53e3e20;">
+                <h2 style="font-size: 0.9rem; font-weight: 600; color: #e53e3e; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-md);">Zona de Perigo</h2>
+                <form method="POST" action="/skills/{{ skill.id }}/deletar"
+                      onsubmit="return confirm('Remover a skill \'{{ skill.nome }}\' permanentemente?')">
+                    <button type="submit" class="button is-small" style="background: #e53e3e; color: white; border: none;">
+                        <i class="fas fa-trash" style="margin-right: 4px;"></i> Remover Skill
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="flex flex-col gap-md" style="padding-left: var(--space-lg);">
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Informações</h3>
+                <div class="flex flex-col gap-xs">
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">ID:</span>
+                        <span style="font-weight: 600;">#{{ skill.id }}</span>
+                    </div>
+                    <div style="height: 1px; background: var(--color-border); width: 100%;"></div>
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Versão:</span>
+                        <span>v{{ skill.versao }}</span>
+                    </div>
+                    <div style="height: 1px; background: var(--color-border); width: 100%;"></div>
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Script:</span>
+                        <span>{{ "✅ Sim" if skill.script_codigo else "—" }}</span>
+                    </div>
+                    <div style="height: 1px; background: var(--color-border); width: 100%;"></div>
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Ferramentas extras:</span>
+                        <span>{{ "✅ Sim" if skill.ferramentas_ids else "—" }}</span>
+                    </div>
+                    <div style="height: 1px; background: var(--color-border); width: 100%;"></div>
+                    <div class="flex justify-between">
+                        <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Criada em:</span>
+                        <span style="font-size: 0.75rem;">{{ skill.criado_em.strftime('%d/%m/%Y') if skill.criado_em else '—' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box" style="padding: var(--space-md) var(--space-lg);">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-secondary); margin-bottom: var(--space-sm);">Gatilho WhatsApp</h3>
+                <code style="font-size: 0.8rem; background: var(--color-bg-secondary); padding: 4px 8px; border-radius: var(--radius-sm); display: block;">!skill {{ skill.nome }}</code>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,240 @@
+{% extends "onboarding/base.html" %}
+
+{% block extra_css %}
+{{ super() }}
+<style>
+    .qr-stage {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: var(--space-xl);
+        align-items: start;
+    }
+    @media (max-width: 720px) { .qr-stage { grid-template-columns: 1fr; } }
+
+    .qr-frame {
+        background: var(--color-surface);
+        border: 2px dashed var(--color-border);
+        border-radius: 16px;
+        padding: var(--space-lg);
+        text-align: center;
+        min-height: 320px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    .qr-frame img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+    .qr-frame .qr-placeholder {
+        color: var(--color-text-muted);
+        font-size: 0.85rem;
+    }
+    .qr-frame .qr-placeholder i {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 0.8rem;
+        color: var(--color-text-tertiary);
+    }
+
+    .qr-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .qr-steps li {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.6rem 0;
+        border-bottom: 1px dashed var(--color-border);
+        font-size: 0.88rem;
+        color: var(--color-text-secondary);
+    }
+    .qr-steps li:last-child { border-bottom: 0; }
+    .qr-steps li .qr-num {
+        flex-shrink: 0;
+        width: 22px; height: 22px;
+        background: var(--color-info-light);
+        color: var(--color-primary);
+        border-radius: 50%;
+        font-weight: 700;
+        font-size: 0.78rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .webchat-url {
+        background: var(--color-bg-tertiary);
+        padding: 0.7rem 1rem;
+        border-radius: var(--radius-md);
+        font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.88rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        border: 1px solid var(--color-border);
+    }
+    .webchat-url .btn-copy {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        padding: 0.3rem 0.7rem;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        font-size: 0.75rem;
+        color: var(--color-text-secondary);
+    }
+    .webchat-url .btn-copy:hover { background: var(--color-bg-secondary); }
+</style>
+{% endblock %}
+
+{% block ob_content %}
+<div class="ob-card">
+    {% if sessao.plataforma == "whatsapp" %}
+        <h2><i class="fab fa-whatsapp" style="color:#25D366;"></i> Escaneie o QR code</h2>
+        <p class="ob-card-lead">Tem ate 60s antes do codigo expirar. Se passar, atualize a pagina.</p>
+
+        <div style="margin-bottom: var(--space-md);">
+            <span id="status-pill" class="ob-status-pill"><span class="dot"></span> Aguardando QR code...</span>
+        </div>
+
+        <div class="qr-stage">
+            <div class="qr-frame" id="qr-frame">
+                <div class="qr-placeholder" id="qr-placeholder">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Gerando QR code...
+                </div>
+            </div>
+            <ol class="qr-steps">
+                <li><span class="qr-num">1</span> Abra o WhatsApp no celular.</li>
+                <li><span class="qr-num">2</span> Toque em <strong>Configuracoes</strong> &rarr; <strong>Aparelhos conectados</strong>.</li>
+                <li><span class="qr-num">3</span> Toque em <strong>Conectar um aparelho</strong>.</li>
+                <li><span class="qr-num">4</span> Aponte a camera pra essa tela.</li>
+                <li><span class="qr-num">5</span> Assim que conectar, avancamos automaticamente.</li>
+            </ol>
+        </div>
+
+    {% elif sessao.plataforma == "telegram" %}
+        <h2><i class="fab fa-telegram-plane" style="color:#0088cc;"></i> Conectando bot do Telegram...</h2>
+        <p class="ob-card-lead">Validando o token e iniciando o polling. Costuma demorar poucos segundos.</p>
+
+        <div style="text-align:center; padding: var(--space-xl) 0;">
+            <span id="status-pill" class="ob-status-pill"><span class="dot"></span> Iniciando bot...</span>
+            <div style="margin-top: var(--space-md);">
+                <i class="fas fa-circle-notch fa-spin" style="font-size:2rem;color:var(--color-text-tertiary);"></i>
+            </div>
+        </div>
+
+    {% else %}
+        <h2><i class="fas fa-comments" style="color:#6366f1;"></i> Webchat criado!</h2>
+        <p class="ob-card-lead">Seu webchat ja esta disponivel. A URL abaixo e publica neste servidor.</p>
+
+        <div style="margin-bottom: var(--space-md);">
+            <span id="status-pill" class="ob-status-pill ok"><span class="dot"></span> Pronto pra receber visitantes</span>
+        </div>
+
+        <div class="webchat-url">
+            <span id="webchat-url-text">{{ request.url.scheme }}://{{ request.url.netloc }}/chat/{{ sessao.id }}</span>
+            <button type="button" class="btn-copy" onclick="copiarUrl()">
+                <i class="fas fa-copy"></i> Copiar
+            </button>
+        </div>
+
+        <div style="margin-top: var(--space-md);">
+            <a href="/chat/{{ sessao.id }}" target="_blank" class="ob-btn ob-btn-secondary">
+                <i class="fas fa-external-link-alt"></i> Abrir webchat numa nova aba
+            </a>
+        </div>
+    {% endif %}
+
+    <form method="post" action="/onboarding/canal/confirmar" id="form-confirmar">
+        <div class="ob-actions">
+            <div class="ob-actions-left">
+                <a href="/onboarding/canal" class="ob-btn ob-btn-ghost">
+                    <i class="fas fa-arrow-left"></i> Trocar canal
+                </a>
+            </div>
+            <div class="ob-actions-right">
+                <button type="submit" id="btn-continuar" class="ob-btn ob-btn-primary"
+                        {% if sessao.plataforma != "webchat" %}disabled{% endif %}>
+                    Continuar <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block ob_scripts %}
+<script>
+const SESSAO_ID = {{ sessao.id }};
+const PLATAFORMA = "{{ sessao.plataforma }}";
+const statusPill = document.getElementById('status-pill');
+const btnContinuar = document.getElementById('btn-continuar');
+
+function setStatus(texto, classe) {
+    statusPill.className = 'ob-status-pill' + (classe ? ' ' + classe : '');
+    statusPill.innerHTML = `<span class="dot"></span> ${texto}`;
+}
+
+function copiarUrl() {
+    const url = document.getElementById('webchat-url-text').innerText;
+    navigator.clipboard.writeText(url).then(() => {
+        setStatus('URL copiada!', 'ok');
+    });
+}
+
+let pronto = (PLATAFORMA === "webchat");
+let pollTimer = null;
+
+function poll() {
+    fetch(`/onboarding/canal/status/${SESSAO_ID}`)
+        .then(r => r.json())
+        .then(data => {
+            // Atualizar QR (WA)
+            if (PLATAFORMA === "whatsapp" && data.qr_code) {
+                const frame = document.getElementById('qr-frame');
+                frame.innerHTML = `<img src="data:image/png;base64,${data.qr_code}" alt="QR code WhatsApp">`;
+            }
+
+            if (data.pronto) {
+                pronto = true;
+                if (PLATAFORMA === "whatsapp" && data.telefone) {
+                    setStatus(`Conectado como ${data.telefone}!`, 'ok');
+                } else if (PLATAFORMA === "telegram" && data.identificador) {
+                    setStatus(`Bot @${data.identificador} ativo`, 'ok');
+                } else {
+                    setStatus('Conectado!', 'ok');
+                }
+                btnContinuar.disabled = false;
+                // Avancar automaticamente apos 1.2s
+                setTimeout(() => {
+                    document.getElementById('form-confirmar').submit();
+                }, 1200);
+                clearInterval(pollTimer);
+                return;
+            }
+
+            if (data.status === 'conectando' && PLATAFORMA === 'whatsapp') {
+                setStatus('Aguardando voce escanear o QR code...', '');
+            } else if (data.status === 'conectando') {
+                setStatus('Conectando...', '');
+            } else if (data.status === 'erro') {
+                setStatus('Erro ao conectar. Tente trocar de canal.', 'err');
+                clearInterval(pollTimer);
+            }
+        })
+        .catch(err => {
+            console.warn('poll fail', err);
+        });
+}
+
+if (PLATAFORMA !== 'webchat') {
+    poll();
+    pollTimer = setInterval(poll, 2500);
+}
+</script>
+{% endblock %}

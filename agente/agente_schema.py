@@ -18,10 +18,13 @@ class AgenteBase(BaseModel):
     agente_objetivo_explicito: str = Field(..., description="Objetivo explícito do agente")
     agente_publico: str = Field(..., description="Público-alvo do agente")
     agente_restricoes: str = Field(..., description="Restrições do agente")
+    provedor_llm_id: Optional[int] = Field(None, description="ID do provedor LLM (null = padrão global)")
     modelo_llm: Optional[str] = Field(None, description="Modelo LLM específico")
-    temperatura: Optional[str] = Field(None, description="Temperatura do modelo")
-    max_tokens: Optional[str] = Field(None, description="Máximo de tokens")
-    top_p: Optional[str] = Field(None, description="Top P")
+    temperatura: Optional[float] = Field(None, description="Temperatura do modelo (0.0 a 2.0)")
+    max_tokens: Optional[int] = Field(None, description="Máximo de tokens")
+    top_p: Optional[float] = Field(None, description="Top P (0.0 a 1.0)")
+    frequency_penalty: Optional[float] = Field(None, description="Frequency penalty (-2.0 a 2.0)")
+    presence_penalty: Optional[float] = Field(None, description="Presence penalty (-2.0 a 2.0)")
     ativo: bool = Field(default=True, description="Se o agente está ativo")
 
 
@@ -42,10 +45,13 @@ class AgenteAtualizar(BaseModel):
     agente_objetivo_explicito: Optional[str] = None
     agente_publico: Optional[str] = None
     agente_restricoes: Optional[str] = None
+    provedor_llm_id: Optional[int] = None
     modelo_llm: Optional[str] = None
-    temperatura: Optional[str] = None
-    max_tokens: Optional[str] = None
-    top_p: Optional[str] = None
+    temperatura: Optional[float] = None
+    max_tokens: Optional[int] = None
+    top_p: Optional[float] = None
+    frequency_penalty: Optional[float] = None
+    presence_penalty: Optional[float] = None
     rag_id: Optional[int] = None
     ativo: Optional[bool] = None
 
@@ -54,7 +60,11 @@ class AgenteResposta(AgenteBase):
     """Schema de resposta com dados completos."""
     id: int
     sessao_id: int
+    provedor_llm_id: Optional[int] = None
     rag_id: Optional[int] = None
+    internal_sandbox_ativo: Optional[bool] = False
+    frequency_penalty: Optional[float] = None
+    presence_penalty: Optional[float] = None
     criado_em: datetime
     atualizado_em: Optional[datetime] = None
 

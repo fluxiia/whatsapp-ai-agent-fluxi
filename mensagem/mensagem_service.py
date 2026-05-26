@@ -1,6 +1,7 @@
 """
 Serviço de lógica de negócio para mensagens.
 """
+import asyncio
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime, timedelta
@@ -12,38 +13,66 @@ import io
 from neonize.events import MessageEv
 from mensagem.mensagem_model import Mensagem
 from mensagem.mensagem_schema import MensagemCriar
+from mensagem.markdown_whatsapp import markdown_para_whatsapp
 from config.config_service import ConfiguracaoService
+from security import validate_upload_file, sanitize_user_input
+from log.log_service import fluxi_log
 
 
 class MensagemService:
     """Serviço para gerenciar mensagens."""
-    
+
     # Lock em memória para evitar processamento duplicado da mesma mensagem
     _mensagens_em_processamento = set()
     _lock_processamento = __import__('threading').Lock()
 
+    # Referências fortes para background tasks — impede o GC de destruir tasks pendentes.
+    _background_tasks: set = set()
+
+    # Event loop principal do FastAPI/uvicorn — setado no startup da app.
+    # Usado para despachar coding tasks da thread do neonize para o loop principal.
+    _fastapi_loop: asyncio.AbstractEventLoop = None
+
+    @classmethod
+    def set_fastapi_loop(cls, loop: asyncio.AbstractEventLoop):
+        """Chamado no startup do FastAPI para capturar o event loop principal."""
+        cls._fastapi_loop = loop
+        fluxi_log.info("sistema", None, "Event loop FastAPI capturado para MensagemService")
+
     @staticmethod
     def _resolver_jid_destino(info, message_source, telefone_cliente):
-        """Resolve o JID de destino priorizando o chat real do evento (inclui LID)."""
+        """Resolve o JID de destino limpando a parte do dispositivo para evitar erros no envio."""
         from neonize.utils import build_jid
 
+        def _limpar_jid(jid_obj):
+            if jid_obj and hasattr(jid_obj, 'User') and jid_obj.User and hasattr(jid_obj, 'Server') and jid_obj.Server:
+                user_clean = str(jid_obj.User).split(':')[0]
+                novo_jid = build_jid(user_clean, jid_obj.Server)
+                # Garante que Device seja limpo, se a propriedade existir
+                if hasattr(novo_jid, 'Device'):
+                    setattr(novo_jid, 'Device', 0)
+                if hasattr(novo_jid, 'RawAgent'):
+                    setattr(novo_jid, 'RawAgent', 0)
+                return novo_jid
+            return None
+
         chat_jid = getattr(info, 'Chat', None)
-        if chat_jid and hasattr(chat_jid, 'User') and chat_jid.User and hasattr(chat_jid, 'Server') and chat_jid.Server:
-            return chat_jid
+        chat_limpo = _limpar_jid(chat_jid)
+        if chat_limpo:
+            return chat_limpo
 
         sender_alt = getattr(message_source, 'SenderAlt', None)
-        if sender_alt and hasattr(sender_alt, 'User') and sender_alt.User and hasattr(sender_alt, 'Server') and sender_alt.Server:
-            if sender_alt.Server == "s.whatsapp.net":
-                return build_jid(sender_alt.User)
-            return sender_alt
+        alt_limpo = _limpar_jid(sender_alt)
+        if alt_limpo:
+            return alt_limpo
 
         sender = getattr(message_source, 'Sender', None)
-        if sender and hasattr(sender, 'User') and sender.User and hasattr(sender, 'Server') and sender.Server:
-            if sender.Server == "s.whatsapp.net":
-                return build_jid(sender.User)
-            return sender
+        sender_limpo = _limpar_jid(sender)
+        if sender_limpo:
+            return sender_limpo
 
-        return build_jid(telefone_cliente)
+        telefone_limpo = str(telefone_cliente).split('@')[0].split(':')[0]
+        return build_jid(telefone_limpo)
 
     @staticmethod
     def _jid_para_log(jid) -> str:
@@ -115,10 +144,31 @@ class MensagemService:
     def salvar_imagem(imagem_bytes: bytes, telefone: str, sessao_id: int, db: Session = None) -> tuple[str, str]:
         """
         Salva uma imagem localmente e retorna o caminho e base64.
-        
+
         Returns:
             tuple: (caminho_arquivo, base64_string)
         """
+        try:
+            from security import SecurityConfig
+
+            # Validação de segurança do arquivo
+            max_file_size_mb = ConfiguracaoService.obter_valor(db, "sistema_max_file_size_mb", 10)
+            validate_upload_file(
+                file_bytes=imagem_bytes,
+                mime_type="image/jpeg",
+                allowed_types=SecurityConfig.ALLOWED_IMAGE_TYPES,
+                max_size_mb=max_file_size_mb
+            )
+
+            # Validação de tipo de imagem
+            img = Image.open(io.BytesIO(imagem_bytes))
+            img.verify()
+            img = Image.open(io.BytesIO(imagem_bytes))
+
+        except Exception as e:
+            fluxi_log.error("mensagem", "imagem", "Erro na validacao de imagem", exc_info=True, session_id=sessao_id)
+            return None, None
+
         # Obter diretório de uploads configurável
         if db:
             upload_base = ConfiguracaoService.obter_valor(db, "sistema_diretorio_uploads", "./uploads")
@@ -126,32 +176,36 @@ class MensagemService:
         else:
             upload_base = "./uploads"
             qualidade_jpeg = 85
-        
+
         # Criar diretório se não existir
         upload_dir = Path(upload_base) / f"sessao_{sessao_id}" / telefone
         upload_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Gerar nome único para arquivo
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"img_{timestamp}.jpg"
         filepath = upload_dir / filename
-        
+
         # Salvar imagem
         try:
             # Abrir e converter para RGB (caso seja RGBA)
-            img = Image.open(io.BytesIO(imagem_bytes))
             if img.mode in ('RGBA', 'LA', 'P'):
                 img = img.convert('RGB')
-            
+
+            # Sanitização: remover metadados EXIF para privacidade
+            data = list(img.getdata())
+            img_without_exif = Image.new(img.mode, img.size)
+            img_without_exif.putdata(data)
+
             # Salvar com qualidade configurável
-            img.save(filepath, 'JPEG', quality=int(qualidade_jpeg))
-            
+            img_without_exif.save(filepath, 'JPEG', quality=int(qualidade_jpeg), optimize=True)
+
             # Converter para base64
             base64_string = base64.b64encode(imagem_bytes).decode('utf-8')
-            
+
             return str(filepath), base64_string
         except Exception as e:
-            print(f"Erro ao salvar imagem: {e}")
+            fluxi_log.error("mensagem", "imagem", "Erro ao salvar imagem", exc_info=True, session_id=sessao_id)
             return None, None
 
     @staticmethod
@@ -199,6 +253,200 @@ class MensagemService:
         return "texto"  # Default
     
     @staticmethod
+    async def processar_evento_canal(db: Session, evento) -> None:
+        """Ponto de entrada único pra mensagens vindas de qualquer canal.
+
+        Roteia pra pipeline específica por plataforma. Quem chama é o
+        callback `on_mensagem` montado em sessao_service.
+        """
+        from canal.canal_base import Plataforma
+
+        if evento.plataforma == Plataforma.WHATSAPP:
+            # `evento.raw` é o MessageEv original — preserva 100% do pipeline atual.
+            await MensagemService.processar_mensagem_recebida(
+                db, evento.sessao_id, evento.raw
+            )
+        elif evento.plataforma == Plataforma.TELEGRAM:
+            await MensagemService.processar_evento_telegram(db, evento)
+        else:
+            fluxi_log.warning(
+                "mensagem", "roteamento", "Plataforma desconhecida no evento",
+                extra={"plataforma": str(evento.plataforma)},
+                session_id=evento.sessao_id,
+            )
+
+    @staticmethod
+    async def processar_evento_telegram(db: Session, evento) -> None:
+        """Pipeline para mensagens vindas do Telegram.
+
+        Mais enxuto que o WA porque o adapter já entrega bytes de mídia e
+        identifica o tipo. Cobre: texto, áudio (voice/audio), imagem.
+        """
+        from agente.agente_service import AgenteService
+        from canal.canal_base import TipoMidia
+        from sessao.sessao_service import SessaoService, gerenciador_sessoes
+
+        sessao_id = evento.sessao_id
+        chat_id = evento.chat_id
+        sessao = SessaoService.obter_por_id(db, sessao_id)
+        if not sessao or not sessao.ativa:
+            return
+
+        # Dedup por (plataforma, sessao, chat, mensagem_id) — chave composta
+        # porque message_id do Telegram não é único globalmente.
+        chave_msg = f"TG_{sessao_id}_{chat_id}_{evento.mensagem_id_externo}"
+        with MensagemService._lock_processamento:
+            if chave_msg in MensagemService._mensagens_em_processamento:
+                return
+            MensagemService._mensagens_em_processamento.add(chave_msg)
+
+        # Verificar no DB (idempotência cross-restart).
+        existente = db.query(Mensagem).filter(
+            Mensagem.sessao_id == sessao_id,
+            Mensagem.plataforma == "telegram",
+            Mensagem.chat_id == chat_id,
+            Mensagem.mensagem_id_externo == evento.mensagem_id_externo,
+        ).first()
+        if existente:
+            with MensagemService._lock_processamento:
+                MensagemService._mensagens_em_processamento.discard(chave_msg)
+            return
+
+        canal = gerenciador_sessoes.obter_cliente(sessao_id)
+        if not canal:
+            fluxi_log.warning(
+                "mensagem", "telegram", "Canal ausente ao processar evento",
+                session_id=sessao_id,
+            )
+            return
+
+        db_mensagem = Mensagem(
+            sessao_id=sessao_id,
+            plataforma="telegram",
+            telefone_cliente=chat_id,  # legacy: preencher pra compat
+            chat_id=chat_id,
+            mensagem_id_externo=evento.mensagem_id_externo,
+            mensagem_id_whatsapp=None,
+            nome_cliente=evento.remetente_nome,
+            tipo="texto",
+            direcao="recebida",
+            processada=False,
+            respondida=False,
+        )
+
+        try:
+            if evento.tipo == TipoMidia.AUDIO and evento.midia_bytes:
+                db_mensagem.tipo = "audio"
+                try:
+                    from audio.transcription_service import TranscriptionService
+
+                    resultado = await TranscriptionService.transcrever(
+                        db,
+                        evento.midia_bytes,
+                        filename="audio.ogg",
+                        mime_type=evento.midia_mime or "audio/ogg",
+                    )
+                    if resultado.get("sucesso"):
+                        texto = sanitize_user_input(resultado.get("texto", ""))
+                        db_mensagem.conteudo_texto = f"[Áudio transcrito]: {texto}"
+                        fluxi_log.info(
+                            "mensagem", "audio",
+                            "Transcricao concluida (TG)",
+                            extra={"preview": texto[:100]}, session_id=sessao_id,
+                        )
+                    else:
+                        db_mensagem.conteudo_texto = "[Áudio não transcrito]"
+                except Exception:
+                    fluxi_log.error(
+                        "mensagem", "audio", "Erro ao transcrever audio TG",
+                        exc_info=True, session_id=sessao_id,
+                    )
+                    db_mensagem.conteudo_texto = "[Erro ao processar áudio]"
+
+            elif evento.tipo == TipoMidia.IMAGEM and evento.midia_bytes:
+                db_mensagem.tipo = "imagem"
+                caminho, base64_str = MensagemService.salvar_imagem(
+                    evento.midia_bytes, chat_id, sessao_id, db
+                )
+                if caminho:
+                    db_mensagem.conteudo_imagem_path = caminho
+                    db_mensagem.conteudo_imagem_base64 = base64_str
+                    db_mensagem.conteudo_mime_type = evento.midia_mime or "image/jpeg"
+                if evento.texto:
+                    db_mensagem.conteudo_texto = sanitize_user_input(evento.texto)
+
+            elif evento.tipo == TipoMidia.TEXTO:
+                texto = sanitize_user_input(evento.texto or "")
+                if not texto.strip():
+                    return
+                db_mensagem.conteudo_texto = texto
+            else:
+                # Tipos não tratados (video/documento/sticker): salvar registro mas
+                # não processar com agente.
+                db_mensagem.tipo = evento.tipo.value if hasattr(evento.tipo, "value") else str(evento.tipo)
+                db_mensagem.conteudo_texto = f"[Mídia: {db_mensagem.tipo}]"
+
+            db.add(db_mensagem)
+            db.commit()
+            db.refresh(db_mensagem)
+
+            if not sessao.auto_responder:
+                return
+
+            historico_limite = ConfiguracaoService.obter_valor(
+                db, "agente_historico_mensagens", 10
+            )
+            historico = (
+                db.query(Mensagem)
+                .filter(Mensagem.sessao_id == sessao_id, Mensagem.chat_id == chat_id)
+                .order_by(Mensagem.criado_em.desc())
+                .limit(historico_limite)
+                .all()
+            )
+
+            resposta = await AgenteService.processar_mensagem(
+                db, sessao, db_mensagem, historico, jid_destino=None
+            )
+            db_mensagem.resposta_texto = resposta.get("texto")
+            db_mensagem.resposta_tokens_input = resposta.get("tokens_input")
+            db_mensagem.resposta_tokens_output = resposta.get("tokens_output")
+            db_mensagem.resposta_tempo_ms = resposta.get("tempo_ms")
+            db_mensagem.resposta_modelo = resposta.get("modelo")
+            db_mensagem.ferramentas_usadas = resposta.get("ferramentas")
+            db_mensagem.processada = True
+            db_mensagem.processado_em = datetime.now()
+
+            texto_resposta = resposta.get("texto")
+            if texto_resposta:
+                ok = canal.enviar_texto(chat_id, texto_resposta)
+                if ok:
+                    db_mensagem.respondida = True
+                    db_mensagem.respondido_em = datetime.now()
+                else:
+                    db_mensagem.resposta_erro = "Falha ao enviar resposta TG"
+
+            db.commit()
+        except Exception as e:
+            fluxi_log.error(
+                "mensagem", "telegram", "Erro no pipeline TG",
+                exc_info=True, session_id=sessao_id,
+            )
+            db_mensagem.resposta_erro = str(e)
+            db_mensagem.processada = True
+            db_mensagem.processado_em = datetime.now()
+            try:
+                canal.enviar_texto(
+                    chat_id,
+                    "❌ Não consegui processar sua mensagem agora. Tente novamente.",
+                )
+            except Exception:
+                pass
+            db.commit()
+        finally:
+            with MensagemService._lock_processamento:
+                MensagemService._mensagens_em_processamento.discard(chave_msg)
+
+    @staticmethod
     async def processar_mensagem_recebida(
         db: Session,
         sessao_id: int,
@@ -234,7 +482,7 @@ class MensagemService:
                 telefone_cliente = str(sender_jid).split('@')[0] if '@' in str(sender_jid) else str(sender_jid)
 
         if hasattr(sender_jid, 'Server') and sender_jid.Server == "lid":
-            print(f"⚠️ Sender em formato LID detectado. SenderAlt usado={bool(getattr(message_source, 'SenderAlt', None))}")
+            fluxi_log.warning("mensagem", "roteamento", "Sender em formato LID detectado", extra={"sender_alt_usado": bool(getattr(message_source, 'SenderAlt', None))}, session_id=sessao_id)
         
         # Obter sessão
         sessao = SessaoService.obter_por_id(db, sessao_id)
@@ -247,7 +495,7 @@ class MensagemService:
             chave_msg = f"{sessao_id}_{mensagem_id_whatsapp}"
             with MensagemService._lock_processamento:
                 if chave_msg in MensagemService._mensagens_em_processamento:
-                    print(f"⏭️ Mensagem já em processamento (lock memória): {mensagem_id_whatsapp}")
+                    fluxi_log.info("mensagem", "roteamento", "Mensagem ja em processamento (lock memoria)", extra={"mensagem_id": mensagem_id_whatsapp}, session_id=sessao_id)
                     return
                 MensagemService._mensagens_em_processamento.add(chave_msg)
             
@@ -257,7 +505,7 @@ class MensagemService:
                 Mensagem.mensagem_id_whatsapp == mensagem_id_whatsapp
             ).first()
             if mensagem_existente:
-                print(f"⏭️ Mensagem duplicada ignorada (DB): {mensagem_id_whatsapp}")
+                fluxi_log.info("mensagem", "roteamento", "Mensagem duplicada ignorada (DB)", extra={"mensagem_id": mensagem_id_whatsapp}, session_id=sessao_id)
                 with MensagemService._lock_processamento:
                     MensagemService._mensagens_em_processamento.discard(chave_msg)
                 return
@@ -269,7 +517,7 @@ class MensagemService:
         
         # Se for ignorar e não for texto, retornar
         if tipo_mensagem != "texto" and config_tipo["acao"] == "ignorar":
-            print(f"🚫 Ignorando mensagem do tipo: {tipo_mensagem}")
+            fluxi_log.info("mensagem", "roteamento", "Mensagem ignorada por tipo", extra={"tipo": tipo_mensagem}, session_id=sessao_id)
             return
         
         # Se for resposta fixa, enviar e retornar
@@ -279,7 +527,7 @@ class MensagemService:
             if cliente:
                 jid = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente)
                 cliente.send_message(jid, message=config_tipo["resposta_fixa"])
-                print(f"📤 Resposta fixa enviada para {tipo_mensagem} em {MensagemService._jid_para_log(jid)}")
+                fluxi_log.info("mensagem", "roteamento", "Resposta fixa enviada", extra={"tipo": tipo_mensagem, "jid": MensagemService._jid_para_log(jid)}, session_id=sessao_id)
             return
         
         # Criar registro de mensagem
@@ -295,44 +543,117 @@ class MensagemService:
         
         # Processar conteúdo
         if tipo_mensagem == "texto" and texto_recebido:
+            # Sanitizar texto recebido
+            texto_recebido = sanitize_user_input(texto_recebido)
+
             # Mensagem de texto
             db_mensagem.conteudo_texto = texto_recebido
             db_mensagem.tipo = "texto"
-            print(f"📝 Mensagem de texto: {texto_recebido[:50]}...")
-            
+            fluxi_log.info("mensagem", "roteamento", "Mensagem de texto recebida", extra={"preview": texto_recebido[:50]}, session_id=sessao_id)
+
+            # Verificar gatilho !skill <nome>
+            texto_lower = texto_recebido.strip().lower()
+            if texto_lower.startswith("!skill"):
+                from sessao.sessao_service import gerenciador_sessoes
+                cliente_skill = gerenciador_sessoes.obter_cliente(sessao_id)
+                jid_skill = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente) if cliente_skill else None
+                partes = texto_recebido.strip().split(maxsplit=1)
+                nome_skill = partes[1].strip() if len(partes) > 1 else ""
+                if nome_skill:
+                    from skill.skill_service import SkillService
+                    skill_obj = SkillService.obter_por_nome(db, nome_skill)
+                    if skill_obj and skill_obj.ativa:
+                        if sessao.agente_ativo_id:
+                            skills_agente = SkillService.listar_skills_agente(db, sessao.agente_ativo_id)
+                            nomes_agente = {s.nome for s in skills_agente}
+                            if nome_skill not in nomes_agente:
+                                SkillService.atualizar_skills_agente(
+                                    db, sessao.agente_ativo_id,
+                                    [s.id for s in skills_agente] + [skill_obj.id]
+                                )
+                        resposta_skill = (
+                            f"✅ *Skill ativada:* `{skill_obj.icone or ''} {skill_obj.nome}`\n"
+                            f"_{skill_obj.descricao}_\n\n"
+                            f"Pode enviar sua mensagem normalmente agora."
+                        )
+                        if cliente_skill and jid_skill:
+                            cliente_skill.send_message(jid_skill, message=sanitize_user_input(resposta_skill))
+                    else:
+                        if cliente_skill and jid_skill:
+                            cliente_skill.send_message(jid_skill, message=f"❌ Skill *{nome_skill}* não encontrada.")
+                else:
+                    if sessao.agente_ativo_id and cliente_skill and jid_skill:
+                        from skill.skill_service import SkillService
+                        skills_agente = SkillService.listar_skills_agente(db, sessao.agente_ativo_id)
+                        if skills_agente:
+                            lista_sk = "\n".join(f"  {s.icone or '🔧'} *{s.nome}* — {s.descricao}" for s in skills_agente)
+                            cliente_skill.send_message(
+                                jid_skill,
+                                message=sanitize_user_input(f"🧠 *Skills deste agente:*\n\n{lista_sk}")
+                            )
+                        else:
+                            cliente_skill.send_message(jid_skill, message="⚠️ Este agente não possui skills configuradas.")
+                return
+
             # Verificar comandos personalizáveis
             from sessao.sessao_comando_service import SessaoComandoService
-            comando_encontrado = SessaoComandoService.obter_por_gatilho(db, sessao_id, texto_recebido)
             
+            # ── PROTEÇÃO PARA O CODING AGENT ────────────────────────
+            # Impede que o comando genérico "#" (trocar agente) capture a mensagem "#code"
+            # Se for uma mensagem pro coding agent, ignoramos os comandos personalizáveis.
+            is_coding_message = False
+            try:
+                from coding_agent.coding_service import CodingService
+                from agente.agente_model import Agente as AgenteModel
+                agente_coding = db.query(AgenteModel).filter(
+                    AgenteModel.sessao_id == sessao_id,
+                    AgenteModel.is_coding_agent == True
+                ).first()
+                if agente_coding:
+                    coding_session = CodingService.obter_sessao_por_agente(db, agente_coding.id)
+                    if coding_session:
+                        prefixo_coding = (coding_session.routing_prefix or "#code").lower()
+                        if texto_lower.startswith(prefixo_coding):
+                            is_coding_message = True
+            except Exception as e:
+                fluxi_log.warning("mensagem", "coding", "Erro na protecao do Coding Agent", exc_info=True, session_id=sessao_id)
+            
+            if not is_coding_message:
+                comando_encontrado = SessaoComandoService.obter_por_gatilho(db, sessao_id, texto_recebido)
+            else:
+                comando_encontrado = None
+
             if comando_encontrado:
                 from sessao.sessao_service import gerenciador_sessoes
                 cliente = gerenciador_sessoes.obter_cliente(sessao_id)
                 jid = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente) if cliente else None
-                
+
                 # Processar comando baseado no tipo
                 if comando_encontrado.comando_id == "ativar":
-                    print(f"🤖 Comando {comando_encontrado.gatilho} - Ativando IA")
+                    fluxi_log.info("mensagem", "comando", "Comando ativar IA", extra={"gatilho": comando_encontrado.gatilho}, session_id=sessao_id)
                     sessao.auto_responder = True
                     db.commit()
-                    
+
                     if cliente and jid:
                         resposta = comando_encontrado.resposta or "🤖 *IA Ativada!*"
+                        resposta = sanitize_user_input(resposta)
                         cliente.send_message(jid, message=resposta)
                     return
-                
+
                 elif comando_encontrado.comando_id == "desativar":
-                    print(f"😴 Comando {comando_encontrado.gatilho} - Desativando IA")
+                    fluxi_log.info("mensagem", "comando", "Comando desativar IA", extra={"gatilho": comando_encontrado.gatilho}, session_id=sessao_id)
                     sessao.auto_responder = False
                     db.commit()
-                    
+
                     if cliente and jid:
                         resposta = comando_encontrado.resposta or "😴 *IA Desativada!*"
+                        resposta = sanitize_user_input(resposta)
                         cliente.send_message(jid, message=resposta)
                     return
-                
+
                 elif comando_encontrado.comando_id == "limpar":
-                    print(f"🧹 Comando {comando_encontrado.gatilho} recebido de {telefone_cliente}")
-                    
+                    fluxi_log.info("mensagem", "comando", "Comando limpar historico", extra={"gatilho": comando_encontrado.gatilho, "telefone": telefone_cliente}, session_id=sessao_id)
+
                     # Deletar histórico
                     mensagens_deletadas = db.query(Mensagem)\
                         .filter(
@@ -341,51 +662,54 @@ class MensagemService:
                         )\
                         .delete()
                     db.commit()
-                    print(f"✅ {mensagens_deletadas} mensagem(ns) deletada(s)")
-                    
+                    fluxi_log.info("mensagem", "comando", "Historico limpo", extra={"mensagens_deletadas": mensagens_deletadas}, session_id=sessao_id)
+
                     if cliente and jid:
                         resposta = comando_encontrado.resposta or "🧹 *Histórico limpo!*\n\nSeu histórico de conversas foi apagado."
+                        resposta = sanitize_user_input(resposta)
                         cliente.send_message(jid, message=resposta)
                     return
-                
+
                 elif comando_encontrado.comando_id == "ajuda":
-                    print(f"ℹ️  Comando {comando_encontrado.gatilho} recebido de {telefone_cliente}")
+                    fluxi_log.info("mensagem", "comando", "Comando ajuda", extra={"gatilho": comando_encontrado.gatilho, "telefone": telefone_cliente}, session_id=sessao_id)
                     if cliente and jid:
                         ajuda_texto = SessaoComandoService.gerar_texto_ajuda(db, sessao_id)
+                        ajuda_texto = sanitize_user_input(ajuda_texto)
                         cliente.send_message(jid, message=ajuda_texto)
                     return
-                
+
                 elif comando_encontrado.comando_id == "status":
-                    print(f"📊 Comando {comando_encontrado.gatilho} recebido de {telefone_cliente}")
+                    fluxi_log.info("mensagem", "comando", "Comando status", extra={"gatilho": comando_encontrado.gatilho, "telefone": telefone_cliente}, session_id=sessao_id)
                     if cliente and jid:
                         from agente.agente_service import AgenteService
                         total_msgs = db.query(Mensagem).filter(
                             Mensagem.sessao_id == sessao_id,
                             Mensagem.telefone_cliente == telefone_cliente
                         ).count()
-                        
+
                         agente_nome = "Nenhum"
                         if sessao.agente_ativo_id:
                             agente_ativo = AgenteService.obter_por_id(db, sessao.agente_ativo_id)
                             if agente_ativo:
                                 agente_nome = f"#{agente_ativo.codigo} - {agente_ativo.nome}"
-                        
+
                         ia_status = "🟢 Ativada" if sessao.auto_responder else "🔴 Desativada"
                         status_texto = f"📊 *Status da Sessão:*\n\n🤖 IA: {ia_status}\n💬 Mensagens: {total_msgs}\n👤 Agente: {agente_nome}"
+                        status_texto = sanitize_user_input(status_texto)
                         cliente.send_message(jid, message=status_texto)
                     return
-                
+
                 elif comando_encontrado.comando_id == "listar":
-                    print(f"📋 Comando {comando_encontrado.gatilho} recebido de {telefone_cliente}")
+                    fluxi_log.info("mensagem", "comando", "Comando listar agentes", extra={"gatilho": comando_encontrado.gatilho, "telefone": telefone_cliente}, session_id=sessao_id)
                     if cliente and jid:
                         from agente.agente_service import AgenteService
                         agentes = AgenteService.listar_por_sessao_ativos(db, sessao_id)
-                        
+
                         if agentes:
                             comandos = SessaoComandoService.obter_comandos_dict(db, sessao_id)
                             prefixo = comandos.get("trocar_agente", {})
                             prefixo = prefixo.gatilho if hasattr(prefixo, 'gatilho') else "#"
-                            
+
                             lista_texto = "🤖 *Agentes Disponíveis:*\n\n"
                             for agente in agentes:
                                 marcador = "✅" if sessao.agente_ativo_id == agente.id else "⚪"
@@ -395,24 +719,25 @@ class MensagemService:
                             lista_texto += f"\n💡 Digite *{prefixo}XX* para ativar um agente"
                         else:
                             lista_texto = "⚠️ *Nenhum agente disponível*"
-                        
+
+                        lista_texto = sanitize_user_input(lista_texto)
                         cliente.send_message(jid, message=lista_texto)
                     return
-                
+
                 elif comando_encontrado.comando_id == "trocar_agente":
                     codigo_agente = SessaoComandoService.extrair_codigo_agente(
                         texto_recebido,
                         comando_encontrado.gatilho
                     )
-                    print(f"🔄 Comando de troca de agente: {codigo_agente}")
-                    
+                    fluxi_log.info("mensagem", "comando", "Comando troca de agente", extra={"codigo_agente": codigo_agente}, session_id=sessao_id)
+
                     from agente.agente_service import AgenteService
                     agente = AgenteService.obter_por_codigo(db, sessao_id, codigo_agente)
-                    
+
                     if agente and agente.ativo:
                         sessao.agente_ativo_id = agente.id
                         db.commit()
-                        
+
                         if cliente and jid:
                             if comando_encontrado.resposta:
                                 confirmacao = SessaoComandoService.formatar_resposta(
@@ -427,8 +752,9 @@ class MensagemService:
                                 confirmacao = f"✅ *Agente Ativado!*\n\n🤖 *{agente.nome}*"
                                 if agente.descricao:
                                     confirmacao += f"\n_{agente.descricao}_"
+                            confirmacao = sanitize_user_input(confirmacao)
                             cliente.send_message(jid, message=confirmacao)
-                        print(f"✅ Agente {agente.codigo} ativado")
+                        fluxi_log.info("mensagem", "comando", "Agente ativado", extra={"codigo": agente.codigo, "nome": agente.nome}, session_id=sessao_id)
                     elif cliente and jid:
                         cliente.send_message(jid, message=f"❌ Agente *{codigo_agente}* não encontrado")
                     return
@@ -437,42 +763,62 @@ class MensagemService:
         elif tipo_mensagem == "audio":
             # Mensagem com áudio
             db_mensagem.tipo = "audio"
-            print(f"🎵 Mensagem com áudio")
-            
+            fluxi_log.info("mensagem", "audio", "Mensagem com audio recebida", session_id=sessao_id)
+
             # Baixar e transcrever áudio
             try:
                 from sessao.sessao_service import gerenciador_sessoes
                 from audio.transcription_service import TranscriptionService
-                
+                from security import SecurityConfig
+
                 cliente = gerenciador_sessoes.obter_cliente(sessao_id)
-                
+
                 if cliente:
                     # Download do áudio
                     audio_bytes = cliente.download_any(message)
-                    
+
                     if audio_bytes:
                         # Obter mime type (pode vir como "audio/ogg; codecs=opus")
                         mime_type = "audio/ogg"
                         if hasattr(message.audioMessage, 'mimetype'):
                             mime_type = message.audioMessage.mimetype
-                        
+
+                        # Validar tipo de áudio
+                        from security import SecurityValidator
+                        if not SecurityValidator.validate_mime_type(mime_type, SecurityConfig.ALLOWED_AUDIO_TYPES):
+                            fluxi_log.warning("mensagem", "audio", "Tipo de audio nao permitido", extra={"mime_type": mime_type}, session_id=sessao_id)
+                            db_mensagem.conteudo_texto = "[Tipo de áudio não suportado]"
+                            db.add(db_mensagem)
+                            db.commit()
+                            return
+
+                        # Validar tamanho de arquivo
+                        try:
+                            SecurityValidator.validate_file_size(audio_bytes)
+                        except ValueError as e:
+                            fluxi_log.warning("mensagem", "audio", "Arquivo de audio muito grande", exc_info=True, session_id=sessao_id)
+                            db_mensagem.conteudo_texto = f"[Erro: {str(e)}]"
+                            db.add(db_mensagem)
+                            db.commit()
+                            return
+
                         # Extrair extensão limpa (remover parâmetros como "; codecs=opus")
                         mime_base = mime_type.split(";")[0].strip()  # "audio/ogg; codecs=opus" -> "audio/ogg"
                         ext = mime_base.split("/")[-1] if "/" in mime_base else "ogg"
-                        
+
                         # Salvar áudio localmente
                         upload_base = ConfiguracaoService.obter_valor(db, "sistema_diretorio_uploads", "./uploads")
                         audio_dir = Path(upload_base) / f"sessao_{sessao_id}" / telefone_cliente
                         audio_dir.mkdir(parents=True, exist_ok=True)
-                        
+
                         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                         audio_path = audio_dir / f"audio_{timestamp}.{ext}"
-                        
+
                         with open(audio_path, "wb") as f:
                             f.write(audio_bytes)
-                        
-                        print(f"💾 Áudio salvo: {audio_path}")
-                        
+
+                        fluxi_log.info("mensagem", "audio", "Audio salvo", extra={"path": str(audio_path)}, session_id=sessao_id)
+
                         # Transcrever áudio
                         resultado_transcricao = await TranscriptionService.transcrever(
                             db,
@@ -480,17 +826,19 @@ class MensagemService:
                             filename=f"audio.{ext}",
                             mime_type=mime_type
                         )
-                        
+
                         if resultado_transcricao["sucesso"]:
                             texto_transcrito = resultado_transcricao["texto"]
+                            # Sanitizar texto transcrito
+                            texto_transcrito = sanitize_user_input(texto_transcrito)
                             db_mensagem.conteudo_texto = f"[Áudio transcrito]: {texto_transcrito}"
-                            print(f"📝 Transcrição: {texto_transcrito[:100]}...")
-                            
+                            fluxi_log.info("mensagem", "audio", "Transcricao concluida", extra={"preview": texto_transcrito[:100]}, session_id=sessao_id)
+
                             # Verificar se deve apenas responder com transcrição
                             if config_tipo["acao"] == "transcricao_apenas":
                                 jid = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente)
                                 cliente.send_message(jid, message=f"📝 *Transcrição do áudio:*\n\n{texto_transcrito}")
-                                print(f"📤 Transcrição enviada ao usuário em {MensagemService._jid_para_log(jid)}")
+                                fluxi_log.info("mensagem", "audio", "Transcricao enviada ao usuario", extra={"jid": MensagemService._jid_para_log(jid)}, session_id=sessao_id)
                                 # Salvar mensagem sem processar com IA
                                 db_mensagem.conteudo_imagem_path = str(audio_path)
                                 db_mensagem.conteudo_mime_type = mime_type
@@ -500,23 +848,21 @@ class MensagemService:
                         else:
                             # Transcrição falhou
                             db_mensagem.conteudo_texto = "[Áudio não transcrito]"
-                            print(f"⚠️ Erro na transcrição: {resultado_transcricao.get('erro')}")
-                        
+                            fluxi_log.warning("mensagem", "audio", "Erro na transcricao", extra={"erro": resultado_transcricao.get('erro')}, session_id=sessao_id)
+
                         # Guardar path do áudio
                         db_mensagem.conteudo_imagem_path = str(audio_path)
                         db_mensagem.conteudo_mime_type = mime_type
-                        
+
             except Exception as e:
-                print(f"Erro ao processar áudio: {e}")
-                import traceback
-                traceback.print_exc()
+                fluxi_log.error("mensagem", "audio", "Erro ao processar audio", exc_info=True, session_id=sessao_id)
                 db_mensagem.conteudo_texto = "[Erro ao processar áudio]"
         
         elif tipo_mensagem == "imagem":
             # Mensagem com imagem
             db_mensagem.tipo = "imagem"
             db_mensagem.conteudo_texto = message.imageMessage.caption if hasattr(message.imageMessage, 'caption') and message.imageMessage.caption else ""
-            print(f"🖼️  Mensagem com imagem")
+            fluxi_log.info("mensagem", "imagem", "Mensagem com imagem recebida", session_id=sessao_id)
             
             # Baixar imagem
             try:
@@ -541,11 +887,11 @@ class MensagemService:
                             db_mensagem.conteudo_imagem_base64 = base64_str
                             db_mensagem.conteudo_mime_type = message.imageMessage.mimetype if hasattr(message.imageMessage, 'mimetype') else "image/jpeg"
             except Exception as e:
-                print(f"Erro ao baixar imagem: {e}")
+                fluxi_log.error("mensagem", "imagem", "Erro ao baixar imagem", exc_info=True, session_id=sessao_id)
 
         elif tipo_mensagem == "texto":
             # Evita fallback para "..." quando evento chega sem texto útil
-            print("⏭️ Mensagem de texto vazia/sem conteúdo útil ignorada")
+            fluxi_log.info("mensagem", "roteamento", "Mensagem de texto vazia/sem conteudo util ignorada", session_id=sessao_id)
             return
         
         # Salvar mensagem
@@ -556,6 +902,150 @@ class MensagemService:
         # Se auto-responder está ativo, processar com agente
         if sessao.auto_responder:
             try:
+                # ── Roteamento para o Coding Agent ──────────────────────────
+                # Se o texto começa com o prefixo do coding agent (ex: "#code"),
+                # rotear para o CodingService em vez do AgenteService normal.
+                texto_para_roteamento = (db_mensagem.conteudo_texto or "").strip()
+                coding_roteado = False
+
+                try:
+                    from coding_agent.coding_service import CodingService
+                    from agente.agente_model import Agente as AgenteModel
+
+                    # Busca agente de coding desta sessão
+                    agente_coding = db.query(AgenteModel).filter(
+                        AgenteModel.sessao_id == sessao_id,
+                        AgenteModel.is_coding_agent == True,
+                        AgenteModel.ativo == True,
+                    ).first()
+
+                    if agente_coding:
+                        coding_session = CodingService.obter_sessao_por_agente(db, agente_coding.id)
+
+                        if coding_session:
+                            prefixo = (coding_session.routing_prefix or "#code").lower()
+
+                            # Verifica se deve rotear: APENAS se tiver prefixo
+                            tem_prefixo = texto_para_roteamento.lower().startswith(prefixo)
+                            tarefa_ativa = CodingService.obter_tarefa_ativa(
+                                db, coding_session.id, telefone_cliente
+                            )
+
+                            if tem_prefixo:
+                                coding_roteado = True
+                                # Remove o prefixo do texto se presente
+                                mensagem_coding = texto_para_roteamento
+                                if tem_prefixo:
+                                    mensagem_coding = texto_para_roteamento[len(prefixo):].strip()
+
+                                jid_destino = MensagemService._resolver_jid_destino(
+                                    info, message_source, telefone_cliente
+                                )
+
+                                # Notifica o usuário que o coding agent está trabalhando
+                                from sessao.sessao_service import gerenciador_sessoes
+                                cliente_notif = gerenciador_sessoes.obter_cliente(sessao_id)
+                                if cliente_notif and not tarefa_ativa:
+                                    try:
+                                        cliente_notif.send_message(
+                                            jid_destino,
+                                            message="⚙️ *Coding Agent* iniciando tarefa..."
+                                        )
+                                    except Exception:
+                                        pass
+
+                                # Prepara dados para o background task
+                                coding_sess_id = coding_session.id
+                                tid_ativo = tarefa_ativa.id if tarefa_ativa else None
+                                img_b64 = db_mensagem.conteudo_imagem_base64
+                                msg_id = db_mensagem.id
+
+                                # Despacha o coding agent para o event loop PRINCIPAL
+                                # do FastAPI usando run_coroutine_threadsafe.
+                                # O neonize roda cada mensagem numa thread com event loop
+                                # isolado que é fechado logo após — rodar aqui causa:
+                                # 1) create_task: task destruída quando loop fecha
+                                # 2) await direto: funciona mas fica preso na thread
+                                #    do neonize, causando lentidão (75s+ em tools simples)
+                                # run_coroutine_threadsafe despacha pro loop do uvicorn
+                                # que é persistente e performante.
+
+                                # Serializa o jid_destino para passar ao coding service
+                                # O jid_destino é um objeto neonize com .User e .Server
+                                _jid_dest_user = str(jid_destino.User) if hasattr(jid_destino, 'User') else None
+                                _jid_dest_server = str(jid_destino.Server) if hasattr(jid_destino, 'Server') else None
+
+                                async def _processar_coding_bg():
+                                    from database import SessionLocal as _CodingSessionLocal
+                                    from coding_agent.coding_service import CodingService as _CS
+                                    from mensagem.mensagem_model import Mensagem as MensagemModel
+                                    bg_db = _CodingSessionLocal()
+                                    try:
+                                        resultado_coding = await _CS.processar_mensagem(
+                                            db=bg_db,
+                                            coding_session_id=coding_sess_id,
+                                            mensagem=mensagem_coding,
+                                            telefone_cliente=telefone_cliente,
+                                            task_id=tid_ativo,
+                                            imagem_base64=img_b64,
+                                            jid_destino_user=_jid_dest_user,
+                                            jid_destino_server=_jid_dest_server,
+                                        )
+
+                                        # Envia resposta final ao usuário via WhatsApp
+                                        resposta_coding = resultado_coding.get("resposta", "")
+                                        if resposta_coding and cliente_notif:
+                                            try:
+                                                cliente_notif.send_message(
+                                                    jid_destino,
+                                                    message=markdown_para_whatsapp(resposta_coding),
+                                                )
+                                            except Exception as e_send:
+                                                fluxi_log.warning("mensagem", "coding", "Erro ao enviar resposta do coding agent", exc_info=True, session_id=sessao_id)
+
+                                        # Atualiza registro de mensagem original
+                                        m_original = bg_db.query(MensagemModel).filter(MensagemModel.id == msg_id).first()
+                                        if m_original:
+                                            m_original.resposta_texto = resposta_coding
+                                            m_original.processada = True
+                                            m_original.processado_em = datetime.now()
+                                            m_original.respondida = bool(resposta_coding)
+                                            bg_db.commit()
+
+                                        fluxi_log.info("mensagem", "coding", "Tarefa coding concluida", extra={
+                                            "task_id": resultado_coding.get('task_id'),
+                                            "status": resultado_coding.get('status'),
+                                            "iteracoes": resultado_coding.get('iteracoes', 0),
+                                        }, session_id=sessao_id)
+                                    except Exception as e_bg:
+                                        fluxi_log.error("mensagem", "coding", "Erro no background task do coding agent", exc_info=True, session_id=sessao_id)
+                                    finally:
+                                        bg_db.close()
+
+                                # Despacha para o event loop do FastAPI/uvicorn
+                                _fl = MensagemService._fastapi_loop
+                                if _fl and _fl.is_running():
+                                    future = asyncio.run_coroutine_threadsafe(
+                                        _processar_coding_bg(), _fl
+                                    )
+                                    fluxi_log.info("mensagem", "coding", "Tarefa coding despachada para loop FastAPI", extra={"telefone": telefone_cliente}, session_id=sessao_id)
+                                else:
+                                    # Fallback: await direto na thread do neonize
+                                    fluxi_log.warning("mensagem", "coding", "Loop FastAPI indisponivel, usando await direto", session_id=sessao_id)
+                                    await _processar_coding_bg()
+                except Exception as e_coding:
+                    fluxi_log.error("mensagem", "coding", "Erro no roteamento para coding agent", exc_info=True, session_id=sessao_id)
+                    coding_roteado = False
+
+                # Se foi roteado para o coding agent, não processa com o agente normal
+                if coding_roteado:
+                    with MensagemService._lock_processamento:
+                        MensagemService._mensagens_em_processamento.discard(
+                            f"{sessao_id}_{mensagem_id_whatsapp}"
+                        )
+                    return
+                # ── Fim do roteamento coding ─────────────────────────────────
+
                 # Obter histórico de mensagens do cliente (limite configurável)
                 limite_historico = ConfiguracaoService.obter_valor(db, "agente_historico_mensagens", 10)
                 historico = MensagemService.listar_por_cliente(
@@ -564,10 +1054,10 @@ class MensagemService:
                     telefone_cliente,
                     limite=limite_historico
                 )
-                
+
                 # Resolver JID de destino uma vez (preserva formato LID)
                 jid_destino = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente)
-                
+
                 # Processar com agente
                 resposta = await AgenteService.processar_mensagem(
                     db,
@@ -596,19 +1086,20 @@ class MensagemService:
                         jid = MensagemService._resolver_jid_destino(info, message_source, telefone_cliente)
                         # Parâmetro correto: message (str ou Message object)
                         try:
-                            cliente.send_message(jid, message=resposta["texto"])
-                            print(f"📤 Resposta enviada para {telefone_cliente} via {MensagemService._jid_para_log(jid)}")
+                            texto_wa = markdown_para_whatsapp(resposta["texto"])
+                            cliente.send_message(jid, message=texto_wa)
+                            fluxi_log.info("mensagem", "processamento", "Resposta enviada", extra={"telefone": telefone_cliente, "jid": MensagemService._jid_para_log(jid)}, session_id=sessao_id)
                             db_mensagem.respondida = True
                             db_mensagem.respondido_em = datetime.now()
                         except Exception as send_error:
                             erro_envio = f"Erro ao enviar resposta WhatsApp: {str(send_error)}"
-                            print(f"❌ {erro_envio}")
+                            fluxi_log.error("mensagem", "processamento", "Erro ao enviar resposta WhatsApp", extra={"erro": erro_envio}, session_id=sessao_id)
                             db_mensagem.resposta_erro = erro_envio
                 
                 db.commit()
                 
             except Exception as e:
-                print(f"Erro ao processar mensagem com agente: {e}")
+                fluxi_log.error("mensagem", "processamento", "Erro ao processar mensagem com agente", exc_info=True, session_id=sessao_id)
                 
                 # Salvar erro no banco
                 db_mensagem.resposta_erro = str(e)
@@ -642,12 +1133,12 @@ class MensagemService:
                             erro_msg += "Por favor, tente novamente ou contate o suporte."
                         
                         cliente.send_message(jid, message=erro_msg)
-                        print(f"📤 Mensagem de erro enviada ao usuário")
+                        fluxi_log.info("mensagem", "processamento", "Mensagem de erro enviada ao usuario", session_id=sessao_id)
                         
                         db_mensagem.respondida = True
                         db_mensagem.respondido_em = datetime.now()
                 except Exception as send_error:
-                    print(f"❌ Erro ao enviar mensagem de erro: {send_error}")
+                    fluxi_log.error("mensagem", "processamento", "Erro ao enviar mensagem de erro", exc_info=True, session_id=sessao_id)
                 
                 db.commit()
         

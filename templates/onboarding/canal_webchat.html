@@ -1,0 +1,44 @@
+{% extends "onboarding/base.html" %}
+
+{% block ob_content %}
+<div class="ob-card">
+    <h2><i class="fas fa-comments" style="color:#6366f1;"></i> Criar Webchat</h2>
+    <p class="ob-card-lead">
+        O webchat fica disponivel em uma URL publica deste servidor. Sem QR, sem token —
+        e otimo pra testar rapido ou embutir no seu site.
+    </p>
+
+    <form method="post" action="/onboarding/canal/criar">
+        <input type="hidden" name="canal" value="webchat">
+
+        <div class="ob-field">
+            <label>Nome da conexao</label>
+            <input class="ob-input" type="text" name="nome" required
+                   value="{{ form_nome or 'Webchat do site' }}" autofocus>
+            <div class="hint">Aparece como titulo da pagina do chat publico.</div>
+        </div>
+
+        <div class="ob-alert ob-alert-info">
+            <i class="fas fa-link"></i>
+            <div>
+                <strong>Como funciona:</strong> apos criar, voce ganha uma URL tipo
+                <code>/chat/{id}</code> que ja exibe a interface de conversa. Cada visitante
+                tem seu proprio historico (identificado por UUID no navegador).
+            </div>
+        </div>
+
+        <div class="ob-actions">
+            <div class="ob-actions-left">
+                <a href="/onboarding/canal" class="ob-btn ob-btn-ghost">
+                    <i class="fas fa-arrow-left"></i> Trocar canal
+                </a>
+            </div>
+            <div class="ob-actions-right">
+                <button type="submit" class="ob-btn ob-btn-primary">
+                    Criar webchat <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

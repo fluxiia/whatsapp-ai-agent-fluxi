@@ -1,176 +1,204 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Chunks - {{ rag.nome }} - Fluxi.IA{% endblock %}
+{% block title %}Chunks DB - {{ rag.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-        <a href="/rags/{{ rag.id }}/documentos" style="width: 48px; height: 48px; border-radius: 10px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #6b7280;">
-            <i class="fas fa-arrow-left"></i>
-        </a>
-        <div style="flex: 1; min-width: 0;">
-            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
-                <i class="fas fa-puzzle-piece" style="color: #10b981;"></i> Chunks da Base de Conhecimento
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Menor e Contido -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-search-dollar text-primary mb-xs"></i> Inspeção de Vetores / Chunks
             </h1>
-            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-                RAG: <strong>{{ rag.nome }}</strong> • {{ chunks|length }} chunks encontrados
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/rags" style="color: var(--color-text-secondary); text-decoration: none;">Knowledge Bases</a> / 
+                <span style="color: var(--color-text-primary);">{{ rag.nome }} (Inspeção Interna)</span>
             </p>
         </div>
-    </div>
-</div>
-
-<!-- Estatísticas -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem;">
-        <i class="fas fa-chart-bar" style="color: #3b82f6;"></i> Estatísticas
-    </h2>
-    
-    <div class="columns">
-        <div class="column is-3">
-            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
-                <div style="font-size: 2rem; font-weight: bold; color: #10b981;">{{ chunks|length }}</div>
-                <div style="color: #6b7280; font-size: 0.875rem;">Total de Chunks</div>
-            </div>
-        </div>
-        <div class="column is-3">
-            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
-                <div style="font-size: 2rem; font-weight: bold; color: #3b82f6;">{{ (chunks|map(attribute='length')|sum / chunks|length)|round|int if chunks else 0 }}</div>
-                <div style="color: #6b7280; font-size: 0.875rem;">Tamanho Médio</div>
-            </div>
-        </div>
-        <div class="column is-3">
-            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
-                <div style="font-size: 2rem; font-weight: bold; color: #f59e0b;">{{ chunks|map(attribute='length')|max if chunks else 0 }}</div>
-                <div style="color: #6b7280; font-size: 0.875rem;">Maior Chunk</div>
-            </div>
-        </div>
-        <div class="column is-3">
-            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
-                <div style="font-size: 2rem; font-weight: bold; color: #ef4444;">{{ chunks|map(attribute='length')|min if chunks else 0 }}</div>
-                <div style="color: #6b7280; font-size: 0.875rem;">Menor Chunk</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Lista de Chunks -->
-<div class="box">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-        <h2 class="title is-5" style="margin-bottom: 0 !important;">
-            <i class="fas fa-list" style="color: #3b82f6;"></i> Chunks Armazenados
-        </h2>
-        <div style="display: flex; gap: 0.5rem;">
-            <button onclick="buscarChunks()" class="button is-primary is-small">
-                <span class="icon"><i class="fas fa-search"></i></span>
-                <span>Buscar</span>
-            </button>
-            <button onclick="atualizarChunks()" class="button is-light is-small">
-                <span class="icon"><i class="fas fa-sync-alt"></i></span>
-                <span>Atualizar</span>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/rags" class="button is-small is-outline">
+                <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Voltar Configuração
+            </a>
+            <button onclick="buscarChunks()" class="button is-small is-primary">
+                <i class="fas fa-search" style="margin-right: 4px;"></i> Buscar / Filtrar
             </button>
         </div>
     </div>
-    
-    {% if chunks %}
-    <div style="space-y: 1rem;">
-        {% for chunk in chunks %}
-        <div class="chunk-item" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; background: #fafafa;">
-            <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 1rem;">
-                <div style="flex: 1;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                        <span style="background: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
-                            {{ chunk.id }}
-                        </span>
-                        <span style="color: #6b7280; font-size: 0.875rem;">
-                            {{ chunk.length }} caracteres
-                        </span>
-                        <span style="color: #6b7280; font-size: 0.875rem;">
-                            {{ chunk.created_at[:10] if chunk.created_at else 'N/A' }}
-                        </span>
-                    </div>
-                    <div style="color: #1f2937; line-height: 1.6;">
-                        {{ chunk.text[:200] }}{% if chunk.text|length > 200 %}...{% endif %}
-                    </div>
-                </div>
-                <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
-                    <button onclick="verChunkCompleto('{{ chunk.id }}')" class="button is-small is-info">
-                        <span class="icon"><i class="fas fa-eye"></i></span>
-                    </button>
-                    <button onclick="deletarChunk('{{ chunk.id }}')" class="button is-small is-danger">
-                        <span class="icon"><i class="fas fa-trash"></i></span>
-                    </button>
-                </div>
+
+    <!-- Estatísticas GRID -->
+    <div class="grid grid-cols-4 gap-md mb-xl">
+        <div class="box p-0 flex flex-col" style="border: none; box-shadow: var(--shadow-sm); overflow: hidden; background: var(--color-bg-secondary);">
+            <div style="padding: var(--space-md); border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
+                <strong style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase;">Total Fragments</strong>
+                <i class="fas fa-layer-group" style="color: var(--color-primary);"></i>
+            </div>
+            <div style="padding: var(--space-md); font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">
+                {{ chunks|length }}
             </div>
         </div>
-        {% endfor %}
+
+        <div class="box p-0 flex flex-col" style="border: none; box-shadow: var(--shadow-sm); overflow: hidden; background: var(--color-bg-secondary);">
+            <div style="padding: var(--space-md); border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
+                <strong style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase;">Média de Tokens</strong>
+                <i class="fas fa-calculator" style="color: var(--color-info);"></i>
+            </div>
+            <div style="padding: var(--space-md); font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">
+                {{ (chunks|map(attribute='length')|sum / chunks|length)|round|int if chunks else 0 }} c.
+            </div>
+        </div>
+
+        <div class="box p-0 flex flex-col" style="border: none; box-shadow: var(--shadow-sm); overflow: hidden; background: var(--color-bg-secondary);">
+            <div style="padding: var(--space-md); border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
+                <strong style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase;">Maior Bloco</strong>
+                <i class="fas fa-arrow-up" style="color: var(--color-success);"></i>
+            </div>
+            <div style="padding: var(--space-md); font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">
+                {{ chunks|map(attribute='length')|max if chunks else 0 }} c.
+            </div>
+        </div>
+
+        <div class="box p-0 flex flex-col" style="border: none; box-shadow: var(--shadow-sm); overflow: hidden; background: var(--color-bg-secondary);">
+            <div style="padding: var(--space-md); border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between;">
+                <strong style="font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase;">Menor Bloco</strong>
+                <i class="fas fa-arrow-down" style="color: var(--color-warning);"></i>
+            </div>
+            <div style="padding: var(--space-md); font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary);">
+                {{ chunks|map(attribute='length')|min if chunks else 0 }} c.
+            </div>
+        </div>
     </div>
-    {% else %}
-    <div style="text-align: center; padding: 3rem; color: #9ca3af;">
-        <i class="fas fa-puzzle-piece" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-        <p>Nenhum chunk encontrado</p>
-        <p style="font-size: 0.875rem; margin-top: 0.5rem;">Adicione documentos para gerar chunks</p>
+
+    <!-- Lista de Chunks -->
+    <div class="card" style="border-radius: var(--radius-lg); overflow: hidden;">
+        <div class="card-header flex items-center justify-between" style="padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+            <h2 class="card-header-title" style="font-size: 1rem;">
+                <i class="fas fa-list" style="margin-right: 6px; color: var(--color-text-secondary);"></i> Payload Vetorial
+            </h2>
+            <button onclick="atualizarChunks()" class="button is-outline is-small" style="padding: 4px 8px; font-size: 0.75rem;">
+                <i class="fas fa-sync-alt" style="margin-right: 4px;"></i> Refresh DB
+            </button>
+        </div>
+        
+        <div class="card-content" style="padding: 0;">
+            {% if chunks %}
+            <table class="table" style="font-size: 0.8125rem; width: 100%; text-align: left; table-layout: fixed;">
+                <thead style="background: var(--color-bg-secondary);">
+                    <tr>
+                        <th style="width: 15%; padding: var(--space-sm) var(--space-lg); font-weight: 600; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border);">ID Matriz</th>
+                        <th style="width: 70%; padding: var(--space-sm) var(--space-lg); font-weight: 600; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border);">Trecho Vetorizado Base</th>
+                        <th style="width: 15%; text-align: right; padding: var(--space-sm) var(--space-lg); font-weight: 600; color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border);">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chunk in chunks %}
+                    <tr style="border-bottom: 1px solid var(--color-border);">
+                        <td style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                            <div style="font-family: monospace; font-weight: 600; color: var(--color-primary); background: var(--color-primary-light); display: inline-block; padding: 2px 6px; border-radius: 4px;">
+                                {{ chunk.id }}
+                            </div>
+                            <div style="color: var(--color-text-muted); font-size: 0.75rem; margin-top: 8px;">
+                                <i class="fas fa-balance-scale"></i> {{ chunk.length }} chars
+                            </div>
+                            <div style="color: var(--color-text-muted); font-size: 0.75rem; margin-top: 4px;">
+                                <i class="fas fa-calendar"></i> {{ chunk.created_at[:10] if chunk.created_at else 'N/A' }}
+                            </div>
+                        </td>
+                        
+                        <td style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                            <div style="color: var(--color-text-secondary); line-height: 1.6; word-wrap: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace; background: var(--color-surface); padding: var(--space-sm); border: 1px solid var(--color-border); border-radius: 4px;">
+                                {{ chunk.text[:220] }}{% if chunk.text|length > 220 %}... <strong style="color: var(--color-primary); cursor: pointer;" onclick="verChunkCompleto('{{ chunk.id }}')">[Ler Mais]</strong>{% endif %}
+                            </div>
+                        </td>
+                        
+                        <td class="text-right" style="padding: var(--space-md) var(--space-lg); vertical-align: top;">
+                            <div class="flex items-center justify-end gap-xs">
+                                <button onclick="verChunkCompleto('{{ chunk.id }}')" class="button is-outline is-small" style="padding: var(--space-xs); border: 1px solid var(--color-border);" title="Ver Raw Completo">
+                                    <i class="fas fa-eye" style="color: var(--color-text-secondary);"></i>
+                                </button>
+                                <button onclick="deletarChunk('{{ chunk.id }}')" class="button is-outline is-small" style="padding: var(--space-xs); border: 1px solid var(--color-error);" title="Eliminar Vetor">
+                                    <i class="fas fa-trash-alt" style="color: var(--color-error);"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="padding: var(--space-2xl) var(--space-lg); text-align: center; background: var(--color-surface);">
+                <i class="fas fa-database fa-3x" style="color: var(--color-text-muted); margin-bottom: var(--space-md);"></i>
+                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Datastore Livre</h3>
+                <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Adicione documentos à Injeção Manual para gerar matrizes e embeddings.</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
-    {% endif %}
 </div>
 
 <!-- Modal para visualizar chunk completo -->
-<div id="chunk-modal" class="modal">
-    <div class="modal-background" onclick="fecharModal()"></div>
-    <div class="modal-card" style="width: 90%; max-width: 800px;">
-        <header class="modal-card-head">
-            <p class="modal-card-title">Chunk Completo</p>
-            <button class="delete" onclick="fecharModal()"></button>
-        </header>
-        <section class="modal-card-body">
-            <div id="chunk-content" style="white-space: pre-wrap; line-height: 1.6; color: #1f2937;"></div>
-        </section>
-        <footer class="modal-card-foot">
-            <button class="button is-primary" onclick="fecharModal()">Fechar</button>
-        </footer>
+<div id="chunk-modal" style="display: none; position: fixed; inset: 0; z-index: 1000; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px);">
+    <div style="background: var(--color-bg-primary); width: 90%; max-width: 800px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); display: flex; flex-col; max-height: 90vh;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-md) var(--space-xl); border-bottom: 1px solid var(--color-border);">
+            <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary);">Document RAW Embeddings</h3>
+            <button onclick="fecharModal()" style="background: transparent; border: none; cursor: pointer; color: var(--color-text-secondary);">
+                <i class="fas fa-times" style="font-size: 1.25rem;"></i>
+            </button>
+        </div>
+        
+        <div style="padding: var(--space-xl); overflow-y: auto; flex: 1;">
+            <div id="chunk-content" style="white-space: pre-wrap; line-height: 1.6; color: var(--color-text-secondary); font-family: monospace; font-size: 0.875rem; background: var(--color-surface); padding: 1rem; border-radius: 6px; border: 1px solid var(--color-border);">
+                <!-- Conteudo via fetch -->
+            </div>
+        </div>
+        
+        <div style="padding: var(--space-md) var(--space-xl); border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end;">
+            <button class="button is-primary" onclick="fecharModal()">Confirmar e Fechar</button>
+        </div>
     </div>
 </div>
 
 <script>
 function verChunkCompleto(chunkId) {
-    // Buscar chunk completo via API
     fetch(`/api/rags/{{ rag.id }}/chunks/${chunkId}`)
         .then(response => response.json())
         .then(data => {
             document.getElementById('chunk-content').textContent = data.text;
-            document.getElementById('chunk-modal').classList.add('is-active');
+            document.getElementById('chunk-modal').style.display = 'flex';
         })
         .catch(error => {
-            alert('Erro ao carregar chunk: ' + error.message);
+            alert('Falha na extração RAW local: ' + error.message);
         });
 }
 
 function deletarChunk(chunkId) {
-    if (confirm('Tem certeza que deseja deletar este chunk?')) {
+    if (confirm('Deletar desvinculará este trecho do vetor RAG. Confirmar remoção?')) {
         fetch(`/api/rags/{{ rag.id }}/chunks/${chunkId}`, {
             method: 'DELETE'
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Chunk deletado com sucesso!');
+                alert('Vetor Dropado com Sucesso.');
                 location.reload();
             } else {
-                alert('Erro ao deletar chunk: ' + data.error);
+                alert('DB Action Failed: ' + data.error);
             }
         })
         .catch(error => {
-            alert('Erro ao deletar chunk: ' + error.message);
+            alert('DB Connection error: ' + error.message);
         });
     }
 }
 
 function fecharModal() {
-    document.getElementById('chunk-modal').classList.remove('is-active');
+    document.getElementById('chunk-modal').style.display = 'none';
 }
 
 function buscarChunks() {
-    const query = prompt('Digite o termo para buscar nos chunks:');
-    if (query) {
+    const query = prompt('Digite o termo exato ou semântico para encontrar no Storage:');
+    if (query !== null) {
         window.location.href = `/rags/{{ rag.id }}/chunks?busca=${encodeURIComponent(query)}`;
     }
 }
@@ -179,5 +207,4 @@ function atualizarChunks() {
     location.reload();
 }
 </script>
-
 {% endblock %}

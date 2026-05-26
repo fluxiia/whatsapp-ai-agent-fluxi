@@ -1,0 +1,582 @@
+{% extends "base_modern.html" %}
+
+{% block title %}Logs do Sistema - Fluxi.IA{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ── Tabs de módulos ── */
+    .log-tabs {
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        padding: 0 0 var(--space-sm) 0;
+        border-bottom: 1px solid var(--color-border);
+        margin-bottom: var(--space-md);
+        scrollbar-width: thin;
+    }
+    .log-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 8px 8px 0 0;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+        white-space: nowrap;
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+    }
+    .log-tab:hover {
+        color: var(--color-text-primary);
+        background: var(--color-bg-secondary);
+    }
+    .log-tab.active {
+        color: var(--color-primary);
+        border-bottom-color: var(--color-primary);
+        font-weight: 600;
+    }
+    .log-tab .error-badge {
+        background: var(--color-error, #ef4444);
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 10px;
+        min-width: 16px;
+        text-align: center;
+    }
+
+    /* ── Filtros ── */
+    .log-filters {
+        display: flex;
+        gap: var(--space-sm);
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: var(--space-md);
+        padding: var(--space-sm) var(--space-md);
+        background: var(--color-bg-secondary);
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+    }
+    .log-filters select,
+    .log-filters input[type="text"],
+    .log-filters input[type="date"] {
+        padding: 6px 10px;
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        background: var(--color-bg-primary);
+        color: var(--color-text-primary);
+        font-size: 0.8rem;
+        font-family: inherit;
+    }
+    .log-filters select { min-width: 120px; }
+    .log-filters input[type="text"] { min-width: 200px; flex: 1; }
+    .log-filters input[type="date"] { min-width: 130px; }
+
+    .btn-filter {
+        padding: 6px 16px;
+        border: none;
+        border-radius: 6px;
+        background: var(--color-primary);
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.15s;
+    }
+    .btn-filter:hover { opacity: 0.85; }
+    .btn-clear {
+        padding: 6px 12px;
+        color: var(--color-text-secondary);
+        font-size: 0.8rem;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .btn-clear:hover { color: var(--color-text-primary); }
+
+    /* ── Tabela de logs ── */
+    .log-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+    }
+    .log-table th {
+        text-align: left;
+        padding: 10px 12px;
+        font-weight: 600;
+        color: var(--color-text-secondary);
+        border-bottom: 2px solid var(--color-border);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .log-table td {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--color-border);
+        vertical-align: top;
+    }
+    .log-table tr:hover td {
+        background: var(--color-bg-secondary);
+    }
+
+    .log-timestamp {
+        color: var(--color-text-tertiary);
+        white-space: nowrap;
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        font-size: 0.75rem;
+    }
+    .log-module {
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        font-size: 0.75rem;
+        color: var(--color-text-secondary);
+    }
+    .log-message {
+        max-width: 500px;
+        word-break: break-word;
+    }
+
+    /* ── Badges de nível ── */
+    .level-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    .level-DEBUG { background: var(--color-bg-tertiary, #f3f4f6); color: var(--color-text-secondary, #6b7280); }
+    .level-INFO { background: #dbeafe; color: #1d4ed8; }
+    .level-WARNING { background: #fef3c7; color: #92400e; }
+    .level-ERROR { background: #fee2e2; color: #dc2626; }
+    .level-CRITICAL { background: #dc2626; color: white; }
+
+    /* Dark mode overrides */
+    [data-theme="dark"] .level-DEBUG { background: #374151; color: #9ca3af; }
+    [data-theme="dark"] .level-INFO { background: #1e3a5f; color: #60a5fa; }
+    [data-theme="dark"] .level-WARNING { background: #451a03; color: #fbbf24; }
+    [data-theme="dark"] .level-ERROR { background: #450a0a; color: #f87171; }
+    [data-theme="dark"] .level-CRITICAL { background: #dc2626; color: white; }
+
+    /* ── Detalhes expansíveis ── */
+    .log-detail-row { display: none; }
+    .log-detail-row.open { display: table-row; }
+    .log-detail-cell {
+        padding: 12px 16px !important;
+        background: var(--color-bg-secondary);
+    }
+    .log-detail-cell pre {
+        margin: 6px 0;
+        padding: 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    .log-extra-pre {
+        background: var(--color-bg-tertiary, #f9fafb);
+        color: var(--color-text-primary);
+        border: 1px solid var(--color-border);
+    }
+    .log-traceback-pre {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+    [data-theme="dark"] .log-extra-pre { background: #1f2937; }
+    [data-theme="dark"] .log-traceback-pre { background: #450a0a; color: #fca5a5; border-color: #7f1d1d; }
+
+    .btn-expand {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--color-text-tertiary);
+        padding: 4px 8px;
+        border-radius: 4px;
+        transition: all 0.15s;
+        font-size: 0.8rem;
+    }
+    .btn-expand:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+
+    /* ── Paginação ── */
+    .log-pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--space-md);
+        font-size: 0.8rem;
+        color: var(--color-text-secondary);
+    }
+    .log-pagination a {
+        padding: 6px 14px;
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        color: var(--color-text-primary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.15s;
+    }
+    .log-pagination a:hover { background: var(--color-bg-secondary); }
+    .log-pagination a.disabled { opacity: 0.4; pointer-events: none; }
+
+    /* ── Header ── */
+    .log-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-md);
+    }
+    .log-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .log-header h1 i { color: var(--color-primary); }
+
+    .auto-refresh-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: var(--color-text-secondary);
+    }
+    .auto-refresh-toggle label { cursor: pointer; }
+    .toggle-switch {
+        position: relative;
+        width: 36px;
+        height: 20px;
+        background: var(--color-bg-tertiary);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s;
+        border: 1px solid var(--color-border);
+    }
+    .toggle-switch.active { background: var(--color-primary); border-color: var(--color-primary); }
+    .toggle-switch::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: white;
+        transition: transform 0.2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle-switch.active::after { transform: translateX(16px); }
+
+    /* ── Stats resumo ── */
+    .log-stats {
+        display: flex;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-md);
+    }
+    .stat-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: var(--color-bg-secondary);
+        border: 1px solid var(--color-border);
+    }
+    .stat-chip.errors { border-color: #fecaca; color: #dc2626; }
+    .stat-chip.warnings { border-color: #fde68a; color: #92400e; }
+    [data-theme="dark"] .stat-chip.errors { border-color: #7f1d1d; color: #f87171; }
+    [data-theme="dark"] .stat-chip.warnings { border-color: #451a03; color: #fbbf24; }
+
+    /* ── Empty state ── */
+    .log-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--color-text-tertiary);
+    }
+    .log-empty i { font-size: 3rem; margin-bottom: 16px; display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 1400px; margin: 0 auto;">
+
+    <!-- Header -->
+    <div class="log-header">
+        <h1><i class="fas fa-scroll"></i> Logs do Sistema</h1>
+        <div class="auto-refresh-toggle">
+            <label for="autoRefresh">Auto-refresh</label>
+            <div class="toggle-switch" id="autoRefreshToggle" onclick="toggleAutoRefresh()"></div>
+            <span id="refreshStatus" style="font-size: 0.7rem; color: var(--color-text-tertiary);">desligado</span>
+        </div>
+    </div>
+
+    <!-- Stats rápidos -->
+    <div class="log-stats">
+        <div class="stat-chip">
+            <i class="fas fa-list"></i>
+            {{ total }} registros
+        </div>
+        {% if stats.errors_last_hour > 0 %}
+        <div class="stat-chip errors">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ stats.errors_last_hour }} erro{{ 's' if stats.errors_last_hour != 1 else '' }} na última hora
+        </div>
+        {% endif %}
+        {% if stats.by_level.get('WARNING', 0) > 0 %}
+        <div class="stat-chip warnings">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ stats.by_level.get('WARNING', 0) }} warnings
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tabs de módulos -->
+    <div class="log-tabs">
+        <a href="/logs?level={{ level_ativo or '' }}&search={{ search_ativo }}"
+           class="log-tab {% if not module_ativo %}active{% endif %}">
+            <i class="fas fa-layer-group"></i>
+            <span>Todos</span>
+        </a>
+        {% for mod in modules_order %}
+        <a href="/logs?module={{ mod }}&level={{ level_ativo or '' }}&search={{ search_ativo }}"
+           class="log-tab {% if module_ativo == mod %}active{% endif %}">
+            <i class="fas {{ module_icons.get(mod, 'fa-circle') }}"></i>
+            <span>{{ mod|capitalize }}</span>
+            {% if errors_by_module.get(mod, 0) > 0 %}
+            <span class="error-badge">{{ errors_by_module[mod] }}</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Filtros -->
+    <form class="log-filters" method="get" action="/logs">
+        {% if module_ativo %}
+        <input type="hidden" name="module" value="{{ module_ativo }}">
+        {% endif %}
+
+        <select name="level">
+            <option value="">Todos os níveis</option>
+            <option value="DEBUG" {% if level_ativo == 'DEBUG' %}selected{% endif %}>DEBUG</option>
+            <option value="INFO" {% if level_ativo == 'INFO' %}selected{% endif %}>INFO</option>
+            <option value="WARNING" {% if level_ativo == 'WARNING' %}selected{% endif %}>WARNING</option>
+            <option value="ERROR" {% if level_ativo == 'ERROR' %}selected{% endif %}>ERROR</option>
+            <option value="CRITICAL" {% if level_ativo == 'CRITICAL' %}selected{% endif %}>CRITICAL</option>
+        </select>
+
+        {% if sub_modules %}
+        <select name="sub_module">
+            <option value="">Todos sub-módulos</option>
+            {% for sm in sub_modules %}
+            <option value="{{ sm }}" {% if sub_module_ativo == sm %}selected{% endif %}>{{ sm }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+
+        <input type="text" name="search" placeholder="Buscar na mensagem..."
+               value="{{ search_ativo }}">
+
+        <button type="submit" class="btn-filter">
+            <i class="fas fa-search"></i> Filtrar
+        </button>
+        <a href="/logs{% if module_ativo %}?module={{ module_ativo }}{% endif %}" class="btn-clear">Limpar</a>
+    </form>
+
+    <!-- Tabela de logs -->
+    <div style="background: var(--color-bg-primary); border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden;">
+        <div style="overflow-x: auto;">
+            <table class="log-table" id="logTable">
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">Horário</th>
+                        <th style="width: 80px;">Nível</th>
+                        <th style="width: 160px;">Módulo</th>
+                        <th>Mensagem</th>
+                        <th style="width: 40px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody">
+                    {% if entries %}
+                    {% for entry in entries %}
+                    <tr>
+                        <td class="log-timestamp">
+                            {{ entry.timestamp.strftime('%d/%m %H:%M:%S') if entry.timestamp else '-' }}
+                        </td>
+                        <td>
+                            <span class="level-badge level-{{ entry.level }}">{{ entry.level }}</span>
+                        </td>
+                        <td class="log-module">
+                            {{ entry.module }}{% if entry.sub_module %}<span style="color: var(--color-text-tertiary);">.{{ entry.sub_module }}</span>{% endif %}
+                        </td>
+                        <td class="log-message">{{ entry.message[:150] }}{% if entry.message|length > 150 %}...{% endif %}</td>
+                        <td>
+                            {% if entry.extra_json or entry.traceback %}
+                            <button class="btn-expand" onclick="toggleDetail({{ entry.id }})" title="Expandir detalhes">
+                                <i class="fas fa-chevron-down" id="icon-{{ entry.id }}"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if entry.extra_json or entry.traceback %}
+                    <tr class="log-detail-row" id="detail-{{ entry.id }}">
+                        <td colspan="5" class="log-detail-cell">
+                            {% if entry.extra_json %}
+                            <div style="margin-bottom: 8px;">
+                                <strong style="font-size: 0.75rem; color: var(--color-text-secondary);">Dados extras:</strong>
+                                <pre class="log-extra-pre">{{ entry.extra_json }}</pre>
+                            </div>
+                            {% endif %}
+                            {% if entry.traceback %}
+                            <div>
+                                <strong style="font-size: 0.75rem; color: #dc2626;">Traceback:</strong>
+                                <pre class="log-traceback-pre">{{ entry.traceback }}</pre>
+                            </div>
+                            {% endif %}
+                            {% if entry.session_id %}
+                            <div style="margin-top: 8px; font-size: 0.75rem; color: var(--color-text-tertiary);">
+                                <i class="fas fa-plug"></i> Sessão: {{ entry.session_id }}
+                                {% if entry.request_id %} | <i class="fas fa-fingerprint"></i> Request: {{ entry.request_id }}{% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="log-empty">
+                                <i class="fas fa-inbox"></i>
+                                <p>Nenhum log encontrado</p>
+                                <p style="font-size: 0.75rem;">{% if module_ativo or level_ativo or search_ativo %}Tente ajustar os filtros{% else %}Os logs aparecerão aqui quando o sistema estiver em uso{% endif %}</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if pages > 1 %}
+    <div class="log-pagination">
+        <span>Página {{ page }} de {{ pages }} ({{ total }} registros)</span>
+        <div style="display: flex; gap: 8px;">
+            <a href="/logs?module={{ module_ativo or '' }}&level={{ level_ativo or '' }}&search={{ search_ativo }}&page={{ page - 1 }}"
+               class="{% if page <= 1 %}disabled{% endif %}">
+                <i class="fas fa-chevron-left"></i> Anterior
+            </a>
+            <a href="/logs?module={{ module_ativo or '' }}&level={{ level_ativo or '' }}&search={{ search_ativo }}&page={{ page + 1 }}"
+               class="{% if page >= pages %}disabled{% endif %}">
+                Próxima <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ── Toggle detalhes ──
+    function toggleDetail(id) {
+        const row = document.getElementById('detail-' + id);
+        const icon = document.getElementById('icon-' + id);
+        if (row) {
+            row.classList.toggle('open');
+            if (icon) {
+                icon.classList.toggle('fa-chevron-down');
+                icon.classList.toggle('fa-chevron-up');
+            }
+        }
+    }
+
+    // ── Auto-refresh ──
+    let autoRefreshInterval = null;
+
+    function toggleAutoRefresh() {
+        const toggle = document.getElementById('autoRefreshToggle');
+        const status = document.getElementById('refreshStatus');
+
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+            toggle.classList.remove('active');
+            status.textContent = 'desligado';
+        } else {
+            toggle.classList.add('active');
+            status.textContent = 'a cada 5s';
+            autoRefreshInterval = setInterval(refreshLogs, 5000);
+        }
+    }
+
+    function refreshLogs() {
+        // Recarrega a página mantendo os filtros atuais
+        const params = new URLSearchParams(window.location.search);
+        params.set('page', '1');
+        fetch('/api/logs/?' + params.toString())
+            .then(r => r.json())
+            .then(data => {
+                if (data.entries && data.entries.length > 0) {
+                    updateTable(data.entries);
+                }
+            })
+            .catch(() => {});
+    }
+
+    function updateTable(entries) {
+        const tbody = document.getElementById('logTableBody');
+        if (!tbody) return;
+
+        let html = '';
+        for (const e of entries) {
+            const ts = e.timestamp ? new Date(e.timestamp).toLocaleString('pt-BR', {
+                day: '2-digit', month: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            }) : '-';
+            const sub = e.sub_module ? `<span style="color: var(--color-text-tertiary);">.${e.sub_module}</span>` : '';
+            const msg = e.message.length > 150 ? e.message.substring(0, 150) + '...' : e.message;
+            const hasDetail = e.extra_json || e.traceback;
+
+            html += `<tr>
+                <td class="log-timestamp">${ts}</td>
+                <td><span class="level-badge level-${e.level}">${e.level}</span></td>
+                <td class="log-module">${e.module}${sub}</td>
+                <td class="log-message">${msg}</td>
+                <td>${hasDetail ? `<button class="btn-expand" onclick="toggleDetail(${e.id})"><i class="fas fa-chevron-down" id="icon-${e.id}"></i></button>` : ''}</td>
+            </tr>`;
+
+            if (hasDetail) {
+                let detailContent = '';
+                if (e.extra_json) {
+                    let formatted = e.extra_json;
+                    try { formatted = JSON.stringify(JSON.parse(e.extra_json), null, 2); } catch(_) {}
+                    detailContent += `<div style="margin-bottom: 8px;"><strong style="font-size: 0.75rem; color: var(--color-text-secondary);">Dados extras:</strong><pre class="log-extra-pre">${formatted}</pre></div>`;
+                }
+                if (e.traceback) {
+                    detailContent += `<div><strong style="font-size: 0.75rem; color: #dc2626;">Traceback:</strong><pre class="log-traceback-pre">${e.traceback}</pre></div>`;
+                }
+                html += `<tr class="log-detail-row" id="detail-${e.id}"><td colspan="5" class="log-detail-cell">${detailContent}</td></tr>`;
+            }
+        }
+        tbody.innerHTML = html;
+    }
+
+    // ── Formatar JSON nos detalhes já renderizados ──
+    document.querySelectorAll('.log-extra-pre').forEach(pre => {
+        try {
+            const parsed = JSON.parse(pre.textContent);
+            pre.textContent = JSON.stringify(parsed, null, 2);
+        } catch (_) {}
+    });
+</script>
+{% endblock %}

@@ -1,465 +1,223 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
 {% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <nav class="breadcrumb" aria-label="breadcrumbs" style="margin-bottom: 0.75rem !important;">
-        <ul style="margin-bottom: 0 !important;">
-            <li><a href="/sessoes" style="color: #6b7280;"><i class="fas fa-home"></i> Sessões</a></li>
-            <li><a href="/sessoes/{{ sessao.id }}/detalhes" style="color: #6b7280;">{{ sessao.nome }}</a></li>
-            <li><a href="/agentes/sessao/{{ sessao.id }}" style="color: #6b7280;">Agentes</a></li>
-            <li class="is-active"><a style="color: #C75B9B;">{{ titulo }}</a></li>
-        </ul>
-    </nav>
-    <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
-        <i class="{% if acao == 'criar' %}fas fa-plus-circle{% else %}fas fa-edit{% endif %}" style="color: #5B4E9B;"></i> {{ titulo }}
-    </h1>
-    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-        Configure a personalidade e comportamento da IA
-    </p>
-</div>
-
-<div class="columns">
-    <div class="column is-8">
-            <form method="POST" action="{% if acao == 'criar' %}/agentes/sessao/{{ sessao.id }}/criar{% else %}/agentes/{{ agente.id }}/atualizar{% endif %}">
-                
-                <!-- Informações Básicas -->
-                <div class="box" style="margin-bottom: 2rem;">
-                    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                        <i class="fas fa-info-circle" style="color: #C75B9B;"></i> Informações Básicas
-                    </h2>
-                    
-                    <div class="columns">
-                        <div class="column is-3">
-                            <div class="field">
-                                <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">Código *</label>
-                                <div class="control has-icons-left">
-                                    <input class="input" type="text" name="codigo" required
-                                           value="{% if agente %}{{ agente.codigo }}{% else %}{{ proximo_codigo }}{% endif %}"
-                                           placeholder="Ex: 01"
-                                           style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">
-                                    <span class="icon is-small is-left" style="color: #C75B9B;">
-                                        <i class="fas fa-hashtag"></i>
-                                    </span>
-                                </div>
-                                <p class="help" style="color: #6b7280; margin-top: 0.5rem;">
-                                    <i class="fas fa-info-circle"></i> ID único do agente
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div class="column">
-                            <div class="field">
-                                <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">Nome do Agente *</label>
-                                <div class="control has-icons-left">
-                                    <input class="input" type="text" name="nome" required
-                                           value="{% if agente %}{{ agente.nome }}{% endif %}"
-                                           placeholder="Ex: Assistente de Vendas, Suporte Técnico"
-                                           style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">
-                                    <span class="icon is-small is-left" style="color: #5B4E9B;">
-                                        <i class="fas fa-robot"></i>
-                                    </span>
-                                </div>
-                                <p class="help" style="color: #6b7280; margin-top: 0.5rem;">
-                                    <i class="fas fa-info-circle"></i> Nome que identifica este agente
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="field">
-                        <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">Descrição (Opcional)</label>
-                        <div class="control">
-                            <input class="input" type="text" name="descricao"
-                                   value="{% if agente %}{{ agente.descricao }}{% endif %}"
-                                   placeholder="Ex: Especialista em atendimento e vendas"
-                                   style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">
-                        </div>
-                        <p class="help" style="color: #6b7280; margin-top: 0.5rem;">
-                            <i class="fas fa-info-circle"></i> Breve descrição do que este agente faz
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Configuração do Agente (System Prompt) -->
-                <div class="box" style="margin-bottom: 2rem;">
-                    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                        <i class="fas fa-brain" style="color: #5B4E9B;"></i> Personalidade do Agente (System Prompt)
-                    </h2>
-                    <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.7;">
-                        <i class="fas fa-lightbulb"></i> <strong>Dica:</strong> Estes campos definem como o agente vai se comportar. Seja específico e claro.
-                    </p>
-                    
-                    <div class="field">
-                        <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                            <i class="fas fa-user-tie"></i> Papel *
-                        </label>
-                        <div class="control">
-                            <input class="input" type="text" name="agente_papel" required
-                                   value="{% if agente %}{{ agente.agente_papel }}{% else %}{{ config_agente.papel }}{% endif %}"
-                                   placeholder="Ex: consultor de vendas especializado em tecnologia"
-                                   style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">
-                        </div>
-                        <p class="help" style="color: #6b7280; margin-top: 0.5rem;">Quem o agente é (identidade)</p>
-                    </div>
-                    
-                    <div class="field">
-                        <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                            <i class="fas fa-bullseye"></i> Objetivo *
-                        </label>
-                        <div class="control">
-                            <textarea class="textarea" name="agente_objetivo" rows="2" required
-                                      placeholder="Ex: ajudar clientes a encontrar o produto ideal"
-                                      style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">{% if agente %}{{ agente.agente_objetivo }}{% else %}{{ config_agente.objetivo }}{% endif %}</textarea>
-                        </div>
-                        <p class="help" style="color: #6b7280; margin-top: 0.5rem;">Missão principal do agente</p>
-                    </div>
-                    
-                    <div class="field">
-                        <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                            <i class="fas fa-shield-alt"></i> Políticas *
-                        </label>
-                        <div class="control">
-                            <textarea class="textarea" name="agente_politicas" rows="2" required
-                                      placeholder="Ex: ser sempre educado, não fazer promessas que não pode cumprir"
-                                      style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">{% if agente %}{{ agente.agente_politicas }}{% else %}{{ config_agente.politicas }}{% endif %}</textarea>
-                        </div>
-                        <p class="help" style="color: #6b7280; margin-top: 0.5rem;">O que evitar ou respeitar</p>
-                    </div>
-                    
-                    <div class="field">
-                        <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                            <i class="fas fa-tasks"></i> Tarefa *
-                        </label>
-                        <div class="control">
-                            <textarea class="textarea" name="agente_tarefa" rows="2" required
-                                      placeholder="Ex: entender a necessidade do cliente e sugerir produtos"
-                                      style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">{% if agente %}{{ agente.agente_tarefa }}{% else %}{{ config_agente.tarefa }}{% endif %}</textarea>
-                        </div>
-                        <p class="help" style="color: #6b7280; margin-top: 0.5rem;">O que deve fazer na prática</p>
-                    </div>
-                    
-                    <div class="field">
-                        <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                            <i class="fas fa-trophy"></i> Objetivo Explícito *
-                        </label>
-                        <div class="control">
-                            <textarea class="textarea" name="agente_objetivo_explicito" rows="2" required
-                                      placeholder="Ex: converter leads em vendas de forma natural"
-                                      style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">{% if agente %}{{ agente.agente_objetivo_explicito }}{% else %}{{ config_agente.objetivo_explicito }}{% endif %}</textarea>
-                        </div>
-                        <p class="help" style="color: #6b7280; margin-top: 0.5rem;">Como deve entregar valor</p>
-                    </div>
-                    
-                    <div class="field">
-                        <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                            <i class="fas fa-users"></i> Público-Alvo *
-                        </label>
-                        <div class="control">
-                            <input class="input" type="text" name="agente_publico" required
-                                   value="{% if agente %}{{ agente.agente_publico }}{% else %}{{ config_agente.publico }}{% endif %}"
-                                   placeholder="Ex: clientes interessados em produtos tecnológicos"
-                                   style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">
-                        </div>
-                        <p class="help" style="color: #6b7280; margin-top: 0.5rem;">Para quem está falando</p>
-                    </div>
-                    
-                    <div class="field">
-                        <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                            <i class="fas fa-ban"></i> Restrições *
-                        </label>
-                        <div class="control">
-                            <textarea class="textarea" name="agente_restricoes" rows="2" required
-                                      placeholder="Ex: não dar descontos sem autorização, responder em português"
-                                      style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem 1rem;">{% if agente %}{{ agente.agente_restricoes }}{% else %}{{ config_agente.restricoes }}{% endif %}</textarea>
-                        </div>
-                        <p class="help" style="color: #6b7280; margin-top: 0.5rem;">Limites técnicos e de estilo</p>
-                    </div>
-                </div>
-
-                <!-- Parâmetros LLM -->
-                <div class="box" style="margin-bottom: 2rem;">
-                    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                        <i class="fas fa-sliders-h" style="color: #8b5cf6;"></i> Parâmetros IA (Opcional)
-                    </h2>
-                    <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.7;">
-                        <i class="fas fa-info-circle"></i> Deixe em branco para usar os valores padrão do sistema
-                    </p>
-                    
-                    <div class="columns">
-                        <div class="column">
-                            <div class="field">
-                                <label class="label">Modelo LLM</label>
-                                <div class="control">
-                                    <input class="input" type="text" name="modelo_llm"
-                                           value="{% if agente %}{{ agente.modelo_llm or '' }}{% endif %}"
-                                           placeholder="Ex: google/gemini-2.0-flash-001">
-                                </div>
-                                <p class="help">Deixe vazio para usar o padrão</p>
-                            </div>
-                        </div>
-                        
-                        <div class="column">
-                            <div class="field">
-                                <label class="label">Temperatura</label>
-                                <div class="control">
-                                    <input class="input" type="number" step="0.1" min="0" max="2" name="temperatura"
-                                           value="{% if agente %}{{ agente.temperatura or '' }}{% endif %}"
-                                           placeholder="0.0 - 2.0">
-                                </div>
-                                <p class="help">Criatividade (0.7 padrão)</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="columns">
-                        <div class="column">
-                            <div class="field">
-                                <label class="label">Max Tokens</label>
-                                <div class="control">
-                                    <input class="input" type="number" name="max_tokens"
-                                           value="{% if agente %}{{ agente.max_tokens or '' }}{% endif %}"
-                                           placeholder="Ex: 2000">
-                                </div>
-                                <p class="help">Tamanho máximo da resposta</p>
-                            </div>
-                        </div>
-                        
-                        <div class="column">
-                            <div class="field">
-                                <label class="label">Top P</label>
-                                <div class="control">
-                                    <input class="input" type="number" step="0.1" min="0" max="1" name="top_p"
-                                           value="{% if agente %}{{ agente.top_p or '' }}{% endif %}"
-                                           placeholder="0.0 - 1.0">
-                                </div>
-                                <p class="help">Diversidade (1.0 padrão)</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Treinamento (RAG) -->
-                {% if acao == 'editar' %}
-                <div class="box" style="margin-bottom: 2rem;">
-                    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                        <i class="fas fa-graduation-cap" style="color: #10b981;"></i> Base de Conhecimento (Treinamento)
-                    </h2>
-                    
-                    <p style="color: #6b7280; margin-bottom: 1.5rem; line-height: 1.7;">
-                        <i class="fas fa-info-circle"></i> Vincule um treinamento para que o agente possa buscar informações em documentos, páginas web e outros conteúdos.
-                    </p>
-                    
-                    <div class="field">
-                        <label class="label" style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">
-                            Treinamento Vinculado
-                        </label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select id="rag_select" style="border-radius: 8px; border: 2px solid #e5e7eb; padding: 0.75rem;">
-                                    <option value="">Nenhum (desativado)</option>
-                                    {% for rag in rags_disponiveis %}
-                                    <option value="{{ rag.id }}" {% if agente.rag_id == rag.id %}selected{% endif %}>
-                                        {{ rag.nome }} {% if not rag.treinado %}(não treinado){% endif %}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                        <p class="help" style="color: #6b7280; margin-top: 0.5rem;">
-                            Quando vinculado, uma ferramenta de busca será automaticamente adicionada ao agente
-                        </p>
-                    </div>
-                    
-                    <button type="button" onclick="vincularTreinamento()" class="button is-success" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 8px;">
-                        <span class="icon"><i class="fas fa-link"></i></span>
-                        <span>Salvar Vínculo</span>
-                    </button>
-                    
-                    <a href="/rags" class="button is-light" style="border-radius: 8px; margin-left: 0.5rem;">
-                        <span class="icon"><i class="fas fa-external-link-alt"></i></span>
-                        <span>Gerenciar Treinamentos</span>
-                    </a>
-                </div>
-                {% endif %}
-
-                <!-- Modo Autônomo (Sandbox) -->
-                {% if acao == 'editar' %}
-                <div class="box" style="margin-bottom: 2rem; border: 2px solid {% if agente.sandbox_ativo %}#f59e0b{% else %}#e5e7eb{% endif %}; border-radius: 12px;">
-                    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                        <i class="fas fa-rocket" style="color: #f59e0b;"></i> Modo Autônomo (Sandbox)
-                    </h2>
-                    
-                    <div style="background: linear-gradient(135deg, {% if agente.sandbox_ativo %}#fffbeb 0%, #fef3c7{% else %}#f9fafb 0%, #f3f4f6{% endif %} 100%); border-radius: 12px; padding: 1.5rem; border: 2px solid {% if agente.sandbox_ativo %}#f59e0b{% else %}#e5e7eb{% endif %};">
-                        <div style="display: flex; align-items: start; gap: 1rem;">
-                            <div style="width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;
-                                {% if agente.sandbox_ativo %}background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);{% else %}background: #e5e7eb;{% endif %}">
-                                <i class="fas fa-rocket" style="color: {% if agente.sandbox_ativo %}white{% else %}#9ca3af{% endif %};"></i>
-                            </div>
-                            <div style="flex: 1;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-                                    <strong style="color: #1f2937; font-size: 1.125rem;">
-                                        {% if agente.sandbox_ativo %}
-                                            <span style="color: #f59e0b;"><i class="fas fa-bolt"></i> ATIVO</span>
-                                        {% else %}
-                                            Desativado
-                                        {% endif %}
-                                    </strong>
-                                </div>
-                                <p style="color: #6b7280; font-size: 0.9375rem; line-height: 1.7; margin-bottom: 1rem;">
-                                    {% if agente.sandbox_ativo %}
-                                        O agente tem acesso a browser, terminal, execução de código, manipulação de arquivos e envio direto via WhatsApp.
-                                    {% else %}
-                                        Ative para dar ao agente acesso completo: browser, terminal, execução de código (Python/Node.js/Jupyter), manipulação de arquivos e envio via WhatsApp.
-                                    {% endif %}
-                                </p>
-                                <button type="button" id="btn-sandbox-toggle"
-                                    onclick="toggleSandbox({{ agente.id }}, {{ 'true' if not agente.sandbox_ativo else 'false' }})"
-                                    class="button"
-                                    style="{% if agente.sandbox_ativo %}background: #ef4444; color: white; border: none;{% else %}background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; border: none;{% endif %} font-weight: 600; border-radius: 8px;">
-                                    <span class="icon"><i class="fas fa-{% if agente.sandbox_ativo %}power-off{% else %}rocket{% endif %}"></i></span>
-                                    <span>{% if agente.sandbox_ativo %}Desativar Modo Autônomo{% else %}Ativar Modo Autônomo{% endif %}</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Status -->
-                <div class="box" style="margin-bottom: 2rem;">
-                    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-                        <i class="fas fa-toggle-on" style="color: #10b981;"></i> Status
-                    </h2>
-                    
-                    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 12px; padding: 1.5rem; border: 2px solid #10b981;">
-                        <label class="checkbox" style="display: flex; align-items: start; gap: 1rem; cursor: pointer;">
-                            <input type="checkbox" name="ativo" value="true"
-                                   {% if not agente or agente.ativo %}checked{% endif %}
-                                   style="margin-top: 0.25rem; transform: scale(1.2);">
-                            <div>
-                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-                                    <div style="width: 40px; height: 40px; border-radius: 8px; background: #10b981; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-check" style="color: white; font-size: 1.125rem;"></i>
-                                    </div>
-                                    <strong style="color: #1f2937; font-size: 1.125rem;">Agente Ativo</strong>
-                                </div>
-                                <p style="color: #166534; font-size: 0.9375rem; line-height: 1.7; font-weight: 500;">
-                                    Apenas agentes ativos podem ser usados para responder mensagens. Desative se quiser pausar este agente temporariamente.
-                                </p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Botões -->
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                    <button type="submit" class="button is-primary is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
-                        <span class="icon"><i class="fas fa-save"></i></span>
-                        <span>{% if acao == 'criar' %}Criar Agente{% else %}Salvar Alterações{% endif %}</span>
-                    </button>
-                    <a href="/agentes/sessao/{{ sessao.id }}" class="button is-medium" style="border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
-                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                        <span>Voltar</span>
-                    </a>
-                </div>
-            </form>
-        </div>
-
-        <!-- Sidebar de Ajuda -->
-        <div class="column is-4">
-            <div class="box" style="position: sticky; top: 2rem; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb;">
-                <h3 class="title is-5" style="margin-bottom: 1rem;">
-                    <i class="fas fa-lightbulb" style="color: #f59e0b;"></i> Dicas
-                </h3>
-                
-                <div style="display: grid; gap: 1rem;">
-                    <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 3px solid #5B4E9B;">
-                        <p style="font-weight: 600; color: #1f2937; margin-bottom: 0.5rem;">
-                            <i class="fas fa-brain"></i> System Prompt
-                        </p>
-                        <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.6;">
-                            Quanto mais específico você for nos campos de personalidade, melhor o agente vai responder.
-                        </p>
-                    </div>
-
-                    <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 3px solid #C75B9B;">
-                        <p style="font-weight: 600; color: #1f2937; margin-bottom: 0.5rem;">
-                            <i class="fas fa-tools"></i> Ferramentas
-                        </p>
-                        <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.6;">
-                            Depois de criar, configure as ferramentas que o agente pode usar para executar ações.
-                        </p>
-                    </div>
-
-                    <div style="background: white; padding: 1rem; border-radius: 8px; border-left: 3px solid #10b981;">
-                        <p style="font-weight: 600; color: #1f2937; margin-bottom: 0.5rem;">
-                            <i class="fas fa-crown"></i> Ativar Agente
-                        </p>
-                        <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.6;">
-                            Para usar este agente, ative-o na lista de agentes da sessão.
-                        </p>
-                    </div>
-                </div>
-            </div>
+<div class="container" style="max-width: 900px;">
+    <!-- Page Header Menor e Contido -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">{{ titulo }}</h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/sessoes/{{ sessao.id }}/detalhes" style="color: var(--color-text-secondary); text-decoration: none;">Conexão: {{ sessao.nome }}</a> / 
+                <a href="/agentes/sessao/{{ sessao.id }}" style="color: var(--color-text-secondary); text-decoration: none;">Personas</a> / 
+                <span style="color: var(--color-text-primary);">Configuração</span>
+            </p>
         </div>
     </div>
 
-    <!-- Footer de Documentação -->
-    <div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; margin-top: 3rem;">
-        <div style="display: flex; gap: 2rem; align-items: start; flex-wrap: wrap;">
-            <div style="flex-shrink: 0;">
-                <div style="width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, rgba(91, 78, 155, 0.1) 0%, rgba(199, 91, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-book" style="font-size: 1.75rem; color: #5B4E9B;"></i>
+    <form method="POST" action="{% if acao == 'criar' %}/agentes/sessao/{{ sessao.id }}/criar{% else %}/agentes/{{ agente.id }}/atualizar{% endif %}" class="flex flex-col gap-lg">
+
+        <!-- Informações Básicas / Identificação -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-tag" style="color: var(--color-text-secondary);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Identificação da Persona</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-lg" style="margin-bottom: var(--space-lg);">
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Código (Ordem) <span style="color: var(--color-error);">*</span>
+                    </label>
+                    <input type="text" class="input" name="codigo" required
+                           value="{% if agente %}{{ agente.codigo }}{% else %}{{ proximo_codigo }}{% endif %}"
+                           style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Nome <span style="color: var(--color-error);">*</span>
+                    </label>
+                    <input type="text" class="input" name="nome" required
+                           value="{% if agente %}{{ agente.nome }}{% endif %}" placeholder="Ex: Closer B2B, Atendente SaaS"
+                           style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
                 </div>
             </div>
-            <div style="flex: 1; min-width: 300px;">
-                <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 0.75rem;">
-                    <i class="fas fa-info-circle"></i> Campos do System Prompt
-                </h3>
-                <div style="color: #4b5563; line-height: 1.7; font-size: 0.9375rem;">
-                    <p style="margin-bottom: 1rem;">
-                        O <strong style="color: #1f2937;">System Prompt</strong> é como você "programa" a personalidade do agente. Todos os campos são enviados para a IA antes de cada mensagem.
-                    </p>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; font-size: 0.875rem;">
-                        <div><i class="fas fa-user-tie" style="color: #5B4E9B;"></i> <strong>Papel:</strong> Identidade</div>
-                        <div><i class="fas fa-bullseye" style="color: #C75B9B;"></i> <strong>Objetivo:</strong> Missão</div>
-                        <div><i class="fas fa-shield-alt" style="color: #10b981;"></i> <strong>Políticas:</strong> Regras</div>
-                        <div><i class="fas fa-tasks" style="color: #3b82f6;"></i> <strong>Tarefa:</strong> Ações</div>
-                        <div><i class="fas fa-users" style="color: #f59e0b;"></i> <strong>Público:</strong> Para quem</div>
-                        <div><i class="fas fa-ban" style="color: #ef4444;"></i> <strong>Restrições:</strong> Limites</div>
-                    </div>
+
+            <div class="form-group mb-0">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                    Descrição Curta Interna
+                </label>
+                <input type="text" class="input" name="descricao" value="{% if agente %}{{ agente.descricao }}{% endif %}"
+                       style="font-size: 0.9375rem; padding: 0.75rem 1rem; width: 100%;">
+            </div>
+            
+            <!-- Toggle de Status Ativo -->
+            <label class="toggle-row mt-lg" style="display: flex; align-items: flex-start; gap: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); cursor: pointer;">
+                <input type="checkbox" name="ativo" value="true" {% if not agente or agente.ativo %}checked{% endif %} style="margin-top: 4px; transform: scale(1.1);">
+                <div class="flex flex-col">
+                    <span style="font-size: 0.9375rem; font-weight: 600; color: var(--color-text-primary);">Tornar Disponível (Status Ativo)</span>
+                    <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px;">
+                        Apenas agentes ativos aparecem para seleção como cérebro principal.
+                    </span>
+                </div>
+            </label>
+        </div>
+
+        <!-- Instruções do LLM (System Prompt Base) -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-brain" style="color: var(--color-primary);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Configuração do Cérebro (Prompt)</h2>
+            </div>
+            
+            <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: var(--space-xl);">
+                Instrua de forma literal como este LLM irá se comportar no chat. 
+            </p>
+
+            <div class="grid grid-cols-2 gap-lg">
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Papel do Agente <span style="color: var(--color-error);">*</span></label>
+                    <textarea class="textarea" name="agente_papel" rows="3" required style="font-size: 0.875rem; padding: 0.75rem; resize: vertical; margin-bottom: 4px;">{% if agente %}{{ agente.agente_papel }}{% else %}{{ config_agente.papel }}{% endif %}</textarea>
+                    <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary);">Ex: Você é um suporte especializado Nível 2.</div>
+                </div>
+                
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Objetivo Geral <span style="color: var(--color-error);">*</span></label>
+                    <textarea class="textarea" name="agente_objetivo" rows="3" required style="font-size: 0.875rem; padding: 0.75rem; resize: vertical; margin-bottom: 4px;">{% if agente %}{{ agente.agente_objetivo }}{% else %}{{ config_agente.objetivo }}{% endif %}</textarea>
+                    <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary);">Resolver tickets de forma amigável.</div>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Tarefa Imediata <span style="color: var(--color-error);">*</span></label>
+                    <textarea class="textarea" name="agente_tarefa" rows="3" required style="font-size: 0.875rem; padding: 0.75rem; resize: vertical; margin-bottom: 4px;">{% if agente %}{{ agente.agente_tarefa }}{% else %}{{ config_agente.tarefa }}{% endif %}</textarea>
+                    <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary);">Fazer um triagem ou enviar o link do manual.</div>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Objetivo Explícito <span style="color: var(--color-error);">*</span></label>
+                    <textarea class="textarea" name="agente_objetivo_explicito" rows="3" required style="font-size: 0.875rem; padding: 0.75rem; resize: vertical; margin-bottom: 4px;">{% if agente %}{{ agente.agente_objetivo_explicito }}{% else %}{{ config_agente.objetivo_explicito }}{% endif %}</textarea>
+                </div>
+            </div>
+
+            <div class="form-group mt-lg">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Políticas (Tom de Voz) <span style="color: var(--color-error);">*</span></label>
+                <textarea class="textarea" name="agente_politicas" rows="3" required style="font-size: 0.875rem; padding: 0.75rem; resize: vertical; margin-bottom: 4px;">{% if agente %}{{ agente.agente_politicas }}{% else %}{{ config_agente.politicas }}{% endif %}</textarea>
+            </div>
+
+            <div class="form-group mt-lg">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Restrições <span style="color: var(--color-error);">*</span></label>
+                <textarea class="textarea" name="agente_restricoes" rows="3" required style="font-size: 0.875rem; padding: 0.75rem; resize: vertical; margin-bottom: 4px;">{% if agente %}{{ agente.agente_restricoes }}{% else %}{{ config_agente.restricoes }}{% endif %}</textarea>
+                <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary);">Nunca responda mensagens em outro idioma ou minta serviços.</div>
+            </div>
+
+            <div class="form-group mt-lg mb-0">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Público-alvo <span style="color: var(--color-error);">*</span></label>
+                <input type="text" class="input" name="agente_publico" required value="{% if agente %}{{ agente.agente_publico }}{% else %}{{ config_agente.publico }}{% endif %}" style="font-size: 0.875rem; padding: 0.75rem 1rem; width: 100%;">
+            </div>
+        </div>
+
+        <!-- Parâmetros da API LLM -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-sliders-h" style="color: var(--color-text-secondary);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Overrides / Modificadores (Opcional)</h2>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: var(--space-lg);">Deixe vazio para usar a chave e modelo globais.</p>
+
+            <div class="grid grid-cols-2 gap-lg mb-lg">
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Modelo Dinâmico</label>
+                    <input type="text" class="input" name="modelo_llm" value="{% if agente %}{{ agente.modelo_llm or '' }}{% endif %}" placeholder="Ex: gpt-4o" style="font-size: 0.875rem; padding: 0.75rem; width: 100%;">
+                </div>
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Temperatura</label>
+                    <input type="number" step="0.1" min="0" max="2" class="input" name="temperatura" value="{% if agente %}{{ agente.temperatura or '' }}{% endif %}" placeholder="0.7" style="font-size: 0.875rem; padding: 0.75rem; width: 100%;">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-lg">
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Max Tokens</label>
+                    <input type="number" class="input" name="max_tokens" value="{% if agente %}{{ agente.max_tokens or '' }}{% endif %}" placeholder="2000" style="font-size: 0.875rem; padding: 0.75rem; width: 100%;">
+                </div>
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Top_P</label>
+                    <input type="number" step="0.1" min="0" max="1" class="input" name="top_p" value="{% if agente %}{{ agente.top_p or '' }}{% endif %}" placeholder="1.0" style="font-size: 0.875rem; padding: 0.75rem; width: 100%;">
                 </div>
             </div>
         </div>
-    </div>
+
+        {% if acao == 'editar' %}
+        <!-- Treinamento e Base Custom -->
+        <div class="box" style="padding: var(--space-lg); border: 1px solid var(--color-border); background: var(--color-surface); box-shadow: none;">
+            <div class="flex items-center gap-sm mb-md text-left">
+                <i class="fas fa-database" style="color: var(--color-primary);"></i>
+                <strong style="font-size: 0.875rem;">Base de Conhecimento RAG (Vector Stores)</strong>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Forneça uma fonte de verdade para ele usar como biblioteca privada e injetada no System Prompt dinâmico de forma autônoma.</p>
+            
+            <div class="flex items-end gap-sm">
+                <div class="form-group flex-1 mb-0">
+                    <select id="rag_select" class="input" style="font-size: 0.875rem; padding: 0.75rem; width: 100%; border-radius: var(--radius-md);">
+                        <option value="">Desvinculado (Sem RAG)</option>
+                        {% for rag in rags_disponiveis %}
+                        <option value="{{ rag.id }}" {% if agente.rag_id == rag.id %}selected{% endif %}>
+                            {{ rag.nome }} {% if not rag.treinado %}(Necessário Processamento){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button" onclick="vincularTreinamento()" class="button is-outline" style="border-radius: var(--radius-md);">Vincular DB</button>
+            </div>
+        </div>
+
+        <!-- Sandbox Interno (Terminal Execution) -->
+        <div class="box" style="padding: var(--space-lg); {% if agente.internal_sandbox_ativo %}border: 1px solid var(--color-success); background: #f0fdf4;{% else %}border: 1px solid var(--color-border); background: var(--color-bg-tertiary);{% endif %}">
+            <div class="flex items-center gap-sm mb-xs text-left">
+                <i class="fas fa-terminal" style="{% if agente.internal_sandbox_ativo %}color: var(--color-success);{% else %}color: var(--color-text-muted);{% endif %}"></i>
+                <strong style="font-size: 0.875rem; {% if agente.internal_sandbox_ativo %}color: var(--color-success);{% endif %}">Modo Code Execution Sandbox</strong>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: var(--space-md);">Se ativado, este agente injeta e pode rodar scripts Bash, Python, etc nativamente dentro do Servidor. Útil para Analistas DevOps/Engenharia.</p>
+            
+            <button type="button" id="btn-sandbox-toggle"
+                onclick="toggleSandbox({{ agente.id }}, {{ 'true' if not agente.internal_sandbox_ativo else 'false' }})"
+                class="button is-small"
+                style="{% if agente.internal_sandbox_ativo %}background: var(--color-error); color: white; border: none;{% else %}background: var(--color-surface); border: 1px solid var(--color-border);{% endif %} border-radius: var(--radius-sm);">
+                {% if agente.internal_sandbox_ativo %}Desativar Root Sandbox{% else %}Permitir Execução de Código{% endif %}
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Finalização -->
+        <div class="flex items-center justify-end gap-md mt-lg" style="padding-top: var(--space-lg); border-top: 1px solid var(--color-border);">
+            <a href="/agentes/sessao/{{ sessao.id }}" class="button is-outline">Cancelar</a>
+            <button type="submit" class="button is-primary">
+                {% if acao == 'criar' %}Gerar Persona{% else %}Salvar Alterações{% endif %}
+            </button>
+        </div>
+
+    </form>
 </div>
 
 <script>
 async function toggleSandbox(agenteId, ativar) {
     const btn = document.getElementById('btn-sandbox-toggle');
     btn.disabled = true;
-    btn.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Aguarde...</span>';
     
     try {
-        const resp = await fetch('/api/agentes/' + agenteId + '/sandbox', {
+        const resp = await fetch('/api/agentes/' + agenteId + '/internal-sandbox', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({sandbox_ativo: ativar})
+            body: JSON.stringify({internal_sandbox_ativo: ativar})
         });
         
-        if (resp.ok) {
-            location.reload();
-        } else {
-            const data = await resp.json();
-            alert('Erro: ' + (data.detail || 'Falha ao alterar modo autônomo'));
-            btn.disabled = false;
-        }
-    } catch (e) {
-        alert('Erro de conexão: ' + e.message);
-        btn.disabled = false;
+        if (resp.ok) location.reload();
+        else alert('Erro ao alterar Sandbox.');
+    } catch(e) {
+        alert('Erro: ' + e.message);
     }
 }
 
@@ -467,32 +225,20 @@ async function vincularTreinamento() {
     const ragId = document.getElementById('rag_select').value;
     const agenteId = {{ agente.id if agente else 'null' }};
     
-    if (!agenteId) {
-        alert('Salve o agente primeiro antes de vincular um treinamento');
-        return;
-    }
+    if (!agenteId) return;
     
     try {
         const response = await fetch(`/api/agentes/${agenteId}/vincular-treinamento`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rag_id: ragId || null })
         });
         
-        if (response.ok) {
-            const data = await response.json();
-            alert(data.mensagem);
-            window.location.reload();
-        } else {
-            const error = await response.json();
-            alert('Erro: ' + error.detail);
-        }
-    } catch (error) {
-        alert('Erro ao vincular treinamento: ' + error.message);
+        if (response.ok) window.location.reload();
+        else alert('Falhou ao vincular RAG.');
+    } catch(err) {
+        alert('Erro: ' + err.message);
     }
 }
 </script>
-
 {% endblock %}

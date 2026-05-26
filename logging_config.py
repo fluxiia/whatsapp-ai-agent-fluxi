@@ -5,6 +5,15 @@ import logging
 import sys
 from datetime import datetime
 
+# No Windows o console costuma ser cp1252; logs/prints com emoji quebram com UnicodeEncodeError.
+if sys.platform == "win32":
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except Exception:
+            pass
+
+
 def setup_logging():
     """Configura o sistema de logging."""
     

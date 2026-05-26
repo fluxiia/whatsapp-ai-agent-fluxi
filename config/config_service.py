@@ -258,7 +258,7 @@ class ConfiguracaoService:
             },
             {
                 "chave": "openrouter_modelo_padrao",
-                "valor": "google/gemini-2.0-flash-001",
+                "valor": "google/gemini-3.1-flash-lite-preview",
                 "tipo": "string",
                 "descricao": "Modelo LLM padrão",
                 "categoria": "openrouter",
@@ -307,7 +307,7 @@ class ConfiguracaoService:
             # Agente
             {
                 "chave": "agente_papel_padrao",
-                "valor": "assistente pessoal",
+                "valor": "Você é Fluxi, um assistente pessoal altamente capaz e inteligente. Você combina o conhecimento de um especialista multidisciplinar com a empatia de um consultor de confiança. Fala em português brasileiro de forma natural e clara, adaptando o tom ao perfil de quem conversa — simples quando necessário, técnico quando exigido.",
                 "tipo": "string",
                 "descricao": "Papel padrão do agente",
                 "categoria": "agente",
@@ -315,7 +315,7 @@ class ConfiguracaoService:
             },
             {
                 "chave": "agente_objetivo_padrao",
-                "valor": "ajudar o usuário com suas dúvidas e tarefas",
+                "valor": "Ser o assistente mais útil e completo do dia a dia. Resolver dúvidas, executar tarefas, pesquisar informações, criar conteúdo, analisar dados, calcular, planejar e apoiar decisões. O objetivo é economizar o tempo do usuário e entregar resultados de alta qualidade em cada interação.",
                 "tipo": "string",
                 "descricao": "Objetivo padrão do agente",
                 "categoria": "agente",
@@ -323,7 +323,7 @@ class ConfiguracaoService:
             },
             {
                 "chave": "agente_politicas_padrao",
-                "valor": "ser educado, respeitoso e prestativo",
+                "valor": "Use português brasileiro natural e fluido. Adapte o tom: descontraído com quem usa linguagem informal, preciso com quem demonstra expertise. Respostas objetivas e sem floreios. Use listas e negrito quando organizar o conteúdo melhorar a leitura. Nunca use linguagem excessivamente formal. Limite emojis a situações onde genuinamente ajudam a comunicação.",
                 "tipo": "string",
                 "descricao": "Políticas padrão do agente",
                 "categoria": "agente",
@@ -331,7 +331,7 @@ class ConfiguracaoService:
             },
             {
                 "chave": "agente_tarefa_padrao",
-                "valor": "responder perguntas de forma clara e objetiva",
+                "valor": "1. Leia a mensagem e identifique o que o usuário realmente precisa (intenção + contexto). 2. Se a tarefa for clara, execute diretamente sem perguntas desnecessárias. 3. Se houver ambiguidade, faça UMA pergunta precisa antes de prosseguir. 4. Para tarefas complexas, organize a resposta em etapas ou listas. 5. Ao finalizar, verifique se o resultado atende ao pedido e ofereça um próximo passo relevante quando fizer sentido.",
                 "tipo": "string",
                 "descricao": "Tarefa padrão do agente",
                 "categoria": "agente",
@@ -339,7 +339,7 @@ class ConfiguracaoService:
             },
             {
                 "chave": "agente_objetivo_explicito_padrao",
-                "valor": "fornecer informações úteis e precisas",
+                "valor": "Entregar uma resposta completa, acionável e direta ao ponto. Se o pedido envolver criação de texto, código, análise ou cálculo, apresente o resultado pronto para uso. Se envolver decisão, apresente as opções com prós e contras claros.",
                 "tipo": "string",
                 "descricao": "Objetivo explícito padrão do agente",
                 "categoria": "agente",
@@ -347,7 +347,7 @@ class ConfiguracaoService:
             },
             {
                 "chave": "agente_publico_padrao",
-                "valor": "usuários em geral",
+                "valor": "Profissionais e empreendedores brasileiros que buscam produtividade, clareza e execução rápida no dia a dia.",
                 "tipo": "string",
                 "descricao": "Público-alvo padrão do agente",
                 "categoria": "agente",
@@ -355,7 +355,7 @@ class ConfiguracaoService:
             },
             {
                 "chave": "agente_restricoes_padrao",
-                "valor": "responder em português brasileiro, ser conciso",
+                "valor": "Nunca invente fatos, dados ou referências — se não souber, diga claramente e sugira onde encontrar. Não prometa coisas fora do seu controle. Não gere conteúdo ofensivo, discriminatório ou que viole privacidade. Se o pedido for ambíguo ou potencialmente prejudicial, peça esclarecimento antes de responder.",
                 "tipo": "string",
                 "descricao": "Restrições padrão do agente",
                 "categoria": "agente",
@@ -574,6 +574,31 @@ class ConfiguracaoService:
                 "tipo": "int",
                 "descricao": "Timeout para testes de ferramenta no wizard em segundos",
                 "categoria": "ferramenta",
+                "editavel": True
+            },
+            # Geração de Mídia via OpenRouter
+            {
+                "chave": "media_geracao_imagem_modelo",
+                "valor": "",
+                "tipo": "string",
+                "descricao": "Modelo para geração de imagem via OpenRouter (vazio = desabilitado)",
+                "categoria": "media",
+                "editavel": True
+            },
+            {
+                "chave": "media_geracao_imagem_aspect_ratio",
+                "valor": "1:1",
+                "tipo": "string",
+                "descricao": "Aspect ratio padrão para geração de imagem (1:1, 16:9, 9:16, 4:3, 3:4)",
+                "categoria": "media",
+                "editavel": True
+            },
+            {
+                "chave": "media_geracao_video_modelo",
+                "valor": "",
+                "tipo": "string",
+                "descricao": "Modelo para geração de vídeo via OpenRouter (vazio = desabilitado)",
+                "categoria": "media",
                 "editavel": True
             },
         ]

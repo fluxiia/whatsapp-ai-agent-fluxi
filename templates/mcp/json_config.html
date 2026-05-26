@@ -1,165 +1,132 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}Conectar MCP - {{ agente.nome }} - Fluxi.IA{% endblock %}
+{% block title %}Importar MCP JSON Spec - {{ agente.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="container is-max-desktop">
-    <div class="box">
-        <div class="level">
-            <div class="level-left">
-                <div class="level-item">
-                    <h1 class="title is-4">Conectar MCP</h1>
-                </div>
-            </div>
-            <div class="level-right">
-                <div class="level-item">
-                    <a href="/mcp/agente/{{ agente.id }}/clients" class="button is-light">
-                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                        <span>Voltar</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <div class="content">
-            <p class="subtitle is-6">
-                Cole a configuração JSON do servidor MCP que deseja conectar. 
-                Use os exemplos abaixo como referência ou cole sua própria configuração.
+<div class="container" style="max-width: 1200px;">
+    
+    <!-- Page Header Mission Control -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-file-code text-primary mb-xs" style="color: #6366f1;"></i> Importar Spec JSON (MCP Server)
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/mcp/agente/{{ agente.id }}/clients" style="color: var(--color-text-secondary); text-decoration: none;">MCP Node Topology</a> / 
+                <span style="color: var(--color-text-primary);">Raw JSON Import</span>
             </p>
         </div>
-
-        <form method="POST" action="/api/mcp/one-click/install">
-            <div class="field">
-                <label class="label">Nome do Servidor</label>
-                <div class="control">
-                    <input class="input" type="text" name="nome" placeholder="Ex: DeepWiki, Time Server, etc.">
-                </div>
-                <p class="help">Nome personalizado para identificar este servidor MCP</p>
-            </div>
-
-            <div class="field">
-                <label class="label">Descrição (Opcional)</label>
-                <div class="control">
-                    <textarea class="textarea" name="descricao" placeholder="Descrição do servidor MCP"></textarea>
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">Configuração JSON</label>
-                <div class="control">
-                    <textarea class="textarea" name="json_config" rows="10" placeholder='Cole aqui a configuração JSON do servidor MCP...' required></textarea>
-                </div>
-                <p class="help">
-                    Cole a configuração JSON no formato <code>{"mcpServers": {...}}</code>
-                </p>
-            </div>
-
-            <input type="hidden" name="agente_id" value="{{ agente.id }}">
-
-            <div class="field">
-                <div class="control">
-                    <button type="submit" class="button is-primary is-fullwidth">
-                        <span class="icon"><i class="fas fa-plug"></i></span>
-                        <span>Conectar MCP</span>
-                    </button>
-                </div>
-            </div>
-        </form>
-
-        <hr>
-
-        <div class="content">
-            <h3 class="title is-5">Exemplos de Configuração</h3>
-            <p class="subtitle is-6">Clique em um exemplo para usar como base:</p>
-            
-            {% for exemplo in exemplos %}
-            <div class="box">
-                <div class="level">
-                    <div class="level-left">
-                        <div class="level-item">
-                            <h4 class="title is-6">{{ exemplo.nome }}</h4>
-                        </div>
-                    </div>
-                    <div class="level-right">
-                        <div class="level-item">
-                            <form method="POST" action="/api/mcp/one-click/install" style="display: inline;" onsubmit="return confirm('Conectar com {{ exemplo.nome }}?')">
-                                <input type="hidden" name="agente_id" value="{{ agente.id }}">
-                                <input type="hidden" name="nome" value="{{ exemplo.nome }}">
-                                <input type="hidden" name="descricao" value="Configuração automática via exemplo">
-                                <input type="hidden" name="json_config" value="{{ exemplo.config | tojson }}">
-                                <button type="submit" class="button is-small is-info">
-                                    <span class="icon"><i class="fas fa-bolt"></i></span>
-                                    <span>Usar</span>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                
-                <pre class="is-size-7"><code>{{ exemplo.config | tojson(indent=2) }}</code></pre>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="content">
-            <h3 class="title is-5">Tipos de Transporte Suportados</h3>
-            
-            <div class="columns">
-                <div class="column">
-                    <div class="box">
-                        <h4 class="title is-6">SSE (Server-Sent Events)</h4>
-                        <p class="subtitle is-7">Recomendado para integrações com Claude</p>
-                        <pre class="is-size-7"><code>{
-  "mcpServers": {
-    "servidor": {
-      "serverUrl": "https://exemplo.com/sse"
-    }
-  }
-}</code></pre>
-                    </div>
-                </div>
-                
-                <div class="column">
-                    <div class="box">
-                        <h4 class="title is-6">Streamable HTTP</h4>
-                        <p class="subtitle is-7">Novo protocolo, compatível com Cloudflare</p>
-                        <pre class="is-size-7"><code>{
-  "mcpServers": {
-    "servidor": {
-      "url": "https://exemplo.com/mcp"
-    }
-  }
-}</code></pre>
-                    </div>
-                </div>
-                
-                <div class="column">
-                    <div class="box">
-                        <h4 class="title is-6">STDIO (Comando Local)</h4>
-                        <p class="subtitle is-7">Para servidores executados localmente</p>
-                        <pre class="is-size-7"><code>{
-  "mcpServers": {
-    "servidor": {
-      "command": "uvx",
-      "args": ["mcp-server-exemplo"],
-      "env": {
-        "API_KEY": "sua_chave"
-      }
-    }
-  }
-}</code></pre>
-                    </div>
-                </div>
-            </div>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/mcp/agente/{{ agente.id }}/clients" class="button is-small is-outline">
+                <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Cancelar / Voltar
+            </a>
         </div>
     </div>
-</div>
 
-<script>
-// Auto-resize textarea
-document.querySelector('textarea[name="json_config"]').addEventListener('input', function() {
-    this.style.height = 'auto';
-    this.style.height = this.scrollHeight + 'px';
-});
-</script>
+    <div class="grid grid-cols-5 gap-lg">
+        
+        <!-- Formulário Principal de Import (3/5 col) -->
+        <div style="grid-column: span 3;" class="flex flex-col gap-lg">
+            <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); height: 100%;">
+                
+                <form method="POST" action="/api/mcp/one-click/install" style="height: 100%; display: flex; flex-direction: column;">
+                    <input type="hidden" name="agente_id" value="{{ agente.id }}">
+
+                    <div style="display: flex; gap: var(--space-md); margin-bottom: var(--space-lg);">
+                        <div class="field" style="flex: 1;">
+                            <label class="label text-secondary" style="font-size: 0.75rem; text-transform: uppercase;">Nome da Toolchain</label>
+                            <div class="control">
+                                <input class="input" type="text" name="nome" placeholder="Ex: Cloudflare MCP, Local Database, etc" style="background: var(--color-surface); font-family: monospace;">
+                            </div>
+                        </div>
+
+                        <div class="field" style="flex: 2;">
+                            <label class="label text-secondary" style="font-size: 0.75rem; text-transform: uppercase;">Descrição Opcional</label>
+                            <div class="control">
+                                <input class="input" type="text" name="descricao" placeholder="Visão concisa da função do servidor" style="background: var(--color-surface);">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field flex flex-col" style="flex: 1; margin-bottom: var(--space-lg);">
+                        <label class="label text-secondary" style="font-size: 0.75rem; text-transform: uppercase; display: flex; justify-content: space-between;">
+                            <span>JSON Config (mcpServers Format)</span>
+                            <span style="color: #6366f1;"><i class="fas fa-asterisk"></i> Required</span>
+                        </label>
+                        <div class="control" style="flex: 1; display: flex;">
+                            <textarea name="json_config" required placeholder='{
+  "mcpServers": {
+    "meu-servidor": {
+      "command": "python",
+      "args": ["-m", "meu_modulo"]
+    }
+  }
+}' style="width: 100%; min-height: 250px; flex: 1; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: #0f172a; color: #38bdf8; font-family: 'Consolas', monospace; font-size: 0.8125rem; padding: 12px; resize: vertical; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);"></textarea>
+                        </div>
+                        <p style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 6px;">Cole o objeto JSON raiz contendo a chave <code>mcpServers</code> conforme a spec oficial do Claude/MCP Protocol.</p>
+                    </div>
+
+                    <button type="submit" class="button is-primary is-fullwidth" style="background: #10b981; border: none; font-weight: 600; font-size: 0.875rem; padding: var(--space-md); height: auto;">
+                        <i class="fas fa-bolt text-white" style="margin-right: 6px;"></i> Compilar Configuração e Acoplar
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar de Exemplos Técnicos (2/5 col) -->
+        <div style="grid-column: span 2;" class="flex flex-col gap-lg">
+            
+            <div class="box" style="padding: var(--space-lg); border: none; box-shadow: var(--shadow-sm); background: var(--color-surface);">
+                <div class="flex items-center gap-sm mb-md" style="border-bottom: 2px solid var(--color-border); padding-bottom: 4px;">
+                    <i class="fas fa-lightbulb text-warning"></i>
+                    <h3 style="font-size: 0.875rem; font-weight: 700; color: var(--color-text-primary);">Templates Predefinidos</h3>
+                </div>
+                
+                {% for exemplo in exemplos %}
+                <div style="background: var(--bg-primary); border: 1px solid var(--color-border); border-radius: var(--radius-md); margin-bottom: var(--space-md); overflow: hidden;">
+                    <div style="padding: 8px 12px; background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="font-size: 0.75rem; color: var(--color-text-primary);">{{ exemplo.nome }}</strong>
+                        
+                        <form method="POST" action="/api/mcp/one-click/install" onsubmit="return confirm('Sobreescrever spec e instanciar {{ exemplo.nome }} diretamente?');">
+                            <input type="hidden" name="agente_id" value="{{ agente.id }}">
+                            <input type="hidden" name="nome" value="{{ exemplo.nome }}">
+                            <input type="hidden" name="descricao" value="Auto-deploy via quick template">
+                            <input type="hidden" name="json_config" value="{{ exemplo.config | tojson | forceescape }}">
+                            <button type="submit" class="button is-small" style="background: transparent; color: #6366f1; border: 1px solid #6366f1; padding: 0 6px; font-size: 0.65rem; height: 22px;">
+                                <i class="fas fa-download mr-xs"></i> Inject
+                            </button>
+                        </form>
+                    </div>
+                    <pre style="margin: 0; padding: 8px 12px; background: transparent; font-size: 0.65rem; font-family: monospace; color: var(--color-text-secondary); max-height: 100px; overflow-y: auto;">{{ exemplo.config | tojson(indent=2) if exemplo.config else '{}' }}</pre>
+                </div>
+                {% else %}
+                <p style="font-size: 0.75rem; color: var(--color-text-muted);">A base de templates curados locais encontra-se vazia.</p>
+                {% endfor %}
+            </div>
+
+            <!-- Manuais Layers Box -->
+            <div class="box" style="padding: var(--space-lg); border: none; box-shadow: var(--shadow-sm); background: #fefce8; border-left: 3px solid #facc15;">
+                <h3 style="font-size: 0.75rem; font-weight: 700; color: #a16207; text-transform: uppercase; margin-bottom: 8px;">Tipos de Camadas (Layers)</h3>
+                
+                <div style="margin-bottom: 8px;">
+                    <strong style="color: #ca8a04; font-size: 0.75rem; font-family: monospace;">SSE / HTTP</strong>
+                    <pre style="margin: 2px 0 0 0; background: #fef9c3; padding: 4px; border-radius: 4px; font-size: 0.65rem; color: #854d0e; border: 1px dashed rgba(202, 138, 4, 0.3);">"serverUrl": "https://api.com/sse"</pre>
+                </div>
+                
+                <div style="margin-bottom: 8px;">
+                    <strong style="color: #ca8a04; font-size: 0.75rem; font-family: monospace;">STREAMABLE HTTP</strong>
+                    <pre style="margin: 2px 0 0 0; background: #fef9c3; padding: 4px; border-radius: 4px; font-size: 0.65rem; color: #854d0e; border: 1px dashed rgba(202, 138, 4, 0.3);">"url": "https://remote.fly.dev/mcp"</pre>
+                </div>
+                
+                <div>
+                    <strong style="color: #ca8a04; font-size: 0.75rem; font-family: monospace;">STDIO EXEC</strong>
+                    <pre style="margin: 2px 0 0 0; background: #fef9c3; padding: 4px; border-radius: 4px; font-size: 0.65rem; color: #854d0e; border: 1px dashed rgba(202, 138, 4, 0.3);">"command": "uvx", "args": [...]</pre>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
 {% endblock %}

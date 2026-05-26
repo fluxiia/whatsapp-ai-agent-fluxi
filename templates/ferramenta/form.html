@@ -1,210 +1,192 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ 'Editar' if acao == 'editar' else 'Nova' }} Ferramenta - Fluxi.IA{% endblock %}
+{% block title %}{{ 'Editar' if acao == 'editar' else 'Nova' }} Função - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-        <div style="width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, #8b5cf6 0%, #C75B9B 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i class="fas fa-{% if acao == 'editar' %}edit{% else %}plus-circle{% endif %}" style="color: white; font-size: 1.5rem;"></i>
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
-                {{ 'Editar' if acao == 'editar' else 'Nova' }} Ferramenta
+<div class="container" style="max-width: 900px;">
+    <!-- Page Header Menor e Contido -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-{% if acao == 'editar' %}code{% else %}plus-square{% endif %} text-primary mb-xs"></i> 
+                {{ 'Editar Abstração (Modo Raw)' if acao == 'editar' else 'Nova Abstração' }}
             </h1>
-            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-                {% if acao == 'editar' %}Modifique os parâmetros da ferramenta{% else %}Configure uma nova ação para seus agentes{% endif %}
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/ferramentas" style="color: var(--color-text-secondary); text-decoration: none;">Ferramentas Globais</a> / 
+                <span style="color: var(--color-text-primary);">Configuração Técnica Avançada</span>
             </p>
         </div>
+        
+        {% if acao == 'editar' %}
+        <a href="/ferramentas/wizard/step1?edit={{ ferramenta.id }}" class="button is-small is-outline">
+            <i class="fas fa-magic text-primary" style="margin-right: 4px;"></i> Voltar para UI Wizard
+        </a>
+        {% endif %}
     </div>
-</div>
 
-        <form method="POST" action="{{ '/ferramentas/' + ferramenta.id|string + '/editar' if acao == 'editar' else '/ferramentas/criar' }}">
+    <!-- Mensagem Informativa do Modo -->
+    <div class="alert alert-info mb-lg" style="font-size: 0.8125rem;">
+        <i class="fas fa-info-circle" style="color: var(--color-info);"></i>
+        <div>
+            <strong>Atenção Desenvolvedor:</strong> Este é o modo de edição raiz. Verifique a documentação para garantir que os schemas JSON dos parâmetros batem estritamente com as chaves injetadas no CURL ou Python.
+        </div>
+    </div>
+
+    <form method="POST" action="{{ '/ferramentas/' + ferramenta.id|string + '/editar' if acao == 'editar' else '/ferramentas/criar' }}" class="flex flex-col gap-lg">
+
+        <!-- 1. IDENTIFICAÇÃO BÁSICA -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-tag" style="color: var(--color-text-secondary);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Nomenclatura (OpenAI Spec)</h2>
+            </div>
             
-<!-- Básico -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-info-circle" style="color: #3b82f6;"></i> Informações Básicas
-    </h2>
-                
-                <div class="field">
-                    <label class="label">Nome *</label>
-                    <div class="control">
-                        <input class="input" type="text" name="nome" value="{{ ferramenta.nome if ferramenta else '' }}" required>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">Descrição *</label>
-                    <div class="control">
-                        <textarea class="textarea" name="descricao" rows="3" required>{{ ferramenta.descricao if ferramenta else '' }}</textarea>
-                    </div>
-                </div>
-
-                <div class="columns">
-                    <div class="column">
-                        <div class="field">
-                            <label class="label">Tipo *</label>
-                            <div class="control">
-                                <div class="select is-fullwidth">
-                                    <select name="tool_type" id="tool_type" onchange="toggleTypeFields()">
-                                        <option value="web" {% if ferramenta and ferramenta.tool_type.value == 'web' %}selected{% endif %}>Web (HTTP)</option>
-                                        <option value="code" {% if ferramenta and ferramenta.tool_type.value == 'code' %}selected{% endif %}>Code (Python)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="field">
-                            <label class="label">Escopo *</label>
-                            <div class="control">
-                                <div class="select is-fullwidth">
-                                    <select name="tool_scope">
-                                        <option value="principal" {% if ferramenta and ferramenta.tool_scope.value == 'principal' %}selected{% endif %}>Principal (LLM vê)</option>
-                                        <option value="auxiliar" {% if ferramenta and ferramenta.tool_scope.value == 'auxiliar' %}selected{% endif %}>Auxiliar (Oculta)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="checkbox">
-                        <input type="checkbox" name="ativa" {% if not ferramenta or ferramenta.ativa %}checked{% endif %}>
-                        Ferramenta Ativa
+            <div class="grid grid-cols-2 gap-lg mb-lg">
+                <div class="form-group mb-0" style="grid-column: span 2;">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Nome da Função (Snake Case Recomendado) <span style="color: var(--color-error);">*</span>
                     </label>
+                    <input type="text" class="input" name="nome" value="{{ ferramenta.nome if ferramenta else '' }}" required placeholder="ex: buscar_cep_correios" style="font-size: 0.875rem; width: 100%;">
+                </div>
+
+                <div class="form-group mb-0" style="grid-column: span 2;">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Instrução para o LLM (Descrição exata do que ela faz) <span style="color: var(--color-error);">*</span>
+                    </label>
+                    <textarea class="textarea" name="descricao" rows="2" required placeholder="Use esta ferramenta sempre que o cliente passar um cep..." style="font-size: 0.875rem;">{{ ferramenta.descricao if ferramenta else '' }}</textarea>
                 </div>
             </div>
 
-<!-- Parâmetros -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-brackets-curly" style="color: #f59e0b;"></i> Parâmetros (JSON)
-    </h2>
-                <div class="field">
-                    <div class="control">
-                        <textarea class="textarea code-editor" name="params" rows="6" placeholder='{"param_name": {"type": "string", "required": true, "description": "..."}}'{% if ferramenta and ferramenta.params %}>{{ ferramenta.params }}{% endif %}</textarea>
-                    </div>
-                    <p class="help">Formato JSON com schema dos parâmetros</p>
+            <div class="grid grid-cols-2 gap-lg">
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Tipo de Execução</label>
+                    <select name="tool_type" id="tool_type" onchange="toggleTypeFields()" class="input" style="font-size: 0.875rem; width: 100%;">
+                        <option value="web" {% if ferramenta and ferramenta.tool_type.value == 'web' %}selected{% endif %}>Web Request (REST/HTTP)</option>
+                        <option value="code" {% if ferramenta and ferramenta.tool_type.value == 'code' %}selected{% endif %}>Python Evaluation (Code)</option>
+                    </select>
                 </div>
-            </div>
-
-<!-- Web -->
-<div class="box" id="web_fields" style="margin-bottom: 2rem; {% if ferramenta and ferramenta.tool_type.value != 'web' %}display: none;{% endif %}">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-globe" style="color: #10b981;"></i> Configuração Web (HTTP)
-    </h2>
-                <div class="field">
-                    <label class="label">CURL Command</label>
-                    <div class="control">
-                        <textarea class="textarea code-editor" name="curl_command" rows="8" placeholder="curl -X POST https://api.example.com/endpoint -H 'Authorization: Bearer {var.TOKEN}' -d '{&quot;key&quot;: &quot;{value}&quot;}'">{{ ferramenta.curl_command if ferramenta else '' }}</textarea>
-                    </div>
-                    <p class="help">Comando CURL completo. Use {param} para parâmetros e {var.TOKEN} para variáveis</p>
-                </div>
-            </div>
-
-<!-- Code -->
-<div class="box" id="code_fields" style="margin-bottom: 2rem; {% if not ferramenta or ferramenta.tool_type.value != 'code' %}display: none;{% endif %}">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-code" style="color: #8b5cf6;"></i> Configuração Code (Python)
-    </h2>
-                <div class="field">
-                    <label class="label">Código Python</label>
-                    <div class="control">
-                        <textarea class="textarea code-editor" name="codigo_python" rows="12" placeholder="# Acesse argumentos via: argumentos['param_name']&#10;resultado = {'key': 'value'}">{{ ferramenta.codigo_python if ferramenta else '' }}</textarea>
-                    </div>
-                    <p class="help">Código Python. Use 'argumentos' dict e retorne 'resultado' dict</p>
-                </div>
-            </div>
-
-<!-- Mapeamento -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-exchange-alt" style="color: #ef4444;"></i> Mapeamento de Resposta (JSON)
-    </h2>
-                <div class="field">
-                    <div class="control">
-                        <textarea class="textarea code-editor" name="response_map" rows="4" placeholder='{"campo_original": "campo_mapeado"}'>{{ ferramenta.response_map if ferramenta else '' }}</textarea>
-                    </div>
-                    <p class="help">Mapeia campos da resposta. Exemplo: {"logradouro": "rua", "localidade": "cidade"}</p>
-                </div>
-            </div>
-
-<!-- Destino -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-paper-plane" style="color: #6b7280;"></i> Destino e Saída
-    </h2>
                 
-                <div class="columns">
-                    <div class="column">
-                        <div class="field">
-                            <label class="label">Output</label>
-                            <div class="control">
-                                <div class="select is-fullwidth">
-                                    <select name="output" id="output_select" onchange="toggleChannelField()">
-                                        <option value="llm" {% if not ferramenta or ferramenta.output.value == 'llm' %}selected{% endif %}>LLM</option>
-                                        <option value="user" {% if ferramenta and ferramenta.output.value == 'user' %}selected{% endif %}>User</option>
-                                        <option value="both" {% if ferramenta and ferramenta.output.value == 'both' %}selected{% endif %}>Both</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column" id="channel_field" style="{% if not ferramenta or ferramenta.output.value == 'llm' %}display: none;{% endif %}">
-                        <div class="field">
-                            <label class="label">Canal</label>
-                            <div class="control">
-                                <div class="select is-fullwidth">
-                                    <select name="channel">
-                                        <option value="text" {% if not ferramenta or ferramenta.channel.value == 'text' %}selected{% endif %}>Text</option>
-                                        <option value="image" {% if ferramenta and ferramenta.channel.value == 'image' %}selected{% endif %}>Image</option>
-                                        <option value="audio" {% if ferramenta and ferramenta.channel.value == 'audio' %}selected{% endif %}>Audio</option>
-                                        <option value="video" {% if ferramenta and ferramenta.channel.value == 'video' %}selected{% endif %}>Video</option>
-                                        <option value="document" {% if ferramenta and ferramenta.channel.value == 'document' %}selected{% endif %}>Document</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">Post Instruction</label>
-                    <div class="control">
-                        <textarea class="textarea" name="post_instruction" rows="3" placeholder="Instrução para o LLM processar o resultado">{{ ferramenta.post_instruction if ferramenta else '' }}</textarea>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">Próxima Ferramenta (Encadeamento)</label>
-                    <div class="control">
-                        <input class="input" type="text" name="next_tool" value="{{ ferramenta.next_tool if ferramenta else '' }}" placeholder="nome_da_proxima_ferramenta">
-                    </div>
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Escopo</label>
+                    <select name="tool_scope" class="input" style="font-size: 0.875rem; width: 100%;">
+                        <option value="principal" {% if ferramenta and ferramenta.tool_scope.value == 'principal' %}selected{% endif %}>Main Pipeline (LLM Dispara)</option>
+                        <option value="auxiliar" {% if ferramenta and ferramenta.tool_scope.value == 'auxiliar' %}selected{% endif %}>Background Hook (Invisível)</option>
+                    </select>
                 </div>
             </div>
 
-<!-- Botões -->
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
-    <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 600; border-radius: 8px; padding: 0.75rem 2rem;">
-        <span class="icon"><i class="fas fa-save"></i></span>
-        <span>Salvar Ferramenta</span>
-    </button>
-    <a href="/ferramentas" class="button is-medium" style="border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
-        <span class="icon"><i class="fas fa-times"></i></span>
-        <span>Cancelar</span>
-    </a>
-    {% if acao == 'editar' %}
-    <a href="/ferramentas/wizard/step1?edit={{ ferramenta.id }}" class="button is-medium" style="margin-left: auto; background: linear-gradient(135deg, #8b5cf6 0%, #C75B9B 100%); color: white; border: none; font-weight: 600; border-radius: 8px; padding: 0.75rem 2rem;">
-        <span class="icon"><i class="fas fa-magic"></i></span>
-        <span>Usar Wizard</span>
-    </a>
-    {% endif %}
+            <label class="toggle-row mt-lg" style="display: flex; align-items: flex-start; gap: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); cursor: pointer;">
+                <input type="checkbox" name="ativa" {% if not ferramenta or ferramenta.ativa %}checked{% endif %} style="margin-top: 4px; transform: scale(1.1);">
+                <div class="flex flex-col">
+                    <span style="font-size: 0.9375rem; font-weight: 600; color: var(--color-text-primary);">Disponibilizar Abstração</span>
+                    <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px;">
+                        Se desativado, falhará no uso pelos Agentes.
+                    </span>
+                </div>
+            </label>
+        </div>
+
+        <!-- 2. PARAMETERS SCHEMA -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-brackets-curly" style="color: var(--color-primary);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Parameters JSON Schema</h2>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: var(--space-md);">
+                Defina estritamente o "properties" do function calling. 
+                Estes campos virão sob o injetor na runtime.
+            </p>
+
+            <textarea name="params" rows="5" placeholder='{"cep": {"type": "string", "required": true, "description": "CEP sem traço"}}' style="width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #1e1e1e; color: #d4d4d4; font-family: monospace; font-size: 0.8125rem; padding: 1rem;">{% if ferramenta and ferramenta.params %}{{ ferramenta.params }}{% endif %}</textarea>
+        </div>
+
+        <!-- 3. RUNTIME / EXECUTION MODE -->
+        <!-- Web Mode -->
+        <div class="box" id="web_fields" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); {% if ferramenta and ferramenta.tool_type.value != 'web' %}display: none;{% endif %}">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-globe" style="color: var(--color-success);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">CURL Execution Target</h2>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: var(--space-md);">
+                Use {nome_do_parametro} para injetar dados do LLM, ou {var.NOME_VAR} para credenciais/System Vars.
+            </p>
+            <textarea name="curl_command" rows="6" placeholder="curl -X POST https://api.exemplo.com -H 'Auth: {var.API}' -d '{&quot;cep&quot;: &quot;{cep}&quot;}'" style="width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #0d1117; color: #58a6ff; font-family: monospace; font-size: 0.8125rem; padding: 1rem; line-height: 1.5;">{{ ferramenta.curl_command if ferramenta else '' }}</textarea>
+        </div>
+
+        <!-- Code Mode -->
+        <div class="box" id="code_fields" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm); {% if not ferramenta or ferramenta.tool_type.value != 'code' %}display: none;{% endif %}">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fab fa-python" style="color: #ecc94b;"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Python Evaluation Sandboxed</h2>
+            </div>
+            
+            <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin-bottom: var(--space-md);">
+                O dicionário de args é chamado de <code>argumentos</code>. Você obrigatoriamente tem que setar o dicionário de out no <code>resultado</code>.
+            </p>
+            <textarea name="codigo_python" rows="8" placeholder="# Exemplo\ncep = argumentos.get('cep', '')\n#...\nresultado = {'status': 'ok'}" style="width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #282c34; color: #abb2bf; font-family: monospace; font-size: 0.8125rem; padding: 1rem; line-height: 1.5;">{{ ferramenta.codigo_python if ferramenta else '' }}</textarea>
+        </div>
+
+        <!-- 4. RESPONSE PARSING E OUTPUTS -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-exchange-alt" style="color: var(--color-warning);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Parse & Destino</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-lg mb-lg">
+                <div class="form-group mb-0" style="grid-column: span 2;">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Mapeamento de Response JSON (Opcional)</label>
+                    <textarea name="response_map" rows="2" placeholder='{"campo_cheio": "novo_nome"}' style="width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: monospace; font-size: 0.8125rem; padding: 0.75rem;">{{ ferramenta.response_map if ferramenta else '' }}</textarea>
+                    <p style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Deixa vazio para repassar o response RAW.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-lg mb-lg text-left">
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Destino da Decodificação</label>
+                    <select name="output" id="output_select" onchange="toggleChannelField()" class="input" style="font-size: 0.875rem; width: 100%;">
+                        <option value="llm" {% if not ferramenta or ferramenta.output.value == 'llm' %}selected{% endif %}>LLM (Devolver para o Bot ler)</option>
+                        <option value="user" {% if ferramenta and ferramenta.output.value == 'user' %}selected{% endif %}>User (Enviar mensagem pro WhatsApp)</option>
+                        <option value="both" {% if ferramenta and ferramenta.output.value == 'both' %}selected{% endif %}>Both (Enviar ao Bot e ao Whats)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group mb-0" id="channel_field" style="{% if not ferramenta or ferramenta.output.value == 'llm' %}display: none;{% endif %}">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Formato para Usuário (Sender)</label>
+                    <select name="channel" class="input" style="font-size: 0.875rem; width: 100%;">
+                        <option value="text" {% if not ferramenta or ferramenta.channel.value == 'text' %}selected{% endif %}>Texto Padrão</option>
+                        <option value="image" {% if ferramenta and ferramenta.channel.value == 'image' %}selected{% endif %}>Imagem Link</option>
+                        <option value="audio" {% if ferramenta and ferramenta.channel.value == 'audio' %}selected{% endif %}>Audio OGG PTT</option>
+                        <option value="document" {% if ferramenta and ferramenta.channel.value == 'document' %}selected{% endif %}>Pdf/Zip File</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-lg">
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Instrução Pós-Execução (Hook)</label>
+                    <input type="text" name="post_instruction" value="{{ ferramenta.post_instruction if ferramenta else '' }}" class="input" placeholder="Diga ao usuário que foi concluído..." style="font-size: 0.875rem; width: 100%;">
+                </div>
+
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Trigger Next (Encadeamento Auto)</label>
+                    <input type="text" name="next_tool" value="{{ ferramenta.next_tool if ferramenta else '' }}" class="input" placeholder="nome_outra_ferramenta" style="font-size: 0.875rem; width: 100%;">
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. FINALIZAÇÃO -->
+        <div class="flex items-center justify-end gap-md mt-lg" style="padding-top: var(--space-lg); border-top: 1px solid var(--color-border);">
+            <a href="/ferramentas" class="button is-outline">Descartar</a>
+            <button type="submit" class="button is-primary">
+                Salvar Specs da Função
+            </button>
+        </div>
+
+    </form>
 </div>
-</form>
 
 <script>
 function toggleTypeFields() {

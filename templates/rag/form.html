@@ -1,194 +1,180 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ 'Editar' if acao == 'editar' else 'Novo' }} Treinamento - Fluxi.IA{% endblock %}
+{% block title %}{{ 'Detalhes do Banco Mestre' if acao == 'editar' else 'Novo Módulo RAG' }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-        <div style="width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <i class="fas fa-{% if acao == 'editar' %}edit{% else %}plus-circle{% endif %}" style="color: white; font-size: 1.5rem;"></i>
-        </div>
-        <div style="flex: 1; min-width: 0;">
-            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
-                {{ 'Editar' if acao == 'editar' else 'Novo' }} Treinamento
+<div class="container" style="max-width: 900px;">
+    <!-- Page Header Menor e Contido -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-{% if acao == 'editar' %}database{% else %}plus-square{% endif %} text-primary mb-xs"></i> 
+                {{ 'Configurações de Storage' if acao == 'editar' else 'Novo Módulo Database RAG' }}
             </h1>
-            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
-                Configure a base de conhecimento especializado
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/rags" style="color: var(--color-text-secondary); text-decoration: none;">Knowledge Bases</a> / 
+                <span style="color: var(--color-text-primary);">Configuração Mestre</span>
             </p>
         </div>
-    </div>
-</div>
-
-{% if erro %}
-<div class="notification is-danger" style="margin-bottom: 2rem;">
-    <button class="delete"></button>
-    <strong>Erro:</strong> {{ erro }}
-</div>
-{% endif %}
-
-<form method="POST">
-    
-<!-- Informações Básicas -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-info-circle" style="color: #3b82f6;"></i> Informações Básicas
-    </h2>
-    
-    <div class="field">
-        <label class="label">Nome do Treinamento *</label>
-        <div class="control">
-            <input class="input" type="text" name="nome" value="{{ rag.nome if rag else '' }}" required>
-        </div>
-        <p class="help">Nome único para identificar este treinamento</p>
+        
+        {% if acao == 'editar' %}
+        <a href="/rags/{{ rag.id }}/texto" class="button is-small is-outline" style="border-color: var(--color-primary); color: var(--color-primary);">
+            <i class="fas fa-file-import" style="margin-right: 4px;"></i> Injetar Documentos
+        </a>
+        {% endif %}
     </div>
 
-    <div class="field">
-        <label class="label">Descrição</label>
-        <div class="control">
-            <textarea class="textarea" name="descricao" rows="3">{{ rag.descricao if rag else '' }}</textarea>
-        </div>
-        <p class="help">Descreva o propósito e conteúdo desta base de conhecimento</p>
+    {% if erro %}
+    <div class="alert alert-error mb-lg">
+        <i class="fas fa-exclamation-circle"></i> <strong>Falha na Requisição:</strong> {{ erro }}
     </div>
-    
-    <div class="field">
-        <label class="checkbox">
-            <input type="checkbox" name="ativo" {% if not rag or rag.ativo %}checked{% endif %}>
-            Treinamento Ativo
-        </label>
-    </div>
-</div>
-
-<!-- Configuração de Embeddings -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-robot" style="color: #10b981;"></i> Configuração de Embeddings
-    </h2>
-    
-    <div class="columns">
-        <div class="column">
-            <div class="field">
-                <label class="label">Provider *</label>
-                <div class="control">
-                    <div class="select is-fullwidth">
-                        <select name="provider" id="provider_select" onchange="updateModelOptions()">
-                            {% for provider in providers %}
-                            <option value="{{ provider }}" {% if not rag or rag.provider == provider %}selected{% endif %}>{{ provider|title }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="field">
-                <label class="label">Modelo de Embedding *</label>
-                <div class="control">
-                    <input class="input" type="text" name="modelo_embed" id="modelo_embed" value="{{ rag.modelo_embed if rag else default_config.modelo_embed }}" required>
-                </div>
-                <p class="help">Modelo para gerar embeddings vetoriais</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="field">
-        <label class="label">API Key do Provider</label>
-        <div class="control">
-            <input class="input" type="password" name="api_key_embed" placeholder="Deixe em branco para manter a atual" {% if not rag %}required{% endif %}>
-        </div>
-        <p class="help">Chave API para o provider de embeddings selecionado</p>
-    </div>
-</div>
-
-<!-- Configuração de Chunking -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-scissors" style="color: #f59e0b;"></i> Configuração de Chunking
-    </h2>
-    
-    <div class="columns">
-        <div class="column">
-            <div class="field">
-                <label class="label">Tamanho do Chunk</label>
-                <div class="control">
-                    <input class="input" type="number" name="chunk_size" value="{{ rag.chunk_size if rag else default_config.chunk_size }}" min="100" max="5000">
-                </div>
-                <p class="help">Número de caracteres por chunk (100-5000)</p>
-            </div>
-        </div>
-        <div class="column">
-            <div class="field">
-                <label class="label">Overlap entre Chunks</label>
-                <div class="control">
-                    <input class="input" type="number" name="chunk_overlap" value="{{ rag.chunk_overlap if rag else default_config.chunk_overlap }}" min="0" max="1000">
-                </div>
-                <p class="help">Sobreposição para manter contexto (0-1000)</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Configuração de Retrieval -->
-<div class="box" style="margin-bottom: 2rem;">
-    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
-        <i class="fas fa-search" style="color: #8b5cf6;"></i> Configuração de Busca
-    </h2>
-    
-    <div class="columns">
-        <div class="column">
-            <div class="field">
-                <label class="label">Top K (Resultados)</label>
-                <div class="control">
-                    <input class="input" type="number" name="top_k" value="{{ rag.top_k if rag else default_config.top_k }}" min="1" max="20">
-                </div>
-                <p class="help">Número de resultados mais relevantes a retornar</p>
-            </div>
-        </div>
-        <div class="column">
-            <div class="field">
-                <label class="label">Score Threshold (Opcional)</label>
-                <div class="control">
-                    <input class="input" type="text" name="score_threshold" value="{{ rag.score_threshold if rag else default_config.score_threshold_default }}" placeholder="0.7">
-                </div>
-                <p class="help">Similaridade mínima (0.0 a 1.0)</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Botões -->
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
-    <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 600; border-radius: 8px; padding: 0.75rem 2rem;">
-        <span class="icon"><i class="fas fa-save"></i></span>
-        <span>Salvar Treinamento</span>
-    </button>
-    <a href="/rags" class="button is-medium" style="border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
-        <span class="icon"><i class="fas fa-times"></i></span>
-        <span>Cancelar</span>
-    </a>
-    {% if acao == 'editar' %}
-    <a href="/rags/{{ rag.id }}/documentos" class="button is-medium" style="margin-left: auto; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; font-weight: 600; border-radius: 8px; padding: 0.75rem 2rem;">
-        <span class="icon"><i class="fas fa-folder-open"></i></span>
-        <span>Gerenciar Documentos</span>
-    </a>
     {% endif %}
+
+    <form method="POST" class="flex flex-col gap-lg">
+        
+        <!-- 1. IDENTIFICAÇÃO DO BANCO -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center gap-sm mb-md" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <i class="fas fa-tag" style="color: var(--color-text-secondary);"></i>
+                <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Identificação do Módulo</h2>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-lg mb-lg">
+                <div class="form-group mb-0" style="grid-column: span 2;">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Nome do Datalake <span style="color: var(--color-error);">*</span>
+                    </label>
+                    <input type="text" class="input" name="nome" value="{{ rag.nome if rag else '' }}" required placeholder="ex: manuais_saas_2024" style="font-size: 0.875rem; width: 100%;">
+                </div>
+
+                <div class="form-group mb-0" style="grid-column: span 2;">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+                        Descrição Breve Interna
+                    </label>
+                    <textarea class="textarea" name="descricao" rows="2" placeholder="Descreva aqui os domínios extraídos." style="font-size: 0.875rem;">{{ rag.descricao if rag else '' }}</textarea>
+                </div>
+            </div>
+
+            <label class="toggle-row mt-lg" style="display: flex; align-items: flex-start; gap: var(--space-md); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); cursor: pointer;">
+                <input type="checkbox" name="ativo" {% if not rag or rag.ativo %}checked{% endif %} style="margin-top: 4px; transform: scale(1.1);">
+                <div class="flex flex-col">
+                    <span style="font-size: 0.9375rem; font-weight: 600; color: var(--color-text-primary);">Módulo de Consulta Ativo</span>
+                    <span style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px;">
+                        Se desativado, falhará a injeção em agentes mesmo que os parâmetros estejam lá.
+                    </span>
+                </div>
+            </label>
+        </div>
+
+        <!-- 2. VECTOR E EMBEDDING SPECS -->
+        <div class="box" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+            <div class="flex items-center justify-between mb-md" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                <div class="flex items-center gap-sm">
+                    <i class="fas fa-microchip" style="color: var(--color-primary);"></i>
+                    <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Engine de Embeddings</h2>
+                </div>
+                <i class="fas fa-robot text-muted" title="Modelos de conversão vectorial."></i>
+            </div>
+
+            <div class="grid grid-cols-2 gap-lg mb-lg">
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">API Provider Engine <span style="color: var(--color-error);">*</span></label>
+                    <select name="provider" id="provider_select" onchange="updateModelOptions()" class="input" style="font-size: 0.875rem; width: 100%;">
+                        {% for provider in providers %}
+                        <option value="{{ provider }}" {% if not rag or rag.provider == provider %}selected{% endif %}>{{ provider|title }} Base</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group mb-0">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Model Architecture <span style="color: var(--color-error);">*</span></label>
+                    <input type="text" class="input" name="modelo_embed" id="modelo_embed" value="{{ rag.modelo_embed if rag else default_config.modelo_embed }}" required style="font-size: 0.875rem; width: 100%;">
+                </div>
+            </div>
+
+            <div class="form-group mb-0">
+                <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Override API Key</label>
+                <input type="password" class="input" name="api_key_embed" placeholder="********** (Omitir para fallback no .env global)" {% if not rag %}required{% endif %} style="font-size: 0.875rem; width: 100%;">
+            </div>
+        </div>
+
+        <!-- 3. RETRIEVAL & CHUNKING K->V -->
+        <div class="grid grid-cols-2 gap-lg">
+            <div class="box flex flex-col" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                <div class="flex items-center gap-sm mb-md" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-layer-group" style="color: var(--color-warning);"></i>
+                    <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Chunking Strategy</h2>
+                </div>
+                
+                <div class="form-group mb-md">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Chunk Size (Tokens)</label>
+                    <input type="number" class="input" name="chunk_size" value="{{ rag.chunk_size if rag else default_config.chunk_size }}" min="100" max="5000" style="font-size: 0.875rem; width: 100%;">
+                    <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Recortar documento por partes.</div>
+                </div>
+
+                <div class="form-group mb-0 mt-auto">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Context Overlap</label>
+                    <input type="number" class="input" name="chunk_overlap" value="{{ rag.chunk_overlap if rag else default_config.chunk_overlap }}" min="0" max="1000" style="font-size: 0.875rem; width: 100%;">
+                </div>
+            </div>
+
+            <div class="box flex flex-col" style="padding: var(--space-xl); border: none; box-shadow: var(--shadow-sm);">
+                <div class="flex items-center gap-sm mb-md" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+                    <i class="fas fa-search" style="color: var(--color-success);"></i>
+                    <h2 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">Retrieval Params</h2>
+                </div>
+                
+                <div class="form-group mb-md">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Top K (Hits)</label>
+                    <input type="number" class="input" name="top_k" value="{{ rag.top_k if rag else default_config.top_k }}" min="1" max="20" style="font-size: 0.875rem; width: 100%;">
+                    <div class="form-hint" style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 4px;">Quantos blocos injetar na memória.</div>
+                </div>
+
+                <div class="form-group mb-0 mt-auto">
+                    <label style="display: block; font-size: 0.8125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Score Min (Cosine/L2)</label>
+                    <input type="text" class="input" name="score_threshold" value="{{ rag.score_threshold if rag else default_config.score_threshold_default }}" placeholder="0.75" style="font-size: 0.875rem; width: 100%;">
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. FINALIZAÇÃO -->
+        <div class="flex items-center justify-end gap-md mt-lg" style="padding-top: var(--space-lg); border-top: 1px solid var(--color-border);">
+            <a href="/rags" class="button is-outline">Abortar Processo</a>
+            <button type="submit" class="button is-primary">
+                {{ 'Salvar Metadados DB' if acao == 'editar' else 'Adicionar Módulo' }}
+            </button>
+        </div>
+
+    </form>
 </div>
-</form>
 
 <script>
 function updateModelOptions() {
     const provider = document.getElementById('provider_select').value;
     const modelInput = document.getElementById('modelo_embed');
-    
-    // Usar configurações do servidor se disponíveis
+    const apiKeyInput = document.querySelector('input[name="api_key_embed"]');
+
+    // Fallback dictionary
     const defaultModels = {
         'openai': '{{ default_config.modelo_embed if default_config else "text-embedding-3-small" }}',
+        'openrouter': 'openai/text-embedding-3-small',
         'cohere': 'embed-english-v3.0',
         'huggingface': 'sentence-transformers/all-mpnet-base-v2',
         'google': 'models/embedding-001'
     };
-    
+
     modelInput.value = defaultModels[provider] || 'text-embedding-3-small';
+
+    // Se for OpenRouter, ajustar placeholder da API Key
+    if (apiKeyInput) {
+        if (provider === 'openrouter') {
+            apiKeyInput.placeholder = 'sk-or-v1-... (OpenRouter API Key)';
+        } else if (provider === 'openai') {
+            apiKeyInput.placeholder = 'sk-... (OpenAI API Key)';
+        } else {
+            apiKeyInput.placeholder = '********** (API Key)';
+        }
+    }
 }
 </script>
-
 {% endblock %}

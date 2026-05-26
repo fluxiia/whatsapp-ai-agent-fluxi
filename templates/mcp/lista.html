@@ -1,176 +1,187 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
 {% block title %}MCP Clients - {{ agente.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<!-- Page Header -->
-<div style="margin-bottom: 2rem;">
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
-        <div style="min-width: 0; flex: 1;">
-            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
-                <i class="fas fa-plug" style="color: #8b5cf6;"></i> Servidores MCP
+<div class="container" style="max-width: 1200px;">
+    
+    <!-- Page Header Mission Control -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-plug text-primary mb-xs" style="color: #6366f1;"></i> Servidores MCP (Ferramentas Remotas)
             </h1>
-            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0.5rem !important; line-height: 1.4;">
-                Conecte ferramentas externas ao agente <strong>{{ agente.nome }}</strong>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <a href="/agentes/sessao/{{ agente.sessao_id }}" style="color: var(--color-text-secondary); text-decoration: none;">Agentes Locais</a> / 
+                <a href="/agentes/{{ agente.id }}/detalhes" style="color: var(--color-text-secondary); text-decoration: none;">{{ agente.nome }}</a> / 
+                <span style="color: var(--color-text-primary);">MCP Mesh Topology</span>
             </p>
-            <nav style="font-size: 0.875rem; color: #9ca3af;">
-                <a href="/agentes/sessao/{{ agente.sessao_id }}" style="color: #6b7280; text-decoration: none;">Agentes</a>
-                <span style="margin: 0 0.5rem;">/</span>
-                <a href="/agentes/{{ agente.id }}/detalhes" style="color: #6b7280; text-decoration: none;">{{ agente.nome }}</a>
-                <span style="margin: 0 0.5rem;">/</span>
-                <span style="color: #1f2937; font-weight: 500;">MCP Clients</span>
-            </nav>
         </div>
-        <div style="flex-shrink: 0; display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
-            {% if pode_adicionar %}
-            <a href="/mcp/agente/{{ agente.id }}/json-config" class="button is-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; border: none; font-weight: 600; border-radius: 8px;">
-                <span class="icon"><i class="fas fa-plug"></i></span>
-                <span>Conectar MCP</span>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/mcp/galeria?agente_id={{ agente.id }}" class="button is-small is-outline" title="Galeria pública de servidores MCP">
+                <i class="fas fa-store" style="margin-right: 6px;"></i> Galeria
             </a>
+            <a href="/mcp/presets?agente_id={{ agente.id }}" class="button is-small is-outline" title="Presets plug-and-play">
+                <i class="fas fa-bolt" style="margin-right: 6px;"></i> Presets
+            </a>
+            {% if pode_adicionar %}
+                <a href="/mcp/agente/{{ agente.id }}/json-config" class="button is-small is-primary" style="background: #6366f1; border: none;">
+                    <i class="fas fa-satellite-dish" style="margin-right: 6px;"></i> Conectar Node MCP
+                </a>
             {% else %}
-            <button class="button is-medium" style="background: #9ca3af; color: white; border: none; font-weight: 600; border-radius: 8px; cursor: not-allowed;" disabled title="Limite de 5 servidores atingido">
-                <span class="icon"><i class="fas fa-ban"></i></span>
-                <span>Limite Atingido</span>
-            </button>
+                <button class="button is-small text-muted" style="background: var(--color-surface); cursor: not-allowed;" title="Limite de {{ limite_mcp_clients }} servidores atingido">
+                    <i class="fas fa-ban" style="margin-right: 6px;"></i> Quota Atingida ({{ limite_mcp_clients }})
+                </button>
             {% endif %}
         </div>
     </div>
-    
-    <!-- Stats -->
-    <div style="background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 2px solid #c4b5fd; border-radius: 12px; padding: 1.25rem; display: inline-flex; align-items: center; gap: 1rem;">
-        <div style="width: 48px; height: 48px; border-radius: 10px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); display: flex; align-items: center; justify-content: center;">
-            <i class="fas fa-server" style="color: white; font-size: 1.25rem;"></i>
-        </div>
-        <div>
-            <p style="font-size: 0.875rem; color: #5b21b6; margin-bottom: 0.25rem;">Servidores MCP Configurados</p>
-            <p style="font-size: 1.75rem; font-weight: 800; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; line-height: 1;">{{ total_mcp_clients }}/{{ limite_mcp_clients }}</p>
-        </div>
-    </div>
-</div>
 
-<!-- Info Box -->
-<div class="box" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #7dd3fc; margin-bottom: 2rem;">
-    <h3 style="font-size: 1.25rem; font-weight: 700; color: #0c4a6e; margin-bottom: 1rem;">
-        <i class="fas fa-info-circle"></i> O que é MCP?
-    </h3>
-    <p style="color: #0c4a6e; line-height: 1.7; margin-bottom: 1rem;">
-        <strong>Model Context Protocol (MCP)</strong> é um protocolo padronizado que permite conectar seu agente a servidores externos que expõem ferramentas (tools) especializadas.
-    </p>
-    <div style="display: grid; gap: 0.75rem;">
-        <div style="display: flex; gap: 0.75rem; align-items: start;">
-            <span style="background: #0ea5e9; color: white; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.75rem; flex-shrink: 0;">1</span>
-            <span style="color: #0c4a6e;"><strong>Conecte servidores:</strong> STDIO (comando local) ou HTTP (servidor remoto)</span>
+    <!-- Cluster de Volume Rápido -->
+    <div class="grid grid-cols-4 gap-md mb-lg">
+        <div class="box flex flex-col justify-center p-md" style="border: none; box-shadow: var(--shadow-sm); border-left: 4px solid #6366f1;">
+            <span style="display: block; font-size: 0.75rem; color: var(--color-text-secondary); text-transform: uppercase; margin-bottom: 4px;">Rede MCP Conectada</span>
+            <span style="font-size: 1.75rem; font-weight: 700; color: var(--color-text-primary);">{{ total_mcp_clients }} / {{ limite_mcp_clients }}</span>
         </div>
-        <div style="display: flex; gap: 0.75rem; align-items: start;">
-            <span style="background: #0ea5e9; color: white; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.75rem; flex-shrink: 0;">2</span>
-            <span style="color: #0c4a6e;"><strong>Sincronize automaticamente:</strong> As tools do servidor ficam disponíveis para o agente</span>
-        </div>
-        <div style="display: flex; gap: 0.75rem; align-items: start;">
-            <span style="background: #0ea5e9; color: white; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.75rem; flex-shrink: 0;">3</span>
-            <span style="color: #0c4a6e;"><strong>LLM decide:</strong> O modelo escolhe quando usar cada tool baseado no contexto</span>
-        </div>
-    </div>
-</div>
 
-{% if mcp_clients %}
-<div class="columns is-multiline">
-    {% for mcp_client in mcp_clients %}
-    <div class="column is-12-mobile is-6-tablet is-4-desktop">
-        <div class="card" style="height: 100%; border: 2px solid #e5e7eb; border-radius: 12px; overflow: hidden; transition: all 0.3s; {% if mcp_client.conectado %}border-left: 4px solid #8b5cf6;{% else %}border-left: 4px solid #ef4444;{% endif %}">
-            <div class="card-content" style="padding: 1.5rem;">
-                <div style="display: flex; align-items: start; gap: 1rem; margin-bottom: 1rem;">
-                    <div style="width: 56px; height: 56px; border-radius: 12px; background: {% if mcp_client.conectado %}linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%){% else %}#ef4444{% endif %}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                        <i class="fas fa-{% if mcp_client.transport_type == 'stdio' %}terminal{% elif mcp_client.transport_type == 'streamable-http' %}globe{% else %}server{% endif %}" style="font-size: 1.5rem; color: white;"></i>
-                    </div>
-                    <div style="flex: 1; min-width: 0;">
-                        <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 0.5rem;">{{ mcp_client.nome }}</h3>
-                        <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.6;">{{ mcp_client.descricao or 'Sem descrição' }}</p>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;">
-                    {% if mcp_client.conectado %}
-                    <span style="background: #dcfce7; color: #166534; padding: 0.375rem 0.875rem; border-radius: 50px; font-size: 0.75rem; font-weight: 600;">
-                        <i class="fas fa-check-circle"></i> Conectado
-                    </span>
-                    {% else %}
-                    <span style="background: #fee2e2; color: #991b1b; padding: 0.375rem 0.875rem; border-radius: 50px; font-size: 0.75rem; font-weight: 600;">
-                        <i class="fas fa-times-circle"></i> Desconectado
-                    </span>
-                    {% endif %}
-                    
-                    <span style="background: #e0e7ff; color: #3730a3; padding: 0.375rem 0.875rem; border-radius: 50px; font-size: 0.75rem; font-weight: 600;">
-                        <i class="fas fa-magic"></i> {{ mcp_client.total_tools }} tools
-                    </span>
-                    
-                    <span style="background: #fef3c7; color: #92400e; padding: 0.375rem 0.875rem; border-radius: 50px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
-                        {{ mcp_client.transport_type }}
-                    </span>
-                </div>
-                
-                {% if mcp_client.server_name %}
-                <div style="font-size: 0.8125rem; color: #9ca3af; margin-bottom: 0.75rem;">
-                    <strong>Server:</strong> {{ mcp_client.server_name }}<br>
-                    {% if mcp_client.server_version %}
-                    <strong>Versão:</strong> {{ mcp_client.server_version }}
-                    {% endif %}
-                </div>
-                {% endif %}
-                
-                {% if mcp_client.ultimo_erro %}
-                <div style="background: #fee2e2; border-left: 3px solid #ef4444; padding: 0.75rem; border-radius: 6px; font-size: 0.8125rem; color: #991b1b; margin-bottom: 0.75rem;">
-                    <strong>Erro:</strong> {{ mcp_client.ultimo_erro[:80] }}{% if mcp_client.ultimo_erro|length > 80 %}...{% endif %}
-                </div>
-                {% endif %}
-                
-                <p style="font-size: 0.8125rem; color: #9ca3af;">
-                    <i class="fas fa-calendar-plus"></i> {{ mcp_client.criado_em.strftime('%d/%m/%Y %H:%M') }}
+        <div style="grid-column: span 3;" class="box p-md" style="border: none; box-shadow: var(--shadow-sm); background: #0f172a; display: flex; align-items: center; gap: var(--space-md);">
+            <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(56, 189, 248, 0.1); display: flex; items-center; justify-content: center; flex-shrink: 0; color: #38bdf8;">
+                <i class="fas fa-info-circle fa-lg mt-sm"></i>
+            </div>
+            <div>
+                <h3 style="font-size: 0.875rem; font-weight: 600; color: #f8fafc; margin-bottom: 4px;">Topologia de Model Context Protocol (MCP)</h3>
+                <p style="font-size: 0.8125rem; color: #94a3b8; line-height: 1.4;">
+                    1. Acople um novo node via STDIO ou Streamable-HTTP. <br>
+                    2. Faça o <strong style="color:#7dd3fc;">Sync Pull</strong> para baixar o registro de tools disponíveis no node. <br>
+                    3. O llm inference engine (cérebro do agente) acionará essas sub-rotinas automaticamente quando necessário.
                 </p>
             </div>
-            
-            <footer style="display: grid; grid-template-columns: repeat(3, 1fr); border-top: 2px solid #e5e7eb;">
-                <a href="/mcp/clients/{{ mcp_client.id }}/tools" style="padding: 0.875rem; text-align: center; color: #8b5cf6; font-weight: 600; text-decoration: none; transition: all 0.2s; font-size: 0.875rem;">
-                    <span class="icon"><i class="fas fa-magic"></i></span>
-                    <span>Tools</span>
-                </a>
-                
-                <button onclick="sincronizarMCP({{ mcp_client.id }})" style="padding: 0.875rem; text-align: center; color: #3b82f6; font-weight: 600; transition: all 0.2s; border: none; background: none; cursor: pointer; border-left: 2px solid #e5e7eb; font-size: 0.875rem;">
-                    <span class="icon"><i class="fas fa-sync"></i></span>
-                    <span>Sync</span>
-                </button>
-                
-                <button onclick="deletarMCP({{ mcp_client.id }}, '{{ mcp_client.nome }}')" style="padding: 0.875rem; text-align: center; color: #ef4444; font-weight: 600; transition: all 0.2s; border: none; background: none; cursor: pointer; border-left: 2px solid #e5e7eb; font-size: 0.875rem;">
-                    <span class="icon"><i class="fas fa-trash"></i></span>
-                    <span>Deletar</span>
-                </button>
-            </footer>
         </div>
     </div>
-    {% endfor %}
-</div>
-{% else %}
-<div style="text-align: center; padding: 4rem 2rem; background: white; border: 2px dashed #e5e7eb; border-radius: 12px;">
-    <div style="margin-bottom: 1.5rem;">
-        <span style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%); display: inline-flex; align-items: center; justify-content: center;">
-            <i class="fas fa-plug" style="font-size: 2.5rem; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
-        </span>
+
+    <!-- Interface Estilo Tabela Alta Densidade -->
+    <div class="box" style="padding: 0; overflow: hidden; border: none; box-shadow: var(--shadow-sm); min-height: 500px;">
+        <div class="flex items-center gap-sm" style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border);">
+            <i class="fas fa-server text-primary"></i>
+            <h2 style="font-size: 0.875rem; font-weight: 600; color: var(--color-text-primary);">Inventário de Nodes MCP</h2>
+        </div>
+        
+        {% if mcp_clients %}
+            <table class="table is-fullwidth" style="margin: 0; font-size: 0.8125rem;">
+                <thead style="background: var(--color-surface);">
+                    <tr>
+                        <th style="padding: var(--space-sm) var(--space-lg); width: 40px;">Status</th>
+                        <th style="width: 250px;">Serviço (Host)</th>
+                        <th>Transporte / Endpoint</th>
+                        <th>Metrics</th>
+                        <th style="width: 250px;">Diagnóstico</th>
+                        <th style="text-align: right; padding-right: var(--space-lg); width: 140px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mcp_client in mcp_clients %}
+                    <tr style="border-bottom: 1px solid var(--color-border); transition: background 0.2s;" onmouseover="this.style.background='var(--color-surface)'" onmouseout="this.style.background='transparent'">
+                        
+                        <!-- Coluna 1: Status LED -->
+                        <td style="padding: var(--space-md) var(--space-lg); vertical-align: middle; text-align: center;">
+                            {% if mcp_client.conectado %}
+                                <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--color-success); box-shadow: 0 0 8px var(--color-success); margin: 0 auto;" title="Conectado / Saudável"></div>
+                            {% else %}
+                                <div style="width: 10px; height: 10px; border-radius: 50%; background: var(--color-error); box-shadow: 0 0 8px var(--color-error); margin: 0 auto;" title="Loss of Signal"></div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Coluna 2: Serviço/Host -->
+                        <td style="vertical-align: middle;">
+                            <div class="flex flex-col">
+                                <span style="font-weight: 700; color: var(--color-text-primary); font-size: 0.9375rem;">{{ mcp_client.nome }}</span>
+                                <span style="font-size: 0.75rem; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px;" title="{{ mcp_client.descricao }}">
+                                    {{ mcp_client.descricao or 'N/A' }}
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- Coluna 3: Protocolo/Transport -->
+                        <td style="vertical-align: middle;">
+                            <div class="flex items-center gap-xs">
+                                {% if mcp_client.transport_type.value == 'stdio' or mcp_client.transport_type == 'stdio' %}
+                                    <span class="tag" style="background: var(--color-info-light); color: var(--color-info); font-family: monospace; font-size: 0.65rem;">
+                                        <i class="fas fa-terminal"></i> STDIO
+                                    </span>
+                                {% else %}
+                                    <span class="tag" style="background: var(--color-warning-light); color: var(--color-warning); font-family: monospace; font-size: 0.65rem;">
+                                        <i class="fas fa-globe"></i> HTTP
+                                    </span>
+                                {% endif %}
+                                
+                                {% if mcp_client.server_name %}
+                                    <span style="font-size: 0.7rem; color: var(--color-text-primary); font-weight: 600;">{{ mcp_client.server_name }}</span>
+                                    <span style="font-size: 0.65rem; color: var(--color-text-muted);">{{ mcp_client.server_version or 'v?' }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Coluna 4: Metrics/Tools -->
+                        <td style="vertical-align: middle;">
+                            <span class="tag" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); font-family: monospace; font-size: 0.75rem;">
+                                {{ mcp_client.total_tools }} tools ativas
+                            </span>
+                        </td>
+
+                        <!-- Coluna 5: Diagnóstico -->
+                        <td style="vertical-align: middle;">
+                            {% if mcp_client.ultimo_erro %}
+                                <div style="font-size: 0.7rem; color: var(--color-error); font-family: monospace; background: var(--color-error-light); padding: 4px; border-radius: 4px; border: 1px solid var(--color-error); max-width: 230px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ mcp_client.ultimo_erro }}">
+                                    ERRO: {{ mcp_client.ultimo_erro }}
+                                </div>
+                            {% else %}
+                                <span style="font-size: 0.7rem; color: var(--color-success); font-family: monospace;">OK_STATUS</span>
+                            {% endif %}
+                            <div style="font-size: 0.65rem; color: var(--color-text-muted); margin-top: 4px;">Add: {{ mcp_client.criado_em.strftime('%y-%m-%d %H:%M') }}</div>
+                        </td>
+
+                        <!-- Coluna 6: Ações Rúbricas -->
+                        <td style="vertical-align: middle; text-align: right; padding-right: var(--space-lg);">
+                            <div class="flex items-center justify-end gap-xs">
+                                <button onclick="sincronizarMCP({{ mcp_client.id }})" class="button is-small is-outline text-primary" style="padding: 2px 8px; border: none; background: transparent;" title="Sincronizar Tools do Node (Pull)">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <a href="/mcp/clients/{{ mcp_client.id }}/tools" class="button is-small is-outline text-info" style="padding: 2px 8px; border: none; background: transparent;" title="Inspecionar Tools">
+                                    <i class="fas fa-microscope"></i>
+                                </a>
+                                <button onclick="deletarMCP({{ mcp_client.id }}, '{{ mcp_client.nome }}')" class="button is-small is-outline text-error" style="padding: 2px 8px; border: none; background: transparent;" title="Desacoplar Node">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="flex flex-col items-center justify-center text-center" style="padding: 6rem 2rem;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-surface); display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-md);">
+                    <i class="fas fa-plug" style="font-size: 2.5rem; color: var(--color-text-muted);"></i>
+                </div>
+                <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Nenhum Node MCP Conectado</h3>
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary); max-width: 400px; margin-bottom: var(--space-md);">
+                    O agente está restrito às ferramentas locais. Acople um servidor MCP para injetar novas skills remotas.
+                </p>
+                {% if pode_adicionar %}
+                    <a href="/mcp/agente/{{ agente.id }}/json-config" class="button is-small is-primary" style="background: #6366f1; border: none;">
+                        <i class="fas fa-plus"></i> Iniciar Acoplamento
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
     </div>
-    <h3 class="title is-4" style="margin-bottom: 0.75rem;">Nenhum servidor MCP conectado</h3>
-    <p style="color: #6b7280; margin-bottom: 2rem; line-height: 1.7; max-width: 600px; margin-left: auto; margin-right: auto;">
-        Conecte servidores MCP para adicionar ferramentas especializadas ao seu agente. Você pode conectar até <strong>5 servidores MCP</strong> por agente.
-    </p>
-    {% if pode_adicionar %}
-    <a href="/mcp/agente/{{ agente.id }}/json-config" class="button is-primary is-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border: none; border-radius: 8px; font-weight: 600;">
-        <span class="icon"><i class="fas fa-plug"></i></span>
-        <span>Conectar MCP</span>
-    </a>
-    {% endif %}
+
 </div>
-{% endif %}
 
 <script>
 async function sincronizarMCP(mcpClientId) {
-    if (!confirm('Sincronizar tools deste servidor MCP?')) return;
+    if (!confirm('Executar Sync Pull para baixar/atualizar ferramentas do node selecionado?')) return;
     
     try {
         const response = await fetch(`/api/mcp/clients/${mcpClientId}/sincronizar`, {
@@ -183,15 +194,15 @@ async function sincronizarMCP(mcpClientId) {
             alert(`✅ ${data.mensagem}`);
             location.reload();
         } else {
-            alert(`❌ Erro: ${data.detail}`);
+            alert(`❌ Falha de Sync: ${data.detail}`);
         }
     } catch (error) {
-        alert(`❌ Erro ao sincronizar: ${error.message}`);
+        alert(`❌ Erro Fatal de I/O: ${error.message}`);
     }
 }
 
 async function deletarMCP(mcpClientId, nome) {
-    if (!confirm(`Tem certeza que deseja deletar o servidor MCP "${nome}"?\n\nIsso removerá todas as tools associadas.`)) return;
+    if (!confirm(`[WARNING] Tem certeza que quer desacoplar o node MCP "${nome}"?\nTools e conexões ativas serão mortas imediatamente.`)) return;
     
     try {
         const response = await fetch(`/api/mcp/clients/${mcpClientId}`, {
@@ -199,16 +210,14 @@ async function deletarMCP(mcpClientId, nome) {
         });
         
         if (response.ok) {
-            alert('✅ Servidor MCP deletado com sucesso!');
             location.reload();
         } else {
             const data = await response.json();
-            alert(`❌ Erro: ${data.detail}`);
+            alert(`❌ Erro no Desacoplamento: ${data.detail}`);
         }
     } catch (error) {
-        alert(`❌ Erro ao deletar: ${error.message}`);
+        alert(`❌ Fatal Error: ${error.message}`);
     }
 }
 </script>
-
 {% endblock %}

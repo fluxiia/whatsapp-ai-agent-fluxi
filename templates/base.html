@@ -816,6 +816,7 @@
     </style>
     
     {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
     <!-- Mobile Overlay -->
@@ -867,6 +868,18 @@
                 <a href="/provedores-llm" class="nav-link">
                     <span class="nav-icon"><i class="fas fa-server"></i></span>
                     <span class="nav-text">Provedores LLM</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/coding" class="nav-link">
+                    <span class="nav-icon"><i class="fas fa-code"></i></span>
+                    <span class="nav-text">Coding Agent</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/internal-sandbox/" class="nav-link">
+                    <span class="nav-icon"><i class="fas fa-terminal"></i></span>
+                    <span class="nav-text">Sandbox Interno</span>
                 </a>
             </div>
             <div class="nav-item">
@@ -995,5 +1008,6 @@
     </script>
     
     {% block extra_js %}{% endblock %}
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>

@@ -1,178 +1,159 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ titulo }} - Fluxi{% endblock %}
+{% block title %}Pairing - {{ sessao.nome }} - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="hero is-primary is-small">
-    <div class="hero-body">
-        <h1 class="title">
-            <i class="fab fa-whatsapp"></i> Conectar WhatsApp
+<div class="container" style="max-width: 800px; padding-top: var(--space-2xl);">
+    <!-- Header Centralizado -->
+    <div style="text-align: center; margin-bottom: var(--space-2xl);">
+        <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-xs);">
+            <i class="fab fa-whatsapp text-primary" style="margin-right: 8px; color: #25D366;"></i> WhatsApp Bridge
         </h1>
-        <p class="subtitle">
-            {{ sessao.nome }}
+        <p style="color: var(--color-text-secondary); font-size: 0.875rem;">
+            Ponto de acoplamento: <strong>{{ sessao.nome }}</strong>
         </p>
     </div>
-</div>
 
-<div class="section">
-    <div class="columns">
-        <div class="column is-8 is-offset-2">
-            
-            {% if sessao.status == 'conectado' %}
-            <!-- Já Conectado -->
-            <div class="notification is-success">
-                <h2 class="title is-4">✅ Sessão Conectada!</h2>
-                <p><strong>Telefone:</strong> {{ sessao.telefone }}</p>
-                <p><strong>Última conexão:</strong> {{ sessao.ultima_conexao.strftime('%d/%m/%Y %H:%M') if sessao.ultima_conexao else '-' }}</p>
-                <br>
-                <div class="buttons">
-                    <a href="/sessoes/{{ sessao.id }}/detalhes" class="button is-info">
-                        <span class="icon"><i class="fas fa-eye"></i></span>
-                        <span>Ver Detalhes</span>
-                    </a>
-                    <form method="POST" action="/sessoes/{{ sessao.id }}/desconectar" style="display: inline;">
-                        <button type="submit" class="button is-danger">
-                            <span class="icon"><i class="fas fa-plug"></i></span>
-                            <span>Desconectar</span>
-                        </button>
-                    </form>
-                </div>
+    <div class="box" style="padding: var(--space-2xl); border: 1px solid var(--color-border); box-shadow: var(--shadow-lg);">
+        
+        {% if sessao.status == 'conectado' %}
+        <!-- STATUS: CONECTADO -->
+        <div class="flex flex-col items-center justify-center text-center">
+            <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-success-light); display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-lg);">
+                <i class="fas fa-check" style="font-size: 2.5rem; color: var(--color-success);"></i>
+            </div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-sm);">Sessão Estabelecida!</h2>
+            <div style="background: var(--color-bg-secondary); padding: var(--space-sm) var(--space-lg); border-radius: var(--radius-md); border: 1px dashed var(--color-border); margin-bottom: var(--space-xl);">
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: 4px;"><strong>Telefone Vinculado:</strong> {{ sessao.telefone }}</p>
+                <p style="font-size: 0.8125rem; color: var(--color-text-muted);"><strong>Último ping:</strong> {{ sessao.ultima_conexao.strftime('%d/%m/%Y %H:%M') if sessao.ultima_conexao else '-' }}</p>
             </div>
             
-            {% elif sessao.status == 'conectando_qr' or sessao.status == 'iniciando' %}
-            <!-- Aguardando QR Code -->
-            <div class="box has-text-centered" id="qr-container">
-                <h2 class="title is-3">📱 QR Code</h2>
-                
-                {% if qr_code_expirado %}
-                <!-- QR Code Expirado -->
-                <div class="notification is-warning">
-                    <span class="icon is-large" style="font-size: 3rem; color: #ff9800;">
-                        <i class="fas fa-clock"></i>
-                    </span>
-                    <h3 class="title is-4">⏰ QR Code Expirado</h3>
-                    <p>O QR Code expira após 60 segundos por segurança.</p>
-                    <p>Clique no botão abaixo para gerar um novo código.</p>
-                    <br>
-                    <form method="POST" action="/sessoes/{{ sessao.id }}/conectar">
-                        <button type="submit" class="button is-warning is-large">
-                            <span class="icon"><i class="fas fa-redo"></i></span>
-                            <span>Gerar Novo QR Code</span>
-                        </button>
-                    </form>
-                </div>
-                
-                {% elif sessao.qr_code %}
-                <!-- QR Code Válido -->
-                <div class="qr-code-container" style="position: relative;" id="qr-display">
-                    <img id="qr-image" src="data:image/png;base64,{{ sessao.qr_code }}" alt="QR Code" style="max-width: 300px; border: 2px solid #dbdbdb; border-radius: 8px;">
-                    
-                    <!-- Indicador de tempo -->
-                    <div class="notification is-light" style="margin-top: 1rem;">
-                        <p class="is-size-7">
-                            <i class="fas fa-clock"></i> Este QR Code expira em <strong>60 segundos</strong>
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="notification is-info is-light">
-                    <h3 class="title is-5">📱 Como conectar:</h3>
-                    <ol style="text-align: left; display: inline-block;">
-                        <li>Abra o <strong>WhatsApp</strong> no seu celular</li>
-                        <li>Toque em <strong>Menu (⋮)</strong> ou <strong>Configurações</strong></li>
-                        <li>Toque em <strong>Aparelhos conectados</strong></li>
-                        <li>Toque em <strong>Conectar um aparelho</strong></li>
-                        <li><strong>Escaneie o QR Code</strong> acima</li>
-                    </ol>
-                </div>
-                {% else %}
-                <!-- Gerando QR Code -->
-                <div class="notification is-info is-light" id="qr-loading">
-                    <span class="icon is-large" style="font-size: 2rem;">
-                        <i class="fas fa-spinner fa-pulse"></i>
-                    </span>
-                    <p class="title is-5">⏳ Gerando QR Code...</p>
-                    <p>Aguarde alguns segundos...</p>
-                    <progress class="progress is-primary is-small" max="100" style="margin-top: 1rem;">30%</progress>
-                </div>
-                {% endif %}
-                
-                <br>
-                <div class="buttons is-centered">
-                    <button class="button is-light" onclick="location.reload()">
-                        <span class="icon"><i class="fas fa-sync"></i></span>
-                        <span>Atualizar Status</span>
-                    </button>
-                    
-                    {% if sessao.qr_code and not qr_code_expirado %}
-                    <form method="POST" action="/sessoes/{{ sessao.id }}/conectar" style="display: inline;">
-                        <button type="submit" class="button is-warning">
-                            <span class="icon"><i class="fas fa-redo"></i></span>
-                            <span>Gerar Novo QR Code</span>
-                        </button>
-                    </form>
-                    {% endif %}
-                </div>
-            </div>
-            
-            {% elif sessao.status == 'erro' %}
-            <!-- Erro -->
-            <div class="notification is-danger">
-                <h2 class="title is-4">❌ Erro ao Conectar</h2>
-                <p>Ocorreu um erro ao tentar conectar a sessão.</p>
-                <br>
-                <button class="button is-light" onclick="location.reload()">
-                    <span class="icon"><i class="fas fa-sync"></i></span>
-                    <span>Tentar Novamente</span>
-                </button>
-            </div>
-            
-            {% else %}
-            <!-- Iniciar Conexão -->
-            <div class="box has-text-centered">
-                <span class="icon is-large" style="font-size: 5rem; color: #48c774;">
-                    <i class="fab fa-whatsapp"></i>
-                </span>
-                <h2 class="title is-3">Conectar ao WhatsApp</h2>
-                <p class="subtitle is-5">Escaneie o QR Code com seu celular</p>
-                
-                <br>
-                
-                <div class="notification is-info is-light" style="text-align: left; max-width: 500px; margin: 0 auto;">
-                    <h3 class="title is-5">📱 Como funciona:</h3>
-                    <ol>
-                        <li>Clique no botão abaixo para iniciar</li>
-                        <li>Um QR Code será gerado</li>
-                        <li>Abra o <strong>WhatsApp</strong> no seu celular</li>
-                        <li>Vá em <strong>Menu > Aparelhos conectados</strong></li>
-                        <li><strong>Escaneie o QR Code</strong> que aparecerá</li>
-                    </ol>
-                </div>
-                
-                <br>
-                
-                <form method="POST" action="/sessoes/{{ sessao.id }}/conectar">
-                    <input type="hidden" name="metodo" value="qrcode">
-                    <button type="submit" class="button is-success is-large">
-                        <span class="icon"><i class="fas fa-qrcode"></i></span>
-                        <span>Gerar QR Code</span>
+            <div class="flex gap-md w-full justify-center">
+                <a href="/sessoes/{{ sessao.id }}/detalhes" class="button is-primary">
+                    <i class="fas fa-cog" style="margin-right: 6px;"></i> Console Administrativo
+                </a>
+                <form method="POST" action="/sessoes/{{ sessao.id }}/desconectar" style="margin: 0;">
+                    <button type="submit" class="button is-outline" style="border-color: var(--color-error); color: var(--color-error);">
+                        <i class="fas fa-power-off" style="margin-right: 6px;"></i> Forçar Desconexão
                     </button>
                 </form>
             </div>
+        </div>
+        
+        {% elif sessao.status == 'conectando_qr' or sessao.status == 'iniciando' %}
+        <!-- STATUS: AGUARDANDO QR / GERANDO -->
+        <div class="flex flex-col items-center text-center" id="qr-container">
+            <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-lg);">Handshake de Autenticação</h2>
+            
+            {% if qr_code_expirado %}
+            <!-- EXPIRED -->
+            <div style="background: var(--color-warning-light); padding: var(--space-xl); border-radius: var(--radius-lg); width: 100%; border: 1px dashed var(--color-warning); margin-bottom: var(--space-lg);">
+                <i class="fas fa-clock fa-3x" style="color: var(--color-warning); margin-bottom: var(--space-md);"></i>
+                <h3 style="font-size: 1rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Token Expirado</h3>
+                <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin-bottom: var(--space-lg);">O túnel foi fechado por segurança (Timeout 60s).</p>
+                <form method="POST" action="/sessoes/{{ sessao.id }}/conectar">
+                    <button type="submit" class="button is-primary" style="background: var(--color-warning); color: #fff; border: none; margin: 0 auto;">
+                        <i class="fas fa-redo" style="margin-right: 6px;"></i> Solicitar Novo Token
+                    </button>
+                </form>
+            </div>
+            
+            {% elif sessao.qr_code %}
+            <!-- VALID QR -->
+            <div class="qr-code-container" id="qr-display" style="margin-bottom: var(--space-lg);">
+                <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); display: inline-block;">
+                    <img id="qr-image" src="data:image/png;base64,{{ sessao.qr_code }}" alt="QR Code Handshake" style="display: block; max-width: 280px;">
+                </div>
+                
+                <div style="margin-top: var(--space-md); font-size: 0.75rem; color: var(--color-text-muted);">
+                    <i class="fas fa-stopwatch text-warning"></i> Validade da janela: <strong>60 segundos</strong>
+                </div>
+            </div>
+            
+            <!-- INSTRUCTIONS BOX -->
+            <div style="background: var(--color-bg-secondary); padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); text-align: left; width: 100%; max-width: 400px; border-left: 3px solid var(--color-info);">
+                <strong style="font-size: 0.8125rem; color: var(--color-text-primary); display: block; margin-bottom: var(--space-sm);"><i class="fas fa-info-circle text-info"></i> Passo a Passo</strong>
+                <ol style="margin: 0; padding-left: 20px; font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.6;">
+                    <li>Abra o <strong>WhatsApp</strong> em seu dispositivo primário</li>
+                    <li>Siga para <strong>Configurações</strong></li>
+                    <li>Toque em <strong>Aparelhos conectados</strong> > <strong>Conectar um aparelho</strong></li>
+                    <li>Aponte a câmera para a matriz acima</li>
+                </ol>
+            </div>
+            
+            {% else %}
+            <!-- LOADING GEN -->
+            <div id="qr-loading" class="flex flex-col items-center justify-center" style="padding: var(--space-2xl) 0;">
+                <i class="fas fa-circle-notch fa-spin" style="font-size: 3rem; color: var(--color-primary); margin-bottom: var(--space-md);"></i>
+                <h3 style="font-size: 1rem; font-weight: 600; color: var(--color-text-primary); margin-bottom: 4px;">Instanciando Baileys Engine...</h3>
+                <p style="font-size: 0.8125rem; color: var(--color-text-muted);">Estabelecendo soquetes com a rede WhatsApp. Aguarde.</p>
+            </div>
             {% endif %}
             
-            <br>
-            <div class="buttons is-centered">
-                <a href="/sessoes" class="button is-light">
-                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                    <span>Voltar</span>
-                </a>
+            <div class="flex items-center gap-md mt-xl">
+                <button class="button is-small is-outline" onclick="location.reload()">
+                    <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Atualizar Status Manulamente
+                </button>
+                {% if sessao.qr_code and not qr_code_expirado %}
+                <form method="POST" action="/sessoes/{{ sessao.id }}/conectar" style="margin: 0;">
+                    <button type="submit" class="button is-small is-outline text-warning" style="border-color: var(--color-warning);">
+                        <i class="fas fa-redo-alt" style="margin-right: 6px;"></i> Forçar Novo QR
+                    </button>
+                </form>
+                {% endif %}
             </div>
+            
         </div>
+        
+        {% elif sessao.status == 'erro' %}
+        <!-- STATUS: ERROR -->
+        <div class="flex flex-col items-center justify-center text-center">
+            <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--color-error-light); display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-lg);">
+                <i class="fas fa-times" style="font-size: 2.5rem; color: var(--color-error);"></i>
+            </div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--color-error); margin-bottom: var(--space-sm);">Falha Crítica no Link</h2>
+            <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: var(--space-xl);">A engine falhou em sustentar a conexão WebSockets com a API não oficial.</p>
+            
+            <button class="button is-primary" onclick="location.reload()">
+                <i class="fas fa-sync-alt" style="margin-right: 6px;"></i> Tentar Novamente
+            </button>
+        </div>
+        
+        {% else %}
+        <!-- STATUS: OFFLINE / INITIAL -->
+        <div class="flex flex-col items-center justify-center text-center">
+            <i class="fab fa-whatsapp" style="font-size: 4rem; color: #25D366; margin-bottom: var(--space-md);"></i>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Ativação de Linha</h2>
+            <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: var(--space-lg);">Você está prestes a vincular um número como agente inteligente via protocolo genérico.</p>
+            
+            <div style="background: var(--color-bg-secondary); padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); text-align: left; width: 100%; max-width: 400px; margin-bottom: var(--space-xl); border: 1px solid var(--color-border);">
+                <strong style="font-size: 0.8125rem; color: var(--color-text-primary); display: block; margin-bottom: var(--space-sm);"><i class="fas fa-shield-alt text-success"></i> Recomendações:</strong>
+                <ul style="margin: 0; padding-left: 20px; font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.6; list-style-type: square;">
+                    <li>Use um número de WhatsApp Business / Fictício isolado do corporativo primário.</li>
+                    <li>Mantenha o celular conectado à internet durante o handshake.</li>
+                </ul>
+            </div>
+            
+            <form method="POST" action="/sessoes/{{ sessao.id }}/conectar">
+                <input type="hidden" name="metodo" value="qrcode">
+                <button type="submit" class="button is-primary" style="background: #25D366; border: none; font-size: 1rem; padding: 0 var(--space-xl);">
+                    <i class="fas fa-qrcode" style="margin-right: 8px;"></i> Requisitar QR Code
+                </button>
+            </form>
+        </div>
+        {% endif %}
+        
+    </div>
+
+    <!-- Actions Externas -->
+    <div class="flex justify-center mt-lg">
+        <a href="/sessoes/{{ sessao.id }}/detalhes" class="button is-small is-outline" style="border: none; color: var(--color-text-secondary);">
+            <i class="fas fa-arrow-left" style="margin-right: 4px;"></i> Voltar para Painel
+        </a>
     </div>
 </div>
 
-<!-- Polling JavaScript para atualizar QR Code -->
+<!-- Polling Async Script -->
 {% if sessao.status in ['iniciando', 'conectando_qr'] %}
 <script>
 (function() {
@@ -186,29 +167,28 @@
             if (!response.ok) return;
             
             const data = await response.json();
-            console.log('Status:', data.status, 'QR:', data.qr_code ? 'presente' : 'ausente');
             
-            // Se conectou, redirecionar
+            // Connected
             if (data.status === 'conectado') {
                 clearInterval(pollingInterval);
                 window.location.href = `/sessoes/${sessaoId}/detalhes`;
                 return;
             }
             
-            // Se erro, recarregar página
+            // Error
             if (data.status === 'erro') {
                 clearInterval(pollingInterval);
                 window.location.reload();
                 return;
             }
             
-            // Se QR Code disponível e diferente do atual
+            // New QR Code
             if (data.qr_code && data.qr_code !== lastQrCode) {
                 lastQrCode = data.qr_code;
                 updateQrDisplay(data.qr_code);
             }
         } catch (error) {
-            console.error('Erro ao verificar status:', error);
+            console.error('Falha de Socket:', error);
         }
     }
     
@@ -216,49 +196,43 @@
         const container = document.getElementById('qr-container');
         if (!container) return;
         
-        // Remover loading se existir
+        // Remove loading state se existir
         const loading = document.getElementById('qr-loading');
-        if (loading) {
-            loading.remove();
-        }
+        if (loading) loading.remove();
         
-        // Verificar se já existe imagem
         let qrImage = document.getElementById('qr-image');
         if (qrImage) {
+            // Apenas atualiza src base64
             qrImage.src = `data:image/png;base64,${qrCode}`;
         } else {
-            // Criar estrutura do QR Code
+            // Injecao bruta se for o primeiro tick de payload
             const qrDisplay = document.createElement('div');
             qrDisplay.className = 'qr-code-container';
             qrDisplay.id = 'qr-display';
-            qrDisplay.style.position = 'relative';
+            qrDisplay.style.marginBottom = 'var(--space-lg)';
             qrDisplay.innerHTML = `
-                <img id="qr-image" src="data:image/png;base64,${qrCode}" alt="QR Code" style="max-width: 300px; border: 2px solid #dbdbdb; border-radius: 8px;">
-                <div class="notification is-light" style="margin-top: 1rem;">
-                    <p class="is-size-7">
-                        <i class="fas fa-clock"></i> Este QR Code expira em <strong>60 segundos</strong>
-                    </p>
+                <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); display: inline-block;">
+                    <img id="qr-image" src="data:image/png;base64,${qrCode}" alt="QR Handshake" style="display: block; max-width: 280px;">
+                </div>
+                <div style="margin-top: var(--space-md); font-size: 0.75rem; color: var(--color-text-muted);">
+                    <i class="fas fa-stopwatch text-warning"></i> Validade da janela: <strong>60 segundos</strong>
                 </div>
             `;
             
-            // Inserir após o título
-            const title = container.querySelector('.title');
-            if (title) {
-                title.insertAdjacentElement('afterend', qrDisplay);
-            }
+            const title = container.querySelector('h2');
+            if (title) title.insertAdjacentElement('afterend', qrDisplay);
             
-            // Adicionar instruções se não existirem
-            if (!container.querySelector('.notification.is-info')) {
+            // Injeta as infos se sumiram
+            if (!container.querySelector('.fa-info-circle')) {
                 const instructions = document.createElement('div');
-                instructions.className = 'notification is-info is-light';
+                instructions.style.cssText = 'background: var(--color-bg-secondary); padding: var(--space-md) var(--space-lg); border-radius: var(--radius-md); text-align: left; width: 100%; max-width: 400px; border-left: 3px solid var(--color-info);';
                 instructions.innerHTML = `
-                    <h3 class="title is-5">📱 Como conectar:</h3>
-                    <ol style="text-align: left; display: inline-block;">
-                        <li>Abra o <strong>WhatsApp</strong> no seu celular</li>
-                        <li>Toque em <strong>Menu (⋮)</strong> ou <strong>Configurações</strong></li>
+                    <strong style="font-size: 0.8125rem; color: var(--color-text-primary); display: block; margin-bottom: var(--space-sm);"><i class="fas fa-info-circle text-info"></i> Passo a Passo</strong>
+                    <ol style="margin: 0; padding-left: 20px; font-size: 0.75rem; color: var(--color-text-secondary); line-height: 1.6;">
+                        <li>Abra o <strong>WhatsApp</strong> em seu celular</li>
+                        <li>Siga para <strong>Configurações</strong></li>
                         <li>Toque em <strong>Aparelhos conectados</strong></li>
-                        <li>Toque em <strong>Conectar um aparelho</strong></li>
-                        <li><strong>Escaneie o QR Code</strong> acima</li>
+                        <li>Aponte a câmera para a matriz acima</li>
                     </ol>
                 `;
                 qrDisplay.insertAdjacentElement('afterend', instructions);
@@ -266,17 +240,13 @@
         }
     }
     
-    // Iniciar polling a cada 1.5 segundos
     pollingInterval = setInterval(checkStatus, 1500);
-    
-    // Verificar imediatamente
     checkStatus();
     
-    // Parar polling após 2 minutos (timeout)
+    // Timeout Drop após 2 min
     setTimeout(() => {
         if (pollingInterval) {
             clearInterval(pollingInterval);
-            console.log('Polling timeout - recarregando página');
             window.location.reload();
         }
     }, 120000);

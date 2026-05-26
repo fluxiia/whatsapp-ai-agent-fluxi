@@ -1,119 +1,117 @@
-{% extends "base.html" %}
+{% extends "base_modern.html" %}
 
-{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+{% block title %}Modelos de Linguagem - Mission Control - Fluxi.IA{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Header -->
-    <div class="level">
-        <div class="level-left">
-            <div class="level-item">
-                <h1 class="title is-3">
-                    <i class="fas fa-server"></i>
-                    {{ titulo }}
-                </h1>
-            </div>
+<div class="container" style="max-width: 1200px;">
+    <!-- Page Header Moderno -->
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h1 class="page-title" style="font-size: 1.25rem;">
+                <i class="fas fa-server text-primary mb-xs" style="color: #6366f1;"></i> Servidores de IA (LLMs)
+            </h1>
+            <p class="breadcrumbs" style="margin-top: 2px;">
+                <span style="color: var(--color-text-secondary);">Rede Local</span> / 
+                <span style="color: var(--color-text-primary);">Conexões de Provedor</span>
+            </p>
         </div>
-        <div class="level-right">
-            <div class="level-item">
-                <a href="/provedores-llm/novo" class="button is-primary">
-                    <span class="icon">
-                        <i class="fas fa-plus"></i>
-                    </span>
-                    <span>Novo Provedor</span>
-                </a>
-            </div>
+        
+        <div class="flex items-center gap-sm">
+            <a href="/provedores-llm/novo" class="button is-primary" style="background: #6366f1; border: none;">
+                <i class="fas fa-plus" style="margin-right: 6px;"></i> Homologar Nó LLM
+            </a>
         </div>
     </div>
 
-    <!-- Mensagem de Erro -->
+    <!-- Feedback de Erro -->
     {% if erro %}
-    <div class="notification is-danger">
-        <button class="delete"></button>
-        <strong>Erro:</strong> {{ erro }}
+    <div style="background: var(--color-error-light); border: 1px solid var(--color-error); padding: var(--space-md); border-radius: var(--radius-md); margin-bottom: var(--space-lg); display: flex; align-items: flex-start; gap: var(--space-sm);">
+        <i class="fas fa-exclamation-triangle" style="color: var(--color-error); margin-top: 2px;"></i>
+        <div style="font-size: 0.8125rem; color: #7f1d1d;">
+            <strong>Aviso de Falha:</strong> {{ erro }}
+        </div>
     </div>
     {% endif %}
 
-    <!-- Cards de Provedores -->
-    <div class="columns is-multiline">
-        {% for provedor in provedores %}
-        <div class="column is-one-third">
-            <div class="card">
-                <div class="card-content">
-                    <div class="media">
-                        <div class="media-left">
-                            <figure class="image is-48x48">
-                                <span class="icon is-large has-text-primary">
-                                    <i class="fas fa-server fa-2x"></i>
-                                </span>
-                            </figure>
-                        </div>
-                        <div class="media-content">
-                            <p class="title is-5">{{ provedor.nome }}</p>
-                            <p class="subtitle is-6">
-                                <span class="tag is-light">{{ provedor.base_url }}</span>
-                                {% if provedor.ativo %}
-                                    <span class="tag is-success">Ativo</span>
-                                {% else %}
-                                    <span class="tag is-danger">Inativo</span>
-                                {% endif %}
-                            </p>
-                        </div>
-                    </div>
+    <!-- Data Table de Provedores -->
+    <div class="box p-0" style="overflow: hidden;">
+        {% if provedores %}
+        <table class="table is-fullwidth is-hoverable" style="margin: 0; font-size: 0.875rem;">
+            <thead>
+                <tr>
+                    <th style="width: 40px; text-align: center;">ID</th>
+                    <th>Nomenclatura / Endpoint</th>
+                    <th>Comentário / Uso</th>
+                    <th style="width: 150px;">Status API</th>
+                    <th style="width: 100px; text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for provedor in provedores %}
+                <tr>
+                    <td style="text-align: center; color: var(--color-text-muted);">{{ provedor.id }}</td>
                     
-                    {% if provedor.descricao %}
-                    <div class="content">
-                        <p>{{ provedor.descricao }}</p>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="content">
-                        <p class="has-text-grey">
-                            <i class="fas fa-link"></i> {{ provedor.base_url }}
-                        </p>
-                        {% if provedor.ultimo_teste %}
-                        <p class="has-text-grey is-size-7">
-                            <i class="fas fa-clock"></i> Último teste: {{ provedor.ultimo_teste.strftime('%d/%m/%Y %H:%M') }}
-                        </p>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <footer class="card-footer">
-                    <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="card-footer-item">
-                        <i class="fas fa-cog"></i> Gerenciar
-                    </a>
-                    <form method="POST" action="/provedores-llm/{{ provedor.id }}/deletar" 
-                          onsubmit="return confirm('Tem certeza que deseja deletar este provedor?');" 
-                          style="display: inline; margin: 0;">
-                        <button type="submit" class="card-footer-item" 
-                                style="border: none; background: none; width: 100%; text-align: center; cursor: pointer; color: #f14668;">
-                            <i class="fas fa-trash"></i> Deletar
-                        </button>
-                    </form>
-                </footer>
-            </div>
-        </div>
-        {% else %}
-        <div class="column is-full">
-            <div class="box has-text-centered">
-                <div class="content">
-                    <span class="icon is-large has-text-grey">
-                        <i class="fas fa-server fa-3x"></i>
-                    </span>
-                    <h3 class="title is-4 has-text-grey">Nenhum provedor configurado</h3>
-                    <p class="has-text-grey">Comece adicionando um novo provedor LLM para conectar com LM Studio, llama.cpp ou Ollama.</p>
-                    <br>
-                    <a href="/provedores-llm/novo" class="button is-primary is-large">
-                        <span class="icon">
-                            <i class="fas fa-plus"></i>
+                    <td>
+                        <div class="flex flex-col">
+                            <span style="font-weight: 600; color: var(--color-text-primary);">{{ provedor.nome }}</span>
+                            <span style="font-size: 0.75rem; color: var(--color-text-secondary); font-family: monospace;">{{ provedor.base_url }}</span>
+                        </div>
+                    </td>
+
+                    <td>
+                        <span style="color: var(--color-text-secondary); font-size: 0.8125rem;">
+                            {{ provedor.descricao or 'Nenhuma descrição fornecida.' }}
                         </span>
-                        <span>Adicionar Provedor</span>
-                    </a>
-                </div>
+                        {% if provedor.ultimo_teste %}
+                        <div style="font-size: 0.70rem; color: var(--color-text-muted); margin-top: 2px;">
+                            <i class="fas fa-clock" style="margin-right: 2px;"></i> Ping: {{ provedor.ultimo_teste.strftime('%d/%m %H:%M') }}
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if provedor.ativo %}
+                            <span class="tag" style="background: var(--color-success-light); color: var(--color-success); border: 1px solid rgba(16,185,129,0.3); font-size: 0.65rem;">
+                                ONLINE / ATIVO
+                            </span>
+                        {% else %}
+                            <span class="tag" style="background: var(--color-error-light); color: var(--color-error); border: 1px solid rgba(239,68,68,0.3); font-size: 0.65rem;">
+                                OFFLINE / PAUSADO
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td style="text-align: right;">
+                        <div class="flex items-center justify-end gap-xs">
+                            <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-small is-outline text-primary" style="padding: 2px 8px; border: none;" title="Inspecionar Nó">
+                                <i class="fas fa-cog"></i>
+                            </a>
+                            <form method="POST" action="/provedores-llm/{{ provedor.id }}/deletar" onsubmit="return confirm('ATENÇÃO: Deseja desconectar e purgar este servidor local?');" style="margin: 0;">
+                                <button type="submit" class="button is-small is-outline text-error" style="padding: 2px 8px; border: none;" title="Remover Provedor">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <!-- Empty State B2B -->
+        <div class="flex flex-col items-center justify-center p-xl text-center" style="background: var(--color-surface); padding: 4rem 1rem;">
+            <div style="width: 64px; height: 64px; border-radius: 50%; background: #e0e7ff; display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-md);">
+                <i class="fas fa-server" style="font-size: 2rem; color: #6366f1;"></i>
             </div>
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--color-text-primary); margin-bottom: var(--space-xs);">Rede Vazia</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-secondary); max-width: 400px; margin-bottom: var(--space-lg);">
+                Para que os agentes funcionem, você precisa parear a plataforma com um backend de inferência compatível com OpenAI (ex: LM Studio, Ollama).
+            </p>
+            <a href="/provedores-llm/novo" class="button is-primary" style="background: #6366f1; border: none;">
+                <i class="fas fa-plus" style="margin-right: 6px;"></i> Fornecer Endpoint Local
+            </a>
         </div>
-        {% endfor %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}

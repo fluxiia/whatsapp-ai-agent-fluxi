@@ -4,271 +4,224 @@
 <form method="POST" action="/ferramentas/wizard/step3">
     
     {% if wizard_data.tool_type == 'web' %}
-    <!-- CURL Builder com Sidebar -->
-    <div class="columns">
-        <!-- SIDEBAR -->
-        <div class="column is-3">
-            <div class="box" style="position: sticky; top: 20px;">
-                <h3 class="title is-5">
-                    <span class="icon"><i class="fas fa-magic"></i></span>
-                    Variáveis
-                </h3>
-                
-                <!-- Tooltip -->
-                <div class="notification is-info is-light mb-4">
-                    <p class="is-size-7">
-                        <strong>💡 Como usar:</strong><br>
-                        Clique nos botões abaixo para inserir variáveis no cursor.<br>
-                        <code>{nome}</code> = Parâmetro<br>
-                        <code>{var.TOKEN}</code> = Token
-                    </p>
-                </div>
-
-                <!-- Parâmetros -->
-                <div class="mb-4">
-                    <p class="has-text-weight-bold mb-2">
-                        <span class="icon is-small"><i class="fas fa-sliders-h"></i></span>
-                        Parâmetros:
-                    </p>
-                    {% if wizard_data.params %}
-                        <div class="buttons are-small">
-                            {% for param_name in wizard_data.params.keys() %}
-                            <button type="button" class="button is-info is-light is-fullwidth" 
-                                    onclick="insertAtCursor('{' + '{{ param_name }}' + '}')">
-                                <span class="icon"><i class="fas fa-plus-circle"></i></span>
-                                <span>{{ '{' }}{{ param_name }}{{ '}' }}</span>
-                            </button>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <p class="help">Nenhum parâmetro definido no Step 2</p>
-                    {% endif %}
-                </div>
-
-                <hr>
-
-                <!-- Tokens -->
-                <div>
-                    <p class="has-text-weight-bold mb-2">
-                        <span class="icon is-small"><i class="fas fa-key"></i></span>
-                        Tokens:
-                    </p>
-                    <div id="tokens_sidebar_list" class="mb-3">
-                        <!-- Tokens aparecerão aqui -->
-                    </div>
-                    <button type="button" class="button is-primary is-light is-fullwidth is-small" 
-                            onclick="openTokenModal()">
-                        <span class="icon"><i class="fas fa-plus"></i></span>
-                        <span>Adicionar Token</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- MAIN EDITOR -->
-        <div class="column is-9">
-            <div class="box">
-                <h2 class="title is-4">
-                    <i class="fas fa-terminal"></i> CURL Builder
-                </h2>
-
-                <!-- Cole CURL -->
-                <div class="field">
-                    <label class="label">Cole um CURL ou construa abaixo:</label>
-                    <div class="control">
-                        <textarea class="textarea code-editor" id="curl_input" rows="6" 
-                                  placeholder="curl -X POST https://api.example.com/users -H 'Authorization: Bearer {var.TOKEN}' -d '{&quot;name&quot;: &quot;{nome}&quot;}'">{{ wizard_data.curl_command or '' }}</textarea>
-                    </div>
-                    <div class="field is-grouped mt-2">
-                        <div class="control">
-                            <button type="button" class="button is-info" onclick="parseCurl()">
-                                <span class="icon"><i class="fas fa-magic"></i></span>
-                                <span>Parse CURL</span>
-                            </button>
-                        </div>
-                        <div class="control">
-                            <button type="button" class="button is-success" onclick="builderToCurl()">
-                                <span class="icon"><i class="fas fa-arrow-up"></i></span>
-                                <span>Builder → CURL</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <hr>
-
-                <!-- Builder Visual -->
-                <h3 class="subtitle is-5">Builder Visual:</h3>
-
-                <div class="columns">
-                    <div class="column is-3">
-                        <div class="field">
-                            <label class="label">Método</label>
-                            <div class="control">
-                                <div class="select is-fullwidth">
-                                    <select id="builder_method" onchange="updateCurlPreview()">
-                                        <option value="GET">GET</option>
-                                        <option value="POST">POST</option>
-                                        <option value="PUT">PUT</option>
-                                        <option value="PATCH">PATCH</option>
-                                        <option value="DELETE">DELETE</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="column is-9">
-                        <div class="field">
-                            <label class="label">URL</label>
-                            <div class="control">
-                                <input class="input" type="text" id="builder_url" 
-                                       placeholder="https://api.example.com/users"
-                                       onkeyup="updateCurlPreview()">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="label">Headers</label>
-                    <div id="headers_list"></div>
-                    <button type="button" class="button is-small is-light" onclick="addHeader()">
-                        <span class="icon"><i class="fas fa-plus"></i></span>
-                        <span>Adicionar Header</span>
-                    </button>
-                </div>
-
-                <div class="field">
-                    <label class="label">Query Parameters</label>
-                    <div id="query_list"></div>
-                    <button type="button" class="button is-small is-light" onclick="addQueryParam()">
-                        <span class="icon"><i class="fas fa-plus"></i></span>
-                        <span>Adicionar Query Param</span>
-                    </button>
-                </div>
-
-                <div class="field" id="body_section">
-                    <label class="label">Body</label>
-                    <div class="control">
-                        <textarea class="textarea code-editor" id="builder_body" rows="8"
-                                  placeholder='{"name": "{nome}", "email": "{email}"}'
-                                  onkeyup="updateCurlPreview()"></textarea>
-                    </div>
-                </div>
-
-                <!-- Preview CURL -->
-                <div class="box mt-4" style="background: #1e1e1e;">
-                    <p class="has-text-weight-bold has-text-white mb-3">
-                        <span class="icon has-text-info"><i class="fas fa-eye"></i></span>
-                        Preview CURL:
-                    </p>
-                    <pre class="has-text-white" style="background: transparent;"><code id="curl_preview">{{ wizard_data.curl_command or 'Cole ou construa seu CURL acima' }}</code></pre>
-                </div>
-            </div>
+    
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin: 0;"><i class="fas fa-network-wired text-info mr-xs"></i> Configuração da Requisição (Onde ela vai buscar os dados?)</h2>
+            <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin: 2px 0 0 0;">Defina qual endereço da internet será chamado e onde colocar os parâmetros da I.A.</p>
         </div>
     </div>
 
-    <!-- Hidden inputs -->
+    <div class="grid grid-cols-4 gap-lg">
+        
+        <!-- SIDEBAR -->
+        <div class="col-span-1 border-r pr-md" style="border-right: 1px solid var(--color-border);">
+            
+            <div class="box p-sm mb-md" style="background: rgba(56, 189, 248, 0.05); border: 1px dashed rgba(56, 189, 248, 0.3); box-shadow: none;">
+                <p style="font-size: 0.75rem; color: #0284c7; line-height: 1.4;">
+                    <i class="fas fa-lightbulb text-info"></i> Clique nos botões abaixo para preencher uma variável criada no passo anterior. Ex: <code>{chave}</code>.
+                </p>
+            </div>
+
+            <!-- Parâmetros -->
+            <div class="mb-lg">
+                <span style="font-size: 0.7rem; font-weight: 700; color: var(--color-text-primary); text-transform: uppercase; margin-bottom: 8px; display: block;">INSERIR PARÂMETROS</span>
+                {% if wizard_data.params %}
+                    <div class="flex flex-col gap-xs">
+                        {% for param_name in wizard_data.params.keys() %}
+                        <button type="button" class="button is-small p-xs flex justify-between items-center w-full" style="background: var(--color-surface); border: 1px solid var(--color-border); color: #6366f1; font-family: monospace; font-size: 0.75rem;" onclick="insertAtCursor('{' + '{{ param_name }}' + '}')">
+                            <span>{{ '{' }}{{ param_name }}{{ '}' }}</span>
+                            <i class="fas fa-plus text-muted" style="font-size: 0.65rem;"></i>
+                        </button>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="font-size: 0.7rem; color: var(--color-text-muted);">Você não criou nenhum parâmetro no passo anterior.</p>
+                {% endif %}
+            </div>
+
+            <hr style="background-color: var(--color-border); margin: var(--space-md) 0;">
+
+            <!-- Tokens -->
+            <div>
+                <div class="flex justify-between items-center mb-xs">
+                    <span style="font-size: 0.7rem; font-weight: 700; color: var(--color-text-primary); text-transform: uppercase;">SENHAS SEGUROS (TOKENS)</span>
+                    <button type="button" class="button is-small" style="padding: 0 4px; height: 20px; font-size: 0.65rem; background: transparent; color: #10b981; border: 1px solid #10b981;" title="Adicionar Senha/Token" onclick="openTokenModal()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div id="tokens_sidebar_list" class="flex flex-col gap-xs mb-sm">
+                    <!-- Tokens dinâmicos aqui -->
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- MAIN EDITOR -->
+        <div class="col-span-3">
+            
+            <div class="field">
+                <label class="label text-secondary flex justify-between items-end" style="font-size: 0.75rem; text-transform: uppercase;">
+                    COLE UM CÓDIGO CURL AQUI (OPCIONAL)
+                    <div class="buttons are-small mb-0">
+                        <button type="button" class="button is-outline text-info" onclick="parseCurl()" style="padding: 2px 8px; font-size: 0.65rem;">
+                            <i class="fas fa-level-down-alt mr-xs"></i> Preencher o Visual Abaixo 
+                        </button>
+                    </div>
+                </label>
+                <div class="control">
+                    <textarea class="textarea code-editor" id="curl_input" rows="4" 
+                              placeholder="cole aquele código 'curl -X GET...' aqui e clique no botão acima" 
+                              style="font-family: 'Consolas', monospace; font-size: 0.8125rem; background: #0f172a; color: #e2e8f0; border-color: #1e293b;">{{ wizard_data.curl_command or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- UI Builder -->
+            <div class="box mt-lg p-md" style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); box-shadow: none;">
+                <h3 style="font-size: 0.8125rem; font-weight: 700; color: var(--color-text-primary); text-transform: uppercase; margin-bottom: var(--space-md);">Configuração Visual de Requisição</h3>
+                
+                <div class="flex gap-sm mb-md">
+                    <div style="flex: 0 0 120px;">
+                        <label class="label text-secondary" style="font-size: 0.65rem; padding-bottom: 2px;">Método</label>
+                        <div class="select is-fullwidth" style="height: 32px;">
+                            <select id="builder_method" onchange="updateCurlPreview()" style="font-size: 0.8125rem; height: 32px; min-height: 32px; background: var(--color-surface); border-color: var(--color-border);">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="PATCH">PATCH</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="flex: 1;">
+                        <label class="label text-secondary" style="font-size: 0.65rem; padding-bottom: 2px;">URL Base (Site ou API Externa)</label>
+                        <input class="input" type="text" id="builder_url" placeholder="https://api.exemplo.com/v1/buscar" onkeyup="updateCurlPreview()" style="height: 32px; font-family: monospace; font-size: 0.8125rem; background: var(--color-surface); border-color: var(--color-border); color: #f59e0b;">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-lg mb-0">
+                    <div>
+                        <div class="flex justify-between items-center mb-xs">
+                            <label class="label text-secondary m-0" style="font-size: 0.65rem;">Cabeçalhos (Headers)</label>
+                            <button type="button" class="button is-small" onclick="addHeader()" style="background: transparent; border: none; font-size: 0.65rem; color: #6366f1; padding: 0;">+ Novo Header</button>
+                        </div>
+                        <div id="headers_list"></div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-xs">
+                            <label class="label text-secondary m-0" style="font-size: 0.65rem;">Na URL (Query Params)</label>
+                            <button type="button" class="button is-small" onclick="addQueryParam()" style="background: transparent; border: none; font-size: 0.65rem; color: #6366f1; padding: 0;">+ Novo Param</button>
+                        </div>
+                        <div id="query_list"></div>
+                    </div>
+                </div>
+
+                <div class="field mt-md" id="body_section">
+                    <label class="label text-secondary" style="font-size: 0.65rem;">Corpo da Requisição (Body JSON/XML)</label>
+                    <div class="control">
+                        <textarea class="textarea code-editor p-sm" id="builder_body" rows="6" placeholder='{"chave_do_json": "{nome}"}' onkeyup="updateCurlPreview()" style="font-family: 'Consolas', monospace; font-size: 0.8125rem; background: #0f172a; color: #a5b4fc; border-color: #1e293b; resize: vertical;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview CURL -->
+            <div class="box mt-md p-md" style="background: #0f172a; border: none; position: relative;">
+                <span style="position: absolute; top: 0; right: 0; background: #1e293b; color: #94a3b8; font-size: 0.65rem; padding: 4px 8px; border-bottom-left-radius: 4px;">COMO VAI FICAR</span>
+                <pre style="background: transparent; color: #34d399; font-family: 'Consolas', monospace; font-size: 0.75rem; padding: 0; margin-top: 10px; white-space: pre-wrap;"><code id="curl_preview">{{ wizard_data.curl_command or 'Command Preview...' }}</code></pre>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Hidden inputs HTTP -->
     <input type="hidden" name="curl_command" id="curl_command_hidden" value="{{ wizard_data.curl_command or '' }}">
     <input type="hidden" name="tokens_data" id="tokens_data_hidden" value="">
 
     {% else %}
+    
     <!-- Configuração CODE -->
-    <div class="box">
-        <h2 class="title is-4">
-            <i class="fas fa-code"></i> Configuração Code (Python)
-        </h2>
-        <div class="field">
-            <label class="label">Código Python *</label>
-            <div class="control">
-                <textarea class="textarea code-editor" name="codigo_python" rows="15" required>{{ wizard_data.codigo_python or '' }}</textarea>
-            </div>
+    <div class="flex items-center justify-between mb-lg" style="border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md);">
+        <div>
+            <h2 style="font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary); margin: 0;"><i class="fas fa-terminal text-warning mr-xs"></i> Escrever o Código Principal (Python)</h2>
+            <p style="font-size: 0.8125rem; color: var(--color-text-secondary); margin: 2px 0 0 0;">O que você preencher aqui será rodado internamente sempre que a Inteligência invocar a ferramenta.</p>
         </div>
     </div>
+
+    <div class="field">
+        <label class="label text-secondary flex justify-between" style="font-size: 0.75rem; text-transform: uppercase;">
+            <span>Código Python *</span>
+            <span style="color: #64748b; font-family: monospace;">def run_tool(**kwargs):</span>
+        </label>
+        <div class="control">
+            <textarea class="textarea code-editor" name="codigo_python" rows="18" required style="font-family: 'Consolas', monospace; font-size: 0.875rem; background: #0f172a; color: #38bdf8; border-color: #1e293b; padding: 16px;">{{ wizard_data.codigo_python or '' }}</textarea>
+        </div>
+        <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 8px;">Dica Mágica: Use <code style="background: transparent; border: 1px solid var(--color-border);">kwargs.get('nome_do_parametro')</code> para pegar o valor passado no passo 2.</p>
+    </div>
+    
     {% endif %}
 
-    <!-- Botões -->
-    <div class="field is-grouped is-grouped-right">
-        <div class="control">
-            <button type="submit" name="voltar" value="true" class="button is-light is-medium">
-                <span class="icon"><i class="fas fa-arrow-left"></i></span>
-                <span>Voltar</span>
-            </button>
-        </div>
-        <div class="control">
-            <button type="submit" name="continuar" value="true" class="button is-primary is-medium" onclick="saveCurl()">
-                <span>Próximo</span>
-                <span class="icon"><i class="fas fa-arrow-right"></i></span>
-            </button>
-        </div>
+    <!-- Actions Footer -->
+    <div class="flex items-center justify-between" style="margin-top: var(--space-xl); padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+        <button type="submit" name="voltar" value="true" class="button is-outline text-muted">
+            <i class="fas fa-arrow-left" style="margin-right: 6px;"></i> Voltar a Parâmetros
+        </button>
+        <button type="submit" name="continuar" value="true" class="button is-primary" style="background: #6366f1; border: none; font-weight: 600;" onclick="saveCurl()">
+            Salvar Tudo e Avançar <i class="fas fa-arrow-right" style="margin-left: 6px;"></i>
+        </button>
     </div>
 </form>
 
-<!-- Modal para Adicionar Token -->
+<!-- Modal Tokens (Redesign) -->
 <div class="modal" id="token_modal">
-    <div class="modal-background" onclick="closeTokenModal()"></div>
-    <div class="modal-card">
-        <header class="modal-card-head">
-            <p class="modal-card-title">
-                <span class="icon"><i class="fas fa-key"></i></span>
-                Adicionar Token
+    <div class="modal-background" style="background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(4px);" onclick="closeTokenModal()"></div>
+    <div class="modal-card" style="border-radius: var(--radius-lg); overflow: hidden; background: var(--color-surface); max-width: 400px;">
+        <header class="modal-card-head" style="background: var(--color-bg-secondary); border-bottom: 1px solid var(--color-border); padding: 16px;">
+            <p class="modal-card-title flex items-center gap-xs m-0" style="font-size: 1rem; color: var(--color-text-primary); font-weight: 600;">
+                <i class="fas fa-key text-warning"></i> Adicionar nova Senha/Token
             </p>
-            <button class="delete" aria-label="close" onclick="closeTokenModal()"></button>
         </header>
-        <section class="modal-card-body">
-            <div class="field">
-                <label class="label">Nome do Token</label>
+        <section class="modal-card-body" style="background: var(--color-surface); padding: 24px;">
+            <div class="field mb-md">
+                <label class="label text-secondary" style="font-size: 0.7rem; text-transform: uppercase;">Escreva um Nome de Referência (Apenas Letras e _) </label>
                 <div class="control">
-                    <input class="input" type="text" id="token_name_input" placeholder="API_TOKEN, SECRET_KEY, etc">
+                    <input class="input" type="text" id="token_name_input" placeholder="TOKEN_DO_GOOGLE" style="font-family: monospace; font-size: 0.8125rem;">
                 </div>
-                <p class="help">Será usado como <code>{var.NOME}</code></p>
             </div>
             <div class="field">
-                <label class="label">Valor</label>
+                <label class="label text-secondary" style="font-size: 0.7rem; text-transform: uppercase;">Valor Verdadeiro da Senha</label>
                 <div class="control">
-                    <input class="input" type="password" id="token_value_input" placeholder="sk_live_abc123...">
+                    <input class="input" type="password" id="token_value_input" placeholder="sk_live_123456..." style="font-family: monospace; font-size: 0.8125rem;">
                 </div>
-                <p class="help">Será armazenado de forma segura no banco</p>
             </div>
         </section>
-        <footer class="modal-card-foot">
-            <button type="button" class="button is-success" onclick="addToken()">Adicionar</button>
-            <button type="button" class="button" onclick="closeTokenModal()">Cancelar</button>
+        <footer class="modal-card-foot" style="background: var(--color-bg-secondary); border-top: 1px solid var(--color-border); padding: 12px 16px; justify-content: flex-end;">
+            <button type="button" class="button is-small is-outline text-muted" onclick="closeTokenModal()">Cancelar</button>
+            <button type="button" class="button is-small is-primary" style="background: #10b981; border: none;" onclick="addToken()">Salvar Segredo</button>
         </footer>
     </div>
 </div>
 
 <script>
-// Estado global
 let tokens = [];
 let lastFocusedInput = null;
 
-// Rastrear último input focado
 document.addEventListener('focusin', function(e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-        lastFocusedInput = e.target;
-    }
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') lastFocusedInput = e.target;
 });
 
-// Inserir no cursor
 function insertAtCursor(text) {
     const input = lastFocusedInput || document.getElementById('curl_input');
     if (!input) return;
-    
-    const start = input.selectionStart;
-    const end = input.selectionEnd;
-    const value = input.value;
-    
-    input.value = value.substring(0, start) + text + value.substring(end);
+    const start = input.selectionStart, end = input.selectionEnd, val = input.value;
+    input.value = val.substring(0, start) + text + val.substring(end);
     input.focus();
     input.selectionStart = input.selectionEnd = start + text.length;
-    
-    if (input.id === 'curl_input') {
-        updateCurlPreview();
-    }
+    if (input.id === 'curl_input') updateCurlPreview();
 }
 
-// Modal de tokens
 function openTokenModal() {
     document.getElementById('token_modal').classList.add('is-active');
     document.getElementById('token_name_input').focus();
@@ -283,47 +236,33 @@ function closeTokenModal() {
 function addToken() {
     const name = document.getElementById('token_name_input').value.trim();
     const value = document.getElementById('token_value_input').value.trim();
-    
-    if (!name || !value) {
-        alert('Preencha nome e valor do token');
-        return;
-    }
+    if (!name || !value) return alert('Define a Key e Vault string correta');
     
     tokens.push({ name, value });
     renderTokens();
     closeTokenModal();
-    
-    // Salvar tokens
     document.getElementById('tokens_data_hidden').value = JSON.stringify(tokens);
 }
 
 function renderTokens() {
     const container = document.getElementById('tokens_sidebar_list');
     container.innerHTML = '';
-    
-    tokens.forEach((token, index) => {
+    tokens.forEach(token => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'button is-danger is-light is-fullwidth is-small mb-2';
-        btn.innerHTML = `
-            <span class="icon"><i class="fas fa-plus-circle"></i></span>
-            <span>{var.${token.name}}</span>
-        `;
+        btn.className = 'button is-small flex justify-between items-center w-full';
+        btn.style.cssText = 'padding: 4px 8px; font-size: 0.75rem; background: #fef3c7; border: 1px solid #f59e0b; color: #b45309; font-family: monospace;';
+        btn.innerHTML = `<span>{var.${token.name}}</span><i class="fas fa-key" style="font-size:0.6rem;"></i>`;
         btn.onclick = () => insertAtCursor(`{var.${token.name}}`);
         container.appendChild(btn);
     });
 }
 
-// Parse CURL (interno, sem alerts)
 function doParseCurl(showAlert = true) {
     const curlText = document.getElementById('curl_input').value.trim();
-    if (!curlText) {
-        if (showAlert) alert('Cole um comando CURL primeiro!');
-        return false;
-    }
+    if (!curlText) { if (showAlert) alert('Cole um curl antes!'); return false; }
     
     try {
-        // Detectar método - verificar -X/--request OU presença de --data/--data-raw
         const methodMatch = curlText.match(/(?:-X|--request)\s+([A-Z]+)/i);
         const hasData = curlText.match(/(?:-d|--data|--data-raw)\s/);
         const method = methodMatch ? methodMatch[1].toUpperCase() : (hasData ? 'POST' : 'GET');
@@ -331,20 +270,16 @@ function doParseCurl(showAlert = true) {
         
         const urlMatch = curlText.match(/(https?:\/\/[^\s"']+)/);
         if (urlMatch) {
-            const fullUrl = urlMatch[1];
-            const [baseUrl, queryString] = fullUrl.split('?');
+            const [baseUrl, queryString] = urlMatch[1].split('?');
             document.getElementById('builder_url').value = baseUrl;
-            
             if (queryString) {
-                const params = queryString.split('&');
                 document.getElementById('query_list').innerHTML = '';
-                params.forEach(param => {
-                    const [key, value] = param.split('=');
+                queryString.split('&').forEach(param => {
+                    const [k, v] = param.split('=');
                     addQueryParam();
                     const items = document.querySelectorAll('.query-item');
-                    const lastItem = items[items.length - 1];
-                    lastItem.querySelector('.query-key').value = decodeURIComponent(key);
-                    lastItem.querySelector('.query-value').value = decodeURIComponent(value || '');
+                    items[items.length - 1].querySelector('.query-key').value = decodeURIComponent(k);
+                    items[items.length - 1].querySelector('.query-value').value = decodeURIComponent(v || '');
                 });
             }
         }
@@ -353,39 +288,28 @@ function doParseCurl(showAlert = true) {
         let headerMatch;
         document.getElementById('headers_list').innerHTML = '';
         while ((headerMatch = headerRegex.exec(curlText)) !== null) {
-            const header = headerMatch[1];
-            const [key, value] = header.split(':').map(s => s.trim());
+            const [k, v] = headerMatch[1].split(':').map(s => s.trim());
             addHeader();
             const items = document.querySelectorAll('.header-item');
-            const lastItem = items[items.length - 1];
-            lastItem.querySelector('.header-key').value = key;
-            lastItem.querySelector('.header-value').value = value || '';
+            items[items.length - 1].querySelector('.header-key').value = k;
+            items[items.length - 1].querySelector('.header-value').value = v || '';
         }
         
-        // Parse body - suporta aspas simples e duplas, incluindo JSON com aspas escapadas
         const bodyMatch = curlText.match(/(?:-d|--data|--data-raw|--data-binary)\s+(['"])([\s\S]*?)\1/);
         if (bodyMatch) {
-            let bodyContent = bodyMatch[2];
-            // Decodificar escapes comuns
-            bodyContent = bodyContent.replace(/\\"/g, '"').replace(/\\'/g, "'");
-            document.getElementById('builder_body').value = bodyContent;
+            document.getElementById('builder_body').value = bodyMatch[2].replace(/\\"/g, '"').replace(/\\'/g, "'");
         }
         
         updateCurlPreview();
-        if (showAlert) alert('✅ CURL parseado com sucesso!');
         return true;
-    } catch (error) {
-        if (showAlert) alert('❌ Erro ao parsear CURL: ' + error.message);
+    } catch (e) {
+        if(showAlert) alert('Não foi possível ler o texto.');
         return false;
     }
 }
 
-// Parse CURL (com alert)
-function parseCurl() {
-    doParseCurl(true);
-}
+function parseCurl() { doParseCurl(true); }
 
-// Builder to CURL
 function builderToCurl() {
     const method = document.getElementById('builder_method').value;
     const url = document.getElementById('builder_url').value;
@@ -394,93 +318,49 @@ function builderToCurl() {
     let curl = `curl -X ${method} ${url}`;
     
     document.querySelectorAll('.header-item').forEach(item => {
-        const key = item.querySelector('.header-key').value;
-        const value = item.querySelector('.header-value').value;
-        if (key && value) {
-            curl += ` \\\n  -H "${key}: ${value}"`;
-        }
+        const k = item.querySelector('.header-key').value, v = item.querySelector('.header-value').value;
+        if (k && v) curl += ` \\\n  -H "${k}: ${v}"`;
     });
     
     document.querySelectorAll('.query-item').forEach(item => {
-        const key = item.querySelector('.query-key').value;
-        const value = item.querySelector('.query-value').value;
-        if (key) {
-            curl += (curl.includes('?') ? '&' : '?') + `${key}=${value}`;
-        }
+        const k = item.querySelector('.query-key').value, v = item.querySelector('.query-value').value;
+        if (k) curl += (curl.includes('?') ? '&' : '?') + `${k}=${v}`;
     });
     
-    if (body && method !== 'GET') {
-        curl += ` \\\n  -d '${body}'`;
-    }
+    if (body && method !== 'GET') curl += ` \\\n  -d '${body}'`;
     
     document.getElementById('curl_input').value = curl;
     document.getElementById('curl_preview').textContent = curl;
 }
 
-function updateCurlPreview() {
-    builderToCurl();
-}
+function updateCurlPreview() { builderToCurl(); }
 
-function addHeader() {
-    const container = document.getElementById('headers_list');
+function addDynamicItem(targetId, kHelp, vHelp) {
+    const container = document.getElementById(targetId);
     const div = document.createElement('div');
-    div.className = 'field has-addons header-item mb-2';
+    div.className = `flex gap-xs mb-xs ${targetId.replace('_list', '')}-item`;
     div.innerHTML = `
-        <div class="control is-expanded">
-            <input class="input header-key" type="text" placeholder="Header name" onkeyup="updateCurlPreview()">
-        </div>
-        <div class="control is-expanded">
-            <input class="input header-value" type="text" placeholder="Header value" onkeyup="updateCurlPreview()">
-        </div>
-        <div class="control">
-            <button type="button" class="button is-danger" onclick="this.parentElement.parentElement.remove(); updateCurlPreview();">
-                <span class="icon"><i class="fas fa-times"></i></span>
-            </button>
-        </div>
+        <input class="input is-small ${targetId.replace('_list', '')}-key" type="text" placeholder="${kHelp}" onkeyup="updateCurlPreview()" style="font-family: monospace; font-size: 0.75rem;">
+        <input class="input is-small ${targetId.replace('_list', '')}-value" type="text" placeholder="${vHelp}" onkeyup="updateCurlPreview()" style="font-family: monospace; font-size: 0.75rem;">
+        <button type="button" class="button is-small is-danger" style="background: transparent; border: none; color: #ef4444;" onclick="this.parentElement.remove(); updateCurlPreview();"><i class="fas fa-times"></i></button>
     `;
     container.appendChild(div);
 }
 
-function addQueryParam() {
-    const container = document.getElementById('query_list');
-    const div = document.createElement('div');
-    div.className = 'field has-addons query-item mb-2';
-    div.innerHTML = `
-        <div class="control is-expanded">
-            <input class="input query-key" type="text" placeholder="Param name" onkeyup="updateCurlPreview()">
-        </div>
-        <div class="control is-expanded">
-            <input class="input query-value" type="text" placeholder="Param value" onkeyup="updateCurlPreview()">
-        </div>
-        <div class="control">
-            <button type="button" class="button is-danger" onclick="this.parentElement.parentElement.remove(); updateCurlPreview();">
-                <span class="icon"><i class="fas fa-times"></i></span>
-            </button>
-        </div>
-    `;
-    container.appendChild(div);
-}
+function addHeader() { addDynamicItem('headers_list', 'Ex: Authorization', 'Ex: Bearer ...'); }
+function addQueryParam() { addDynamicItem('query_list', 'Ex: page_size', 'Ex: 20'); }
 
 function saveCurl() {
-    // Se o builder foi usado, atualizar o CURL
-    const builderUrl = document.getElementById('builder_url').value;
-    if (builderUrl) {
-        builderToCurl();
-    }
-    const curlText = document.getElementById('curl_input').value;
-    document.getElementById('curl_command_hidden').value = curlText;
+    if (document.getElementById('builder_url')) builderToCurl();
+    const curlEl = document.getElementById('curl_input');
+    if (curlEl) document.getElementById('curl_command_hidden').value = curlEl.value;
 }
 
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    addHeader();
-    addHeader();
-    
-    // Se houver um CURL já definido, fazer parse automático (sem alert)
-    const curlInput = document.getElementById('curl_input');
-    if (curlInput && curlInput.value.trim()) {
-        doParseCurl(false);
+window.onload = () => {
+    if(document.getElementById('headers_list')) {
+        addHeader(); addHeader();
+        if (document.getElementById('curl_input').value.trim()) doParseCurl(false);
     }
-});
+};
 </script>
 {% endblock %}

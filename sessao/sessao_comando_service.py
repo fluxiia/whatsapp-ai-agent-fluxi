@@ -98,6 +98,24 @@ class SessaoComandoService:
         if cmd_trocar and cmd_trocar.ativo:
             gatilho = cmd_trocar.gatilho.lower()
             if texto_lower.startswith(gatilho) and len(texto_lower) > len(gatilho):
+                # Proteção: Ignorar se for comando do Coding Agent (ex: #code)
+                try:
+                    from agente.agente_model import Agente as AgenteModel
+                    agente_coding = db.query(AgenteModel).filter(
+                        AgenteModel.sessao_id == sessao_id,
+                        AgenteModel.is_coding_agent == True
+                    ).first()
+                    if agente_coding:
+                        from coding_agent.coding_service import CodingService
+                        cs = CodingService.obter_sessao_por_agente(db, agente_coding.id)
+                        if cs:
+                            prefix_coding = (cs.routing_prefix or "#code").lower()
+                            if texto_lower.startswith(prefix_coding):
+                                return None
+                except Exception:
+                    if texto_lower.startswith("#code"):
+                        return None
+                        
                 return cmd_trocar
         
         return None
