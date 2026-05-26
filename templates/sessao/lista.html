@@ -150,10 +150,10 @@
         <div class="flex flex-col gap-lg">
 
             <div class="box"
-                style="padding: var(--space-md) var(--space-lg); background: var(--color-bg-tertiary); border: none;">
+                style="padding: var(--space-md) var(--space-lg); background: var(--color-surface); border: 1px solid var(--color-border);">
                 <div class="flex items-center gap-sm mb-md">
-                    <i class="fas fa-book-open" style="color: var(--color-text-tertiary);"></i>
-                    <strong style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Manual do
+                    <i class="fas fa-book-open" style="color: var(--color-primary);"></i>
+                    <strong style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-primary);">Manual do
                         Operador</strong>
                 </div>
                 <div class="protocol-list">
@@ -362,8 +362,8 @@
     .protocol-item .num {
         font-weight: 900;
         font-size: 0.875rem;
-        color: var(--color-primary);
-        background: var(--color-primary-light);
+        color: #ffffff;
+        background: var(--color-primary);
         width: 28px;
         height: 28px;
         display: flex;
@@ -377,12 +377,14 @@
         font-size: 0.8125rem;
         color: var(--color-text-primary);
         margin-bottom: 2px;
+        font-weight: 700;
     }
 
     .protocol-item p {
         font-size: 0.75rem;
         line-height: 1.5;
         color: var(--color-text-secondary);
+        margin: 0;
     }
 </style>
 {% endblock %}

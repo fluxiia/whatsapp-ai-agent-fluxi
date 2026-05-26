@@ -6,7 +6,10 @@
 :root {
     /* Cores Primárias — paleta Fluxi (roxo) */
     --color-primary: #6841A8;
-    --color-primary-light: #8B62C9;
+    /* primary-light é um TOM SOFT pra usar como BACKGROUND com texto em primary
+       (ex.: badges, pills, hover). NÃO é um "roxo claro" pra cor de texto — pra
+       isso, use diretamente o hex #8B62C9 ou ajuste via opacity. */
+    --color-primary-light: #F3EBFB;
     --color-primary-dark: #4B2B7E;
 
     /* Cores Secundárias — paleta Fluxi (magenta) */
@@ -92,6 +95,10 @@
 
     --color-border: #334155;
     --color-border-light: #1e293b;
+
+    /* Em dark mode, primary-light vira um roxo translúcido pra hover/pill bg */
+    --color-primary-light: rgba(139, 98, 201, 0.18);
+    --color-brand-soft: rgba(139, 98, 201, 0.12);
 
     --color-success-light: rgba(16, 185, 129, 0.1);
     --color-warning-light: rgba(245, 158, 11, 0.1);
